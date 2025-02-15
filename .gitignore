@@ -1,0 +1,51 @@
+# Node.js dependencies
+/node_modules/
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE or editor specific files
+.vscode/
+.idea/
+
+# npm package lock file (for using package-lock.json with caution)
+package-lock.json
+
+# Build directories
+/dist/
+/build/
+/out/
+
+# Environment variables
+.env
+
+# Mac OS X
+*.swp
+*~
+
+# Test coverage directory
+/coverage/
+
+# IDE specific files (e.g., JetBrains, VS Code)
+.vscode/
+.idea/
+
+# Temporary files
+*.bak
+*.swp
+
+# Python (if applicable)
+__pycache__/
+*.py[cod]
+
+# If using Docker, exclude the Dockerfile and docker-compose related files that should not be pushed
+*.dockerfile
+docker-compose.override.yml
+
+# Specific to some frameworks (e.g., Ruby, Python, etc.)
+/*.sqlite3
