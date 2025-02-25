@@ -33,4 +33,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Siem changed this comment
+console.log(res.status)
+
 module.exports = router;
