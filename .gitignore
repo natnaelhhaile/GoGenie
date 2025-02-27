@@ -92,6 +92,7 @@ coverage/
 *.tar.gz
 
 # Ignore environment-specific files
+.env
 .env.*
 .env.local
 .env.development
