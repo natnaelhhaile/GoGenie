@@ -1,13 +1,13 @@
 {
-  "name": "cultureconnect",
+  "name": "gogenie",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Natnael Haile & Siem Hagos",
   "license": "ISC",
   "description": "",
   "dependencies": {
@@ -16,10 +16,21 @@
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "firebase": "^10.14.1",
+    "firebaseui": "^6.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.10.0"
+    "mongoose": "^8.10.0",
+    "serve": "^14.2.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/natnaelhhaile/GoGenie.git"
+  },
+  "bugs": {
+    "url": "https://github.com/natnaelhhaile/GoGenie/issues"
+  },
+  "homepage": "https://github.com/natnaelhhaile/GoGenie#readme"
 }
