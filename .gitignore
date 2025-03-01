@@ -48,6 +48,8 @@ firebase.json
 firestore.indexes.json
 firestore.rules
 
+server/config/serviceAccountKey.json
+
 # Machine Learning models and large files
 /models/*.h5
 /models/*.pkl

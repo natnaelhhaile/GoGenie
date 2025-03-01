@@ -1,0 +1,10 @@
+.container {
+  width: 90%; /* Adjust container width dynamically */
+  max-width: 300px; /* Prevent it from being too wide */
+  background-color: white;
+  border-radius: 25px; /* Creates rounded effect */
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  padding: 35px;
+  margin: 20px auto;
+  text-align: center;
+}

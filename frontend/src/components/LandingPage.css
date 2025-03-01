@@ -1,0 +1,83 @@
+/* Mobile-first design for Landing Page */
+.landing-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100vh;
+    max-width: 400px; /* Limits width to mobile size */
+    margin: auto;
+    background-color: #f8f9fa;
+    padding: 20px;
+  }
+  
+  /* Image container for better mobile fit */
+  .image-wrapper img {
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    margin-bottom: 100px;
+    border-radius: 16px;
+  }
+  
+  /* Title Styling */
+  h2 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 20px;
+  }
+
+  /* buttons  */
+  .button-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    width: 100%; /* Ensure buttons take full width */
+    max-width: 300px; /* Prevent excessive stretching */
+    margin: auto;
+  }
+  
+  .btn {
+    background-color: #000;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 25px;
+    font-size: 1rem;
+    cursor: pointer;
+    width: 100%; /* Make button responsive */
+    max-width: 280px; /* Set max width for better scaling */
+  }
+  
+  .btn:hover {
+    background-color: #a58662c3;
+  }
+  
+
+  
+  /* Responsive Adjustments for Larger Screens */
+  @media (min-width: 768px) {
+    .landing-container {
+      max-width: 500px;
+    }
+  
+    .image-wrapper img {
+      max-width: 400px;
+    }
+  }
+  
+  @media (min-width: 600px) {
+    .container {
+      max-width: 450px; /* Adjust width for larger screens */
+    }
+  }
+  
+  @media (max-width: 360px) {
+    .btn {
+      max-width: 260px; /* Reduce button width for smaller screens */
+    }
+  }
+  
