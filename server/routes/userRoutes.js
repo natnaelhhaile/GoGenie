@@ -23,25 +23,6 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Fetch user with preferences
-router.get("/preferences/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    // ✅ Find the user's preferences
-    const preferences = await Preferences.findOne({ user: userId });
-
-    if (!preferences) {
-      return res.status(200).json();
-    }
-
-    res.status(200).json(preferences);
-  } catch (error) {
-    console.error("❌ Error fetching preferences:", error);
-    res.status(500).json({ message: "Server error", error });
-  }
-});
-
 
 // New routes for 1. login|register | 2. preferences |  March 13, 2024
 // ✅ Check if user exists, if not, create one
@@ -67,7 +48,7 @@ router.post("/login-or-register", async (req, res) => {
   }
 });
 
-// ✅ Save or Update User Preferences
+// Route to Save or Update User Preferences
 router.post("/preferences", async (req, res) => {
   try {
     const { userId, name, age, gender, nationality, industry, hobbies, foodPreferences, thematicPreferences } = req.body;
@@ -112,6 +93,58 @@ router.post("/preferences", async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 });
+
+// Route to Fetch user with preferences
+router.get("/preferences/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // ✅ Find the user's preferences
+    const preferences = await Preferences.findOne({ user: userId });
+
+    if (!preferences) {
+      return res.status(200).json();
+    }
+
+    res.status(200).json(preferences);
+  } catch (error) {
+    console.error("❌ Error fetching preferences:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
+// Route to update preferences
+router.put("/preferences/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { name, age, gender, nationality, industry, hobbies, foodPreferences, thematicPreferences } = req.body;
+
+    // ✅ Find user preferences
+    let preferences = await Preferences.findOne({ user: userId });
+
+    if (!preferences) {
+      return res.status(404).json({ message: "Preferences not found" });
+    }
+
+    // ✅ Update preferences
+    preferences.name = name;
+    preferences.age = age;
+    preferences.gender = gender;
+    preferences.nationality = nationality;
+    preferences.industry = industry;
+    preferences.hobbies = hobbies;
+    preferences.foodPreferences = foodPreferences;
+    preferences.thematicPreferences = thematicPreferences;
+
+    await preferences.save();
+    res.status(200).json({ message: "Preferences updated successfully!", preferences });
+
+  } catch (error) {
+    console.error("❌ Error updating preferences:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
 
 
 module.exports = router;
