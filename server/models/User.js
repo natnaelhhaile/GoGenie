@@ -1,12 +1,9 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema({
-  user_id: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
+const UserSchema = new mongoose.Schema({
+  user_id: { type: String, required: true, unique: true }, // Firebase User ID
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-  preferences: { type: mongoose.Schema.Types.ObjectId, ref: 'Preference' } // Foreign Key
+  createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model("User", UserSchema);

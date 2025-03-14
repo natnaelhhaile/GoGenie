@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import Container from "./Container";
 import "./ProfileSetup.css";
+import axios from "axios";
 
 const ProfileSetup = () => {
   const navigate = useNavigate();
@@ -35,11 +36,24 @@ const ProfileSetup = () => {
 
   const handleNext = () => setStep((prev) => prev + 1);
   const handleBack = () => setStep((prev) => prev - 1);
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Profile Data:", profile);
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  const userId = localStorage.getItem("userId"); // Retrieve user ID from local storage
+
+  try {
+    const response = await axios.post("http://localhost:5000/api/users/preferences", {
+      userId,
+      ...profile
+    });
+
+    console.log("Preferences saved:", response.data);
     navigate("/dashboard");
-  };
+  } catch (error) {
+    console.error("Error saving preferences:", error.response ? error.response.data : error);
+  }
+};
+
 
   return (
     <Container>

@@ -1,10 +1,10 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext"; // Provide Auth State
 import Auth from "./components/Auth";
 import Dashboard from "./components/Dashboard";
 // import Home from "./components/Home";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { AuthProvider } from "./context/AuthContext"; // Provide Auth State
 import LandingPage from "./components/LandingPage";
 import RegisterPage from "./components/RegisterPage";
 import LoginPage from "./components/LoginPage";

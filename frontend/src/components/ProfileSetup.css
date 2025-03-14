@@ -26,6 +26,22 @@
     flex-direction: column;
     gap: 10px;
   }
+
+  .step-content input {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+  }
+
+  .step-content select {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+  }
+
+  .step-content option {
+    text-decoration: none;
+  }
   
   .grid-container {
     display: grid;
