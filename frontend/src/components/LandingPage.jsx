@@ -8,8 +8,6 @@ import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import * as firebaseui from "firebaseui";
 import "firebaseui/dist/firebaseui.css";
 
-// import "./RegisterPage.css";
-
 
 const LandingPage = () => {
   const navigate = useNavigate();

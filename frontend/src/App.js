@@ -6,7 +6,6 @@ import Dashboard from "./components/Dashboard";
 // import Home from "./components/Home";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LandingPage from "./components/LandingPage";
-import RegisterPage from "./components/RegisterPage";
 import LoginPage from "./components/LoginPage";
 import ProfileSetup from "./components/ProfileSetup";
 
@@ -18,7 +17,6 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login2" element={<Auth />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<RegisterPage/>} />
           
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
