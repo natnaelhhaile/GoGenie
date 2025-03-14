@@ -32,7 +32,7 @@ router.get("/preferences/:userId", async (req, res) => {
     const preferences = await Preferences.findOne({ user: userId });
 
     if (!preferences) {
-      return res.status(404).json({ message: "Preferences not found" });
+      return res.status(200).json();
     }
 
     res.status(200).json(preferences);
@@ -46,6 +46,7 @@ router.get("/preferences/:userId", async (req, res) => {
 // New routes for 1. login|register | 2. preferences |  March 13, 2024
 // ✅ Check if user exists, if not, create one
 router.post("/login-or-register", async (req, res) => {
+  console.log("request accepted")
   try {
     const { userId, email } = req.body;
 

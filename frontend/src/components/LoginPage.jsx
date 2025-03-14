@@ -16,9 +16,15 @@ const LoginPage = () => {
     e.preventDefault();
     const auth = getAuth();
 
+    console.log(process.env.REACT_APP_PORT);
+
     try {
       // ✅ Firebase Authentication
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       console.log("✅ Email Login Successful:", userCredential.user);
 
       // ✅ Retrieve userId and Token from Firebase
@@ -28,11 +34,28 @@ const LoginPage = () => {
       // ✅ Store in Local Storage
       localStorage.setItem("token", token);
       localStorage.setItem("userId", userId);
+      console.log(token);
 
       // ✅ Send userId to the backend to check if user exists (or create new entry)
-      await axios.post("http://localhost:5000/api/users/login-or-register", { userId, email });
+      // ✅ Check if user preferences exist
+      const response = await axios.get(
+        `http://localhost:5001/api/users/preferences/${userId}`
+      );
+      console.log("request to preference users")
+      if (response.data) {
+        console.log("✅ Preferences found, redirecting to Dashboard");
+        navigate("/dashboard"); // ✅ Redirect to Dashboard if preferences exist
+      } else {
+        console.log("❌ No preferences found, redirecting to Profile Setup");
+        // ✅ Send userId to the backend to check if user exists (or create new entry if not)
+        await axios.post(`http://localhost:5001/api/users/login-or-register`, {
+          userId,
+          email,
+        });
 
-      navigate("/profile-setup"); // Redirect to Profile Setup after login
+        // Redirect to Profile Setup after login
+        navigate("/profile-setup");
+      }
     } catch (err) {
       console.error("❌ Login Error:", err.message);
       setError(err.message); // Display error message
