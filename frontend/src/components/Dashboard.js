@@ -8,16 +8,19 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       const user = auth.currentUser;
       if (user) {
+        // console.log("User:", user);
+        setMessage(`Welcome, ${user.displayName ? user.displayName : user.email}!`);
         const token = await user.getIdToken(); // Get Firebase token
 
-        fetch("http://localhost:5000/api/dashboard", {
-          headers: {
-            Authorization: `Bearer ${token}`, // Send token in headers
-          },
-        })
-          .then((res) => res.json())
-          .then((data) => setMessage(data.message)) // Store API response
-          .catch((error) => console.error("Error fetching data:", error));
+
+        // fetch("http://localhost:5000/api/dashboard", {
+        //   headers: {
+        //     Authorization: `Bearer ${token}`, // Send token in headers
+        //   },
+        // })
+        //   .then((res) => res.json())
+        //   .then((data) => setMessage(data.message)) // Store API response
+        //   .catch((error) => console.error("Error fetching data:", error));
       }
     };
 

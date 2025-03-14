@@ -18,9 +18,6 @@ const Auth = () => {
     window.firebaseUiInstance.start("#firebaseui-auth-container", {
       signInOptions: [
         "google.com",
-        "facebook.com",
-        "phone",
-        "anonymous",
         {
           provider: "password",
           requireDisplayName: true,
