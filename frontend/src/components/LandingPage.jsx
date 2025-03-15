@@ -58,11 +58,11 @@ const LandingPage = () => {
         <div className="image-wrapper">
           <img src={landingImage} alt="People socializing" />
         </div>
-        <h2>Welcome to CultureConnect</h2>
+        <h2>Welcome to GoGenie</h2>
         <div id="firebaseui-auth-container"></div>
         <p>OR</p>
         <div className="button-group">
-          <button className="btn" onClick={() => navigate("/login")}>Login</button>
+          <button className="btn" onClick={() => navigate("/login")}>Login with Email</button>
         </div>
       </Container>
     );

@@ -30,6 +30,28 @@ h2 {
   margin-bottom: 20px;
 }
 
+#firebaseui-auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  width: 100% !important;
+  max-width: 380px !important; /*Prevent excessive stretching */
+  margin: auto;
+  border: none;
+}
+
+#firebaseui-auth-container button {
+  border: none;
+  padding: 12px;
+  border-radius: 25px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin: auto;
+  max-width: 400px;
+  text-align: center;
+}
+
 /* buttons  */
 .button-group {
   display: flex;
