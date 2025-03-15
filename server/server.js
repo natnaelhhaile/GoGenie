@@ -4,12 +4,12 @@ const cors = require("cors");
 const mongoose = require("mongoose")
 const protectedRoutes = require("./routes/protectedRoutes");
 const userRoutes = require('./routes/userRoutes');
+const recommendationRoutes = require("./routes/recommendationRoutes");
 // const preferenceRoutes = require('./routes/preferenceRoutes');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-
 
 // ✅ Enable CORS (Allow Frontend to Access Backend)
 app.use(cors({ origin: "*" }));
@@ -22,9 +22,10 @@ mongoose.connect(process.env.MONGO_URI, {
 
 app.use("/api/routes", protectedRoutes);
 app.use('/api/users', userRoutes);
+app.use("/api/recommendations", recommendationRoutes);
 // app.use('/api/preferences', preferenceRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });

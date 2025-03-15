@@ -11,12 +11,13 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     const auth = getAuth();
 
-    console.log(process.env.REACT_APP_PORT);
+    console.log(BACKEND_URL);
 
     try {
       // ✅ Firebase Authentication
@@ -37,14 +38,17 @@ const LoginPage = () => {
       console.log(token);
 
       // ✅ Check if user preferences exist
-      const response = await axios.get(`http://localhost:5000/api/users/preferences/${userId}`);
+      const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`);
       if (response.data) {
         console.log("✅ Preferences found, redirecting to Dashboard");
         navigate("/dashboard"); // ✅ Redirect to Dashboard if preferences exist
       } else {
         console.log("❌ No preferences found, redirecting to Profile Setup");
         // ✅ Send userId to the backend to check if user exists (or create new entry if not)
-        await axios.post("http://localhost:5000/api/users/login-or-register", { userId, email });
+        await axios.post(`${BACKEND_URL}/api/users/login-or-register`, { 
+          userId, 
+          email 
+        });
 
         // Redirect to Profile Setup after login
         navigate("/profile-setup");

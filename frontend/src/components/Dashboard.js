@@ -6,14 +6,21 @@ import { FaChildReaching } from "react-icons/fa6";
 import { FaHeart } from "react-icons/fa";
 import { MdHomeFilled } from "react-icons/md";
 import { GoClock } from "react-icons/go";
-import { IoSearchOutline, IoPersonOutline } from "react-icons/io5";
+import { IoSearchOutline, IoPersonOutline, IoLocationSharp } from "react-icons/io5";
 import "./Dashboard.css"; // Ensure styling is imported
 
 const Dashboard = () => {
   const [userPreferences, setUserPreferences] = useState(null);
+  const [recommendations, setRecommendations] = useState([]); // ✅ Store recommended places
   const [message, setMessage] = useState("");
   const [showUserModal, setShowUserModal] = useState(false);
   const navigate = useNavigate();
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
+  // ✅ Preload images from /assets/dum1.png to /assets/dum10.png
+  const imageSources = Array.from({ length: 10 }, (_, i) =>
+    require(`../assets/dum${i + 1}.jpg`)
+  );
 
   useEffect(() => {
     const fetchUserPreferences = async () => {
@@ -23,7 +30,7 @@ const Dashboard = () => {
         const userId = user.uid;
 
         try {
-          const response = await axios.get(`http://localhost:5000/api/users/preferences/${userId}`);
+          const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`);
           setUserPreferences(response.data);
         } catch (error) {
           console.error("❌ Error fetching preferences:", error);
@@ -31,8 +38,26 @@ const Dashboard = () => {
       }
     };
 
+    const fetchRecommendations = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      const userId = user.uid;
+
+      try {
+        const response = await axios.get(`${BACKEND_URL}/api/recommendations/user-venues/${userId}`);
+        if (Array.isArray(response.data.recommendations)) {
+          setRecommendations(response.data.recommendations);
+        } else {
+          console.error("❌ Unexpected response format:", response.data);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching recommendations:", error);
+      }
+    };
+
     fetchUserPreferences();
-  }, []);
+    fetchRecommendations();
+  }, [BACKEND_URL]);
 
   return (
     <div className="dashboard-container">
@@ -59,6 +84,16 @@ const Dashboard = () => {
             <p>Fremont Biryani House</p>
             <span><GoClock className="clock-icon" /> 20 Min</span>
           </div>
+          <div className="featured-item">
+            <img src={require(`../assets/Bowlero_Milpitas.png`)} alt="Bowlero Milpitas" />
+            <p>Fremont Biryani House</p>
+            <span><GoClock className="clock-icon" /> 20 Min</span>
+          </div>
+          <div className="featured-item">
+            <img src={require(`../assets/Spin_A_Yarn_Steakhouse.png`)} alt="Spin A Yarn Steakhouse" />
+            <p>Fremont Biryani House</p>
+            <span><GoClock className="clock-icon" /> 20 Min</span>
+          </div>
         </div>
       </section>
 
@@ -75,17 +110,37 @@ const Dashboard = () => {
         </div>
       </section>
 
+      {/* ✅ Places Section (Updated to show recommendations) */}
       <section className="places-section">
-        <div className="place-item">
-          <img src={require(`../assets/Bowlero_Milpitas.png`)} alt="Bowlero Milpitas" />
-          <p>Bowlero Milpitas</p>
-          <span><GoClock className="clock-icon" /> 20 Min</span>
-        </div>
-        <div className="place-item">
-          <img src={require(`../assets/Spin_A_Yarn_Steakhouse.png`)} alt="Spin A Yarn Steakhouse" />
-          <p>Spin A Yarn Steakhouse</p>
-          <span><GoClock className="clock-icon" /> 20 Min </span>
-        </div>
+        {recommendations.length > 0 ? (
+          recommendations.map((venue, index) => {
+            // ✅ Extract city from formatted address
+            const addressParts = venue.location.address.split(",");
+            const city = addressParts.length >= 2 ? addressParts[addressParts.length - 2].trim() : "Unknown City";
+            // ✅ Assign random image based on venue index
+            const venueImage = imageSources[index % imageSources.length];
+            return (
+              <div key={venue.venue_id || index} className="place-item">
+                <img src={venueImage} alt={venue.name} />
+                <p>{venue.name}</p>
+                <span><IoLocationSharp className="clock-icon" /> {city} </span>
+              </div>
+            );
+          })
+        ) : (
+          <>
+            <div className="place-item">
+              <img src={require(`../assets/Bowlero_Milpitas.png`)} alt="Bowlero Milpitas" />
+              <p>Bowlero Milpitas</p>
+              <span><GoClock className="clock-icon" /> 20 Min</span>
+            </div>
+            <div className="place-item">
+              <img src={require(`../assets/Spin_A_Yarn_Steakhouse.png`)} alt="Spin A Yarn Steakhouse" />
+              <p>Spin A Yarn Steakhouse</p>
+              <span><GoClock className="clock-icon" /> 20 Min </span>
+            </div>
+          </>
+        )}
       </section>
 
       <div className="dashboard-footer">
@@ -98,7 +153,7 @@ const Dashboard = () => {
         <MdHomeFilled className="nav-icon active" />
         <IoSearchOutline className="nav-icon" />
         <FaHeart className="nav-icon" />
-        <IoPersonOutline className="nav-icon user" onClick={() => setShowUserModal(true)} /> 
+        <IoPersonOutline className="nav-icon user" onClick={() => setShowUserModal(true)} />
       </footer>
 
       {/* ✅ User Details Modal */}

@@ -19,6 +19,7 @@ const ProfileSetup = () => {
     foodPreferences: [],
     thematicPreferences: []
   });
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
   const hobbiesList = ["Music", "Reading", "Sports", "Gaming", "Traveling"];
   const foodList = ["Vegan", "Seafood", "Fast Food", "Desserts"];
@@ -43,13 +44,13 @@ const ProfileSetup = () => {
   const userId = localStorage.getItem("userId"); // Retrieve user ID from local storage
 
   try {
-    const response = await axios.post("http://localhost:5000/api/users/preferences", {
+    const response = await axios.post(`${BACKEND_URL}/api/users/preferences`, {
       userId,
       ...profile
     });
 
     console.log("Preferences saved:", response.data);
-    navigate("/dashboard");
+    navigate("/recommendation");
   } catch (error) {
     console.error("Error saving preferences:", error.response ? error.response.data : error);
   }

@@ -119,7 +119,7 @@ router.get("/preferences/:userId", async (req, res) => {
 router.put("/preferences/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    const { name, age, gender, nationality, industry, hobbies, foodPreferences, thematicPreferences } = req.body;
+    const { name, age, gender, nationality, industry, location, hobbies, foodPreferences, thematicPreferences } = req.body;
 
     // ✅ Find user preferences
     let preferences = await Preferences.findOne({ user: userId });
