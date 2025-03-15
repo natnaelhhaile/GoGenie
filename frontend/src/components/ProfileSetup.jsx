@@ -14,6 +14,7 @@ const ProfileSetup = () => {
     gender: "",
     nationality: "",
     industry: "",
+    location: "",
     hobbies: [],
     foodPreferences: [],
     thematicPreferences: []
@@ -83,6 +84,7 @@ const ProfileSetup = () => {
             </select>
             <input type="text" name="nationality" placeholder="Nationality" value={profile.nationality} onChange={handleChange} />
             <input type="text" name="industry" placeholder="Industry" value={profile.industry} onChange={handleChange} />
+            <input type="text" name="location" placeholder="Location (city, CA)" value={profile.location} onChange={handleChange} />
           </div>
         )}
 

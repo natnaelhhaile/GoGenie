@@ -7,6 +7,7 @@ const PreferencesSchema = new mongoose.Schema({
   gender: { type: String, required: true },
   nationality: { type: String, required: true },
   industry: { type: String, required: true },
+  location: { type: String, required: true },
   hobbies: { type: [String], required: true },
   foodPreferences: { type: [String], required: true },
   thematicPreferences: { type: [String], required: true }

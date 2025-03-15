@@ -1,16 +1,17 @@
 /* Mobile-first design for Landing Page */
-.landing-container {
+/* .landing-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   height: 100vh;
-  max-width: 400px; /* Limits width to mobile size */
+  max-width: 400px;
   margin: auto;
   background-color: #f8f9fa;
-  padding: 20px;
-}
+  padding: 20px; 
+ }  */
+
   
 /* Image container for better mobile fit */
 .image-wrapper img {

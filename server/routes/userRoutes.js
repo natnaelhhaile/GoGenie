@@ -51,7 +51,7 @@ router.post("/login-or-register", async (req, res) => {
 // Route to Save or Update User Preferences
 router.post("/preferences", async (req, res) => {
   try {
-    const { userId, name, age, gender, nationality, industry, hobbies, foodPreferences, thematicPreferences } = req.body;
+    const { userId, name, age, gender, nationality, industry, location, hobbies, foodPreferences, thematicPreferences } = req.body;
 
     // Check if user exists
     const user = await User.findOne({user_id : userId});
@@ -67,6 +67,7 @@ router.post("/preferences", async (req, res) => {
       preferences.gender = gender;
       preferences.nationality = nationality;
       preferences.industry = industry;
+      preferences.location = location;
       preferences.hobbies = hobbies;
       preferences.foodPreferences = foodPreferences;
       preferences.thematicPreferences = thematicPreferences;
@@ -79,6 +80,7 @@ router.post("/preferences", async (req, res) => {
         gender,
         nationality,
         industry,
+        location,
         hobbies,
         foodPreferences,
         thematicPreferences
@@ -132,6 +134,7 @@ router.put("/preferences/:userId", async (req, res) => {
     preferences.gender = gender;
     preferences.nationality = nationality;
     preferences.industry = industry;
+    preferences.location = location;
     preferences.hobbies = hobbies;
     preferences.foodPreferences = foodPreferences;
     preferences.thematicPreferences = thematicPreferences;
