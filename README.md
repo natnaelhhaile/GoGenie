@@ -131,8 +131,8 @@ GoGenie/
 ---
 
 ## Authors
-- [Natnael Haile]([url](https://github.com/natnaelhhaile))
-- [Siem Hagos]([url](https://github.com/siezer-5997))
+- ([Natnael Haile](https://github.com/natnaelhhaile))
+- ([Siem Hagos](https://github.com/siezer-5997))
 
 ---
 
