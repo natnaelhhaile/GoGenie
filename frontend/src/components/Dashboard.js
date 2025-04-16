@@ -7,6 +7,8 @@ import { FaHeart } from "react-icons/fa";
 import { MdHomeFilled } from "react-icons/md";
 import { GoClock } from "react-icons/go";
 import { IoSearchOutline, IoPersonOutline, IoLocationSharp } from "react-icons/io5";
+import { FaThumbsUp } from "react-icons/fa";
+import { FaThumbsDown } from "react-icons/fa";
 import "./Dashboard.css"; // Ensure styling is imported
 
 const Dashboard = () => {
@@ -123,7 +125,14 @@ const Dashboard = () => {
               <div key={venue.venue_id || index} className="place-item">
                 <img src={venueImage} alt={venue.name} />
                 <p>{venue.name}</p>
-                <span><IoLocationSharp className="clock-icon" /> {city} </span>
+                <div className="icons-row">
+                  <span><FaThumbsUp className="thumbs-up" /></span>
+                  <span className="location-info">
+                    <IoLocationSharp className="location-pin" />
+                    <span className="city-name">{city}</span>
+                  </span>
+                  <span><FaThumbsDown className="thumbs-down" /></span>
+                </div>
               </div>
             );
           })
