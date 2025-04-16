@@ -40,29 +40,43 @@ router.get("/user-venues/:userId", async (req, res) => {
 
     for (const venue of venues) {
       const existingVenue = await Recommendation.findOne({ venue_id: venue.fsq_id });
-
-      const venueRating = venue.rating || 4.0;
-      const ratingScore = (venueRating - 3) / 2;
-      const distance = venue.distance || MAX_DISTANCE;
-      const proximityScore = Math.max(0, 1 - distance / MAX_DISTANCE);
-
+      
       const userTags = [
         ...(userPreferences.hobbies || []),
         ...(userPreferences.foodPreferences || []),
         ...(userPreferences.thematicPreferences || [])
       ].map(t => t.toLowerCase());
-
+      
       const venueTags = extractTagsFromFeatures(venue.features || {});
-
+      
       const userVector = tagsVocabulary.map(tag => userTags.includes(tag.toLowerCase()) ? 1 : 0);
       const venueVector = tagsVocabulary.map(tag => venueTags.includes(tag.toLowerCase()) ? 1 : 0);
+      
+      const similarity = calculateCosineSimilarity(userVector, venueVector);
+      
+      const distance = venue.distance || MAX_DISTANCE;
+      const proximityScore = Math.max(0, 1 - distance / MAX_DISTANCE);
 
-      const similarityScore = calculateCosineSimilarity(userVector, venueVector);
-
+      const hasRating = typeof venue.rating === 'number';
+      const hasPopularity = typeof venue.popularity === 'number';
+      const normalizedRating = hasRating ? (venue.rating - 3) / 2 : 0;
+      const popularityScore = hasPopularity ? venue.popularity : 0;
+      
+      let compositeRatingScore;
+      if (hasRating && hasPopularity) {
+        compositeRatingScore = (normalizedRating + popularityScore) / 2;
+      } else if (hasRating) {
+        compositeRatingScore = normalizedRating;
+      } else if (hasPopularity) {
+        compositeRatingScore = popularityScore;
+      } else {
+        compositeRatingScore = 0;
+      }
+  
       const priorityScore = (
-        similarityScore * 0.5 +
+        similarity * 0.5 +
         proximityScore * 0.3 +
-        ratingScore * 0.2
+        compositeRatingScore * 0.2
       ).toFixed(3);
 
       let finalVenue;
@@ -72,6 +86,8 @@ router.get("/user-venues/:userId", async (req, res) => {
           name: venue.name,
           category: venue.categories?.[0]?.name || "Unknown",
           features: venue.features,
+          rating: venue.rating,
+          priority: venue.priority,
           tags: venueTags,
           location: {
             address: venue.location.formatted_address,

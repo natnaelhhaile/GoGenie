@@ -55,13 +55,27 @@ router.post("/feedback", async (req, res) => {
     // ✅ Recompute priority score
     const distance = venue.distance || MAX_DISTANCE;
     const proximityScore = Math.max(0, 1 - distance / MAX_DISTANCE);
-    const rating = venue.rating || 4.0;
-    const ratingScore = (rating - 3) / 2;
+
+    const hasRating = typeof venue.rating === 'number';
+    const hasPopularity = typeof venue.popularity === 'number';
+    const normalizedRating = hasRating ? (venue.rating - 3) / 2 : 0;
+    const popularityScore = hasPopularity ? venue.popularity : 0;
+
+    let compositeRatingScore;
+    if (hasRating && hasPopularity) {
+      compositeRatingScore = (normalizedRating + popularityScore) / 2;
+    } else if (hasRating) {
+      compositeRatingScore = normalizedRating;
+    } else if (hasPopularity) {
+      compositeRatingScore = popularityScore;
+    } else {
+      compositeRatingScore = 0;
+    }
 
     const priorityScore = (
       similarity * 0.5 +
       proximityScore * 0.3 +
-      ratingScore * 0.2
+      compositeRatingScore * 0.2
     ).toFixed(3);
 
     await UserVenueScore.findOneAndUpdate(
