@@ -38,20 +38,18 @@ const LoginPage = () => {
       console.log(token);
 
       // ✅ Check if user preferences exist
-      const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`);
-      if (response.data) {
+      const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`, {
+        validateStatus: () => true // allow non-200 without throwing
+      });
+      
+      if (response.status === 200 && response.data) {
         console.log("✅ Preferences found, redirecting to Dashboard");
-        navigate("/dashboard"); // ✅ Redirect to Dashboard if preferences exist
+        navigate("/dashboard");
       } else {
-        console.log("❌ No preferences found, redirecting to Profile Setup");
-        // ✅ Send userId to the backend to check if user exists (or create new entry if not)
-        await axios.post(`${BACKEND_URL}/api/users/login-or-register`, { 
-          userId, 
-          email 
+        console.log("❌ No preferences found or not set up, redirecting to Profile Setup");
+        await axios.post(`${BACKEND_URL}/api/users/new-user`, { 
         });
-
-        // Redirect to Profile Setup after login
-        navigate("/profile-setup");
+        navigate("/profile-setup");      
       }
     } catch (err) {
       console.error("❌ Login Error:", err.message);

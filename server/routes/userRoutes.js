@@ -1,47 +1,50 @@
 const express = require('express');
+const verifyFirebaseToken = require("../middleware/firebaseAuth");
 const User = require('../models/User');
 const Preferences = require('../models/Preferences');
 
 const router = express.Router();
 
 // Register a new user | Not implemented with firebase only firebase is used need to save them in mongoDB
-router.post('/register', async (req, res) => {
-  try {
-    const { fName, lName, email, password } = req.body;
+// router.post('/register', async (req, res) => {
+//   try {
+//     const { fName, lName, email, password } = req.body;
 
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: "User already exists" })
-    }
+//     let user = await User.findOne({ email });
+//     if (user) {
+//       return res.status(400).json({ message: "User already exists" })
+//     }
 
-    user = new User({ fName, lName, email, password });
-    await user.save();
+//     user = new User({ fName, lName, email, password });
+//     await user.save();
 
-    res.status(201).json({ message: "Account created successfully", user });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-});
+//     res.status(201).json({ message: "Account created successfully", user });
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// });
 
 
 // New routes for 1. login|register | 2. preferences |  March 13, 2024
 // ✅ Check if user exists, if not, create one
-router.post("/login-or-register", async (req, res) => {
+router.post("/new-user", verifyFirebaseToken, async (req, res) => {
   console.log("request accepted")
   try {
-    const { userId, email } = req.body;
+    const uid = req.user.uid;
+    const email = req.user.email;
+    // const { userId, email } = req.body;
 
     // ✅ Check if user exists in database
-    let user = await User.findOne({ user_id: userId });
+    let user = await User.findOne({ uid: uid });
 
     if (!user) {
       // ✅ If user doesn't exist, create a new user
-      user = new User({ user_id: userId, email });
+      user = new User({ uid: uid, email });
       await user.save();
       console.log("✅ New user created:", user);
     }
 
-    res.status(200).json({ message: "User authenticated successfully", userId });
+    res.status(200).json({ message: "User authenticated successfully" });
   } catch (error) {
     console.error("❌ Error in login/register:", error);
     res.status(500).json({ message: "Server error", error });
@@ -49,16 +52,17 @@ router.post("/login-or-register", async (req, res) => {
 });
 
 // Route to Save or Update User Preferences
-router.post("/preferences", async (req, res) => {
+router.post("/preferences", verifyFirebaseToken, async (req, res) => {
   try {
-    const { userId, name, age, gender, nationality, industry, location, hobbies, foodPreferences, thematicPreferences } = req.body;
+    const uid = req.user.uid;
+    const { name, age, gender, nationality, industry, location, hobbies, foodPreferences, thematicPreferences } = req.body;
 
     // Check if user exists
-    const user = await User.findOne({user_id : userId});
+    const user = await User.findOne({uid : uid});
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // Check if preferences already exist for user
-    let preferences = await Preferences.findOne({ user: userId });
+    let preferences = await Preferences.findOne({ uid: uid });
 
     if (preferences) {
       // ✅ Update existing preferences
@@ -74,7 +78,7 @@ router.post("/preferences", async (req, res) => {
     } else {
       // ✅ Create new preferences document
       preferences = new Preferences({
-        user: userId, // now it is stored as a string
+        uid: uid, // now it is stored as a string
         name,
         age,
         gender,
@@ -97,12 +101,12 @@ router.post("/preferences", async (req, res) => {
 });
 
 // Route to Fetch user with preferences
-router.get("/preferences/:userId", async (req, res) => {
+router.get("/preferences/:userId", verifyFirebaseToken, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { uid } = req.params;
 
     // ✅ Find the user's preferences
-    const preferences = await Preferences.findOne({ user: userId });
+    const preferences = await Preferences.findOne({ uid: uid });
 
     if (!preferences) {
       return res.status(200).json();
@@ -116,13 +120,13 @@ router.get("/preferences/:userId", async (req, res) => {
 });
 
 // Route to update preferences
-router.put("/preferences/:userId", async (req, res) => {
+router.put("/preferences/:userId", verifyFirebaseToken, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const uid = req.user.uid;
     const { name, age, gender, nationality, industry, location, hobbies, foodPreferences, thematicPreferences } = req.body;
 
     // ✅ Find user preferences
-    let preferences = await Preferences.findOne({ user: userId });
+    let preferences = await Preferences.findOne({ uid: uid });
 
     if (!preferences) {
       return res.status(404).json({ message: "Preferences not found" });

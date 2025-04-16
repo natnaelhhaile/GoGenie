@@ -1,4 +1,5 @@
 const express = require("express");
+const verifyFirebaseToken = require("../middleware/firebaseAuth");
 const Preferences = require("../models/Preferences");
 const Recommendation = require("../models/Recommendation");
 const UserVenueScore = require("../models/UserVenueScore");
@@ -9,18 +10,19 @@ const tagsVocabulary = require("../utils/tagsVocabulary");
 const extractTagsFromFeatures = require("../utils/extractTagsFromFeatures");
 
 const router = express.Router();
+
 const MAX_DISTANCE = 10000;
 
-router.get("/user-venues/:userId", async (req, res) => {
+router.get("/user-venues/:userId", verifyFirebaseToken, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const uid = req.user.uid;
 
-    const cachedVenues = await Recommendation.find({ user: userId }).limit(10);
+    const cachedVenues = await Recommendation.find({ user: uid }).limit(10);
     if (cachedVenues.length > 0) {
       return res.status(200).json({ recommendations: cachedVenues });
     }
 
-    const userPreferences = await Preferences.findOne({ user: userId });
+    const userPreferences = await Preferences.findOne({ user: uid });
     if (!userPreferences) {
       return res.status(404).json({ message: "No preferences found" });
     }
@@ -61,7 +63,7 @@ router.get("/user-venues/:userId", async (req, res) => {
       const hasPopularity = typeof venue.popularity === 'number';
       const normalizedRating = hasRating ? (venue.rating - 3) / 2 : 0;
       const popularityScore = hasPopularity ? venue.popularity : 0;
-      
+
       let compositeRatingScore;
       if (hasRating && hasPopularity) {
         compositeRatingScore = (normalizedRating + popularityScore) / 2;
@@ -107,8 +109,8 @@ router.get("/user-venues/:userId", async (req, res) => {
       }
 
       await UserVenueScore.findOneAndUpdate(
-        { user: userId, venue_id: venue.fsq_id },
-        { priority_score: parseFloat(priorityScore) },
+        { uid: uid, venue_id: venue.fsq_id },
+        { priorityScore: parseFloat(priorityScore) },
         { upsert: true, new: true }
       );
 
@@ -122,12 +124,12 @@ router.get("/user-venues/:userId", async (req, res) => {
   }
 });
 
-router.get("/ranked-recommendations/:userId", async (req, res) => {
+router.get("/ranked-recommendations/:userId", verifyFirebaseToken, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const uid = req.user.uid;
 
     // Step 1: Find all user-specific venue scores, ordered by highest score
-    const userScores = await UserVenueScore.find({ user: userId }).sort({ priority_score: -1 });
+    const userScores = await UserVenueScore.find({ uid: uid }).sort({ priorityScore: -1 });
 
     if (!userScores.length) {
       return res.status(404).json({ message: "No personalized scores found for this user." });
@@ -144,7 +146,7 @@ router.get("/ranked-recommendations/:userId", async (req, res) => {
       const venue = venueDocs.find(v => v.venue_id === scoreEntry.venue_id);
       return venue ? {
         venue,
-        priority_score: scoreEntry.priority_score
+        priorityScore: scoreEntry.priorityScore
       } : null;
     }).filter(Boolean);
 
