@@ -115,36 +115,93 @@ router.get("/preferences/:userId", async (req, res) => {
   }
 });
 
-// Route to update preferences
+// the whole profile set up here from dashboard with navigate("/profile-setup") to here
+// Route to update preferences 
+// router.put("/preferences/:userId", async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+//     const { name, age, gender, nationality, industry, location, hobbies, foodPreferences, thematicPreferences } = req.body;
+
+//     // ✅ Find user preferences
+//     let preferences = await Preferences.findOne({ user: userId });
+
+//     if (!preferences) {
+//       return res.status(404).json({ message: "Preferences not found" });
+//     }
+
+//     // ✅ Update preferences
+//     preferences.name = name;
+//     preferences.age = age;
+//     preferences.gender = gender;
+//     preferences.nationality = nationality;
+//     preferences.industry = industry;
+//     preferences.location = location;
+//     preferences.hobbies = hobbies;
+//     preferences.foodPreferences = foodPreferences;
+//     preferences.thematicPreferences = thematicPreferences;
+
+//     await preferences.save();
+//     res.status(200).json({ message: "Preferences updated successfully!", preferences });
+
+//   } catch (error) {
+//     console.error("❌ Error updating preferences:", error);
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// });
+
+// April 16, Siem
+// ✅ PUT: Update user preferences only
 router.put("/preferences/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { hobbies, foodPreferences, thematicPreferences } = req.body;
+
   try {
-    const { userId } = req.params;
-    const { name, age, gender, nationality, industry, location, hobbies, foodPreferences, thematicPreferences } = req.body;
+    const updated = await Preferences.findOneAndUpdate(
+      { user: userId },
+      {
+        $set: {
+          hobbies,
+          foodPreferences,
+          thematicPreferences,
+        },
+      },
+      { new: true, runValidators: true }
+    );
 
-    // ✅ Find user preferences
-    let preferences = await Preferences.findOne({ user: userId });
-
-    if (!preferences) {
-      return res.status(404).json({ message: "Preferences not found" });
+    if (!updated) {
+      return res.status(404).json({ message: "Preferences not found for user." });
     }
 
-    // ✅ Update preferences
-    preferences.name = name;
-    preferences.age = age;
-    preferences.gender = gender;
-    preferences.nationality = nationality;
-    preferences.industry = industry;
-    preferences.location = location;
-    preferences.hobbies = hobbies;
-    preferences.foodPreferences = foodPreferences;
-    preferences.thematicPreferences = thematicPreferences;
-
-    await preferences.save();
-    res.status(200).json({ message: "Preferences updated successfully!", preferences });
-
+    res.status(200).json({ message: "Preferences updated successfully.", preferences: updated });
   } catch (error) {
     console.error("❌ Error updating preferences:", error);
-    res.status(500).json({ message: "Server error", error });
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+// Update user details: name, username, age, gender, nationality
+router.put("/details/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const updateData = req.body;
+
+  try {
+    const updated = await Preferences.findOneAndUpdate(
+      { user: userId },
+      { $set: updateData },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "User preferences not found." });
+    }
+
+    return res.status(200).json({
+      message: "Preferences updated successfully.",
+      preferences: updated,
+    });
+  } catch (error) {
+    console.error("❌ Error updating preferences:", error);
+    return res.status(500).json({ message: "Server error." });
   }
 });
 

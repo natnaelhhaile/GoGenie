@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const Preferences = require("../models/Preferences"); 
 const Recommendation = require("../models/Recommendation");
 const { generateFoursquareQueries } = require("../services/openAIService");
-const { fetchFoursquareVenues } = require("../services/foursquareService");
+const { fetchFoursquareVenues, fetchVenuePhotos } = require("../services/foursquareService");
 
 const router = express.Router();
 
@@ -39,6 +39,7 @@ router.get("/user-venues/:userId", async (req, res) => {
         return res.status(500).json({ message: "Failed to generate queries" });
       }
       console.log("no venues so proceeding");
+      console.log(queries);
       // ✅ Fetch venues from Foursquare API
       const venues = await fetchFoursquareVenues(queries, userPreferences.location);
       if (!venues || venues.length === 0) {
@@ -51,6 +52,8 @@ router.get("/user-venues/:userId", async (req, res) => {
         const existingVenue = await Recommendation.findOne({ venue_id: venue.fsq_id, user: userId });
         console.log("passed existingVenue", existingVenue);
         if (!existingVenue) {
+          const photoURLs = await fetchVenuePhotos(venue.fsq_id); // get photos
+
           const newVenue = new Recommendation({
             venue_id: venue.fsq_id,
             name: venue.name,
@@ -63,10 +66,7 @@ router.get("/user-venues/:userId", async (req, res) => {
             },
             link: venue.link,
             priority_score: 0,
-            photos: {
-              prefix: venue.photos.prefix,
-              suffix: venue.photos.suffix,
-            },
+            photos: photoURLs,
             distance: venue.distance,
             user: userId,
           });
@@ -74,6 +74,7 @@ router.get("/user-venues/:userId", async (req, res) => {
   
           await newVenue.save();
           savedVenues.push(newVenue);
+          console.log("venue id: Siem", venue.fsq_id)
         }
       }
   

@@ -23,7 +23,7 @@ const LandingPage = () => {
         "google.com",
         {
           provider: "password",
-          requireDisplayName: true,
+          requireDisplayName: false,
           fullLabel: 'Sign up with Email'
         },
       ],

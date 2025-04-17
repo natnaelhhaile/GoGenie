@@ -5,6 +5,7 @@ const mongoose = require("mongoose")
 const protectedRoutes = require("./routes/protectedRoutes");
 const userRoutes = require('./routes/userRoutes');
 const recommendationRoutes = require("./routes/recommendationRoutes");
+const favoritesRoutes = require("./routes/favorites");
 // const preferenceRoutes = require('./routes/preferenceRoutes');
 
 const app = express();
@@ -23,6 +24,7 @@ mongoose.connect(process.env.MONGO_URI, {
 app.use("/api/routes", protectedRoutes);
 app.use('/api/users', userRoutes);
 app.use("/api/recommendations", recommendationRoutes);
+app.use("/api/favorites", favoritesRoutes);
 // app.use('/api/preferences', preferenceRoutes);
 
 const PORT = process.env.PORT || 5000;
