@@ -37,8 +37,14 @@ const LoginPage = () => {
       localStorage.setItem("userId", userId);
       console.log(token);
 
+      // Create headers for all authenticated requests
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+
       // Check if user preferences exist
       const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`, {
+        headers,
         validateStatus: () => true // allow non-200 without throwing
       });
       
@@ -47,7 +53,7 @@ const LoginPage = () => {
         navigate("/dashboard");
       } else {
         console.log("No preferences found or not set up, redirecting to Profile Setup");
-        await axios.post(`${BACKEND_URL}/api/users/new-user`);
+        await axios.post(`${BACKEND_URL}/api/users/new-user`, {}, { headers });
         navigate("/profile-setup");      
       }
     } catch (err) {

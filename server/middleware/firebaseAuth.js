@@ -4,6 +4,7 @@ const verifyFirebaseToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.log("login unauthorized");
     return res.status(401).json({ message: "Unauthorized: No token provided" });
   }
 

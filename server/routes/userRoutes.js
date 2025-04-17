@@ -55,7 +55,7 @@ router.post("/new-user", verifyFirebaseToken, async (req, res) => {
 router.post("/preferences", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
-    const { name, age, gender, nationality, industry, location, hobbies, foodPreferences, thematicPreferences } = req.body;
+    const { fname, lname, age, gender, nationality, industry, location, hobbies, foodPreferences, thematicPreferences, lifestylePreferences } = req.body;
 
     // Check if user exists
     const user = await User.findOne({uid : uid});
@@ -66,7 +66,8 @@ router.post("/preferences", verifyFirebaseToken, async (req, res) => {
 
     if (preferences) {
       // Update existing preferences
-      preferences.name = name;
+      preferences.fname = fname;
+      preferences.lname = lname;
       preferences.age = age;
       preferences.gender = gender;
       preferences.nationality = nationality;
@@ -75,11 +76,13 @@ router.post("/preferences", verifyFirebaseToken, async (req, res) => {
       preferences.hobbies = hobbies;
       preferences.foodPreferences = foodPreferences;
       preferences.thematicPreferences = thematicPreferences;
+      preferences.lifestylePreferences = lifestylePreferences;
     } else {
       // Create new preferences document
       preferences = new Preferences({
         uid: uid, // now it is stored as a string
-        name,
+        fname,
+        lname,
         age,
         gender,
         nationality,
@@ -87,7 +90,8 @@ router.post("/preferences", verifyFirebaseToken, async (req, res) => {
         location,
         hobbies,
         foodPreferences,
-        thematicPreferences
+        thematicPreferences,
+        lifestylePreferences
       });
     }
 
