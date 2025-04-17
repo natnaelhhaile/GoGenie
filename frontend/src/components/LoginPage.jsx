@@ -20,39 +20,39 @@ const LoginPage = () => {
     console.log(BACKEND_URL);
 
     try {
-      // ✅ Firebase Authentication
+      // Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
         password
       );
-      console.log("✅ Email Login Successful:", userCredential.user);
+      console.log("Email Login Successful:", userCredential.user);
 
-      // ✅ Retrieve userId and Token from Firebase
+      // Retrieve userId and Token from Firebase
       const userId = userCredential.user.uid; // Firebase userId
       const token = await userCredential.user.getIdToken();
 
-      // ✅ Store in Local Storage
+      // Store in Local Storage
       localStorage.setItem("token", token);
       localStorage.setItem("userId", userId);
       console.log(token);
 
-      // ✅ Check if user preferences exist
+      // Check if user preferences exist
       const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`, {
         validateStatus: () => true // allow non-200 without throwing
       });
       
       if (response.status === 200 && response.data) {
-        console.log("✅ Preferences found, redirecting to Dashboard");
+        console.log("Preferences found, redirecting to Dashboard");
         navigate("/dashboard");
       } else {
-        console.log("❌ No preferences found or not set up, redirecting to Profile Setup");
+        console.log("No preferences found or not set up, redirecting to Profile Setup");
         await axios.post(`${BACKEND_URL}/api/users/new-user`, { 
         });
         navigate("/profile-setup");      
       }
     } catch (err) {
-      console.error("❌ Login Error:", err.message);
+      console.error("Login Error:", err.message);
       setError(err.message); // Display error message
     }
   };

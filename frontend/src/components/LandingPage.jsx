@@ -4,7 +4,7 @@ import "./LandingPage.css"; // Import CSS for styling
 import landingImage from "../assets/landing-image.jpg"; // Ensure correct image path
 import Container from "./Container"; // Import Container component
 
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 import * as firebaseui from "firebaseui";
 import "firebaseui/dist/firebaseui.css";
 
