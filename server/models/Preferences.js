@@ -1,8 +1,18 @@
 const mongoose = require("mongoose");
 
 const PreferencesSchema = new mongoose.Schema({
-  user: { type: String, ref: "User", required: true, unique: true },
-  name: { type: String, required: true },
+  uid: { type: String, ref: "User", required: true, unique: true },
+  // name: { type: String, required: true },
+  fname: {
+    type: String,
+    trim: true,
+    default: ""
+  },
+  lname: {
+    type: String,
+    trim: true,
+    default: ""
+  },
   age: { type: Number, required: true },
   gender: { type: String, required: true },
   nationality: { type: String, required: true },
@@ -10,7 +20,8 @@ const PreferencesSchema = new mongoose.Schema({
   location: { type: String, required: true },
   hobbies: { type: [String], required: true },
   foodPreferences: { type: [String], required: true },
-  thematicPreferences: { type: [String], required: true }
+  thematicPreferences: { type: [String], required: true },
+  lifestylePreferences: { type: [String], required: true }
 });
 
 module.exports = mongoose.model("Preferences", PreferencesSchema);

@@ -20,41 +20,44 @@ const LoginPage = () => {
     console.log(BACKEND_URL);
 
     try {
-      // ✅ Firebase Authentication
+      // Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
         password
       );
-      console.log("✅ Email Login Successful:", userCredential.user);
+      console.log("Email Login Successful:", userCredential.user);
 
-      // ✅ Retrieve userId and Token from Firebase
+      // Retrieve userId and Token from Firebase
       const userId = userCredential.user.uid; // Firebase userId
       const token = await userCredential.user.getIdToken();
 
-      // ✅ Store in Local Storage
+      // Store in Local Storage
       localStorage.setItem("token", token);
       localStorage.setItem("userId", userId);
       console.log(token);
 
-      // ✅ Check if user preferences exist
-      const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`);
-      if (response.data) {
-        console.log("✅ Preferences found, redirecting to Dashboard");
-        navigate("/dashboard"); // ✅ Redirect to Dashboard if preferences exist
-      } else {
-        console.log("❌ No preferences found, redirecting to Profile Setup");
-        // ✅ Send userId to the backend to check if user exists (or create new entry if not)
-        await axios.post(`${BACKEND_URL}/api/users/login-or-register`, { 
-          userId, 
-          email 
-        });
+      // Create headers for all authenticated requests
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
 
-        // Redirect to Profile Setup after login
-        navigate("/profile-setup");
+      // Check if user preferences exist
+      const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`, {
+        headers,
+        validateStatus: () => true // allow non-200 without throwing
+      });
+      
+      if (response.status === 200 && response.data) {
+        console.log("Preferences found, redirecting to Dashboard");
+        navigate("/dashboard");
+      } else {
+        console.log("No preferences found or not set up, redirecting to Profile Setup");
+        await axios.post(`${BACKEND_URL}/api/users/new-user`, {}, { headers });
+        navigate("/profile-setup");      
       }
     } catch (err) {
-      console.error("❌ Login Error:", err.message);
+      console.error("Login Error:", err.message);
       setError(err.message); // Display error message
     }
   };
