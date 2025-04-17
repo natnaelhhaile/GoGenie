@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Container from "./Container";
 import "./ProfileSetup.css";
 import axios from "axios";
+import { hobbiesList, foodList, thematicList, lifestyleList } from "../constants/preferencesData";
 
 const ProfileSetup = () => {
   const navigate = useNavigate();
@@ -22,86 +23,8 @@ const ProfileSetup = () => {
     thematicPreferences: [],
     lifestylePreferences: []
   });
-
+  const [errorNotice, setErrorNotice] = useState("");
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-
-  const hobbiesList = [
-    "Reading Fiction or Non-Fiction",
-    "Hiking & Nature Walks",
-    "Watching Movies or Series",
-    "Playing Video Games",
-    "Attending Live Music Events",
-    "Practicing Yoga or Meditation",
-    "Photography",
-    "Painting or Drawing",
-    "Playing Sports (e.g., soccer, tennis)",
-    "Cooking or Baking",
-    "Dancing",
-    "Writing or Journaling",
-    "DIY & Crafting",
-    "Traveling & Exploring New Places",
-    "Learning Languages",
-    "Board Games or Puzzles",
-    "Volunteering or Community Events",
-    "Fashion & Styling",
-    "Gardening"
-  ];
-  const foodList = [
-    "Vegetarian",
-    "Vegan",
-    "Gluten-Free",
-    "Halal",
-    "Kosher",
-    "Keto / Low Carb",
-    "Organic / Farm-to-Table",
-    "Spicy Food Lover",
-    "Seafood Lover",
-    "Dessert Lover",
-    "Asian Cuisine (Chinese, Japanese, Thai)",
-    "Middle Eastern Cuisine",
-    "African Cuisine",
-    "Latin American Cuisine",
-    "Indian Cuisine",
-    "Fast Food Fan",
-    "Coffee Addict",
-    "Bubble Tea Lover",
-    "Street Food Enthusiast"
-  ];
-  const thematicList = [
-    "Cozy / Quiet Places",
-    "Artistic / Creative Spaces",
-    "Bookstore Cafes",
-    "Historical / Culturally Rich Locations",
-    "Nature / Scenic Spots",
-    "Modern & Trendy Spots",
-    "Tech-Friendly Cafes (with Wi-Fi & outlets)",
-    "LGBTQ+ Friendly",
-    "Live Music & Jam Nights",
-    "Family-Friendly",
-    "Study-Friendly",
-    "Rooftop or Outdoor Seating",
-    "Instagrammable Spots",
-    "Pet-Friendly Venues",
-    "Karaoke or Game Nights",
-    "Dance or Music Events",
-    "International Cuisine Hotspots",
-    "Local Hidden Gems"
-  ];
-  const lifestyleList = [
-    "College Student",
-    "Working Professional",
-    "Parents with Kids",
-    "Solo Explorer",
-    "Young Adults (18–25)",
-    "Adults (26–40)",
-    "Seniors",
-    "Digital Nomad",
-    "Couple-Friendly Spots",
-    "Group Hangouts",
-    "First-Date Ideas",
-    "Budget-Friendly",
-    "Luxury / Upscale"
-  ];
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
@@ -120,13 +43,29 @@ const ProfileSetup = () => {
     if (step === 1 && formRef.current) {
       if (!formRef.current.checkValidity()) {
         formRef.current.reportValidity();
+        setErrorNotice("All fields are required to proceed.");
         return;
       }
     }
+
+    if (
+      (step === 2 && profile.hobbies.length < 2) ||
+      (step === 3 && profile.foodPreferences.length < 2) ||
+      (step === 4 && profile.thematicPreferences.length < 2) ||
+      (step === 5 && profile.lifestylePreferences.length < 2)
+    ) {
+      setErrorNotice("Please select at least 2 options to proceed. Recommended: pick 3 or more for better suggestions.");
+      return;
+    }
+
+    setErrorNotice("");
     setStep((prev) => prev + 1);
   };
 
-  const handleBack = () => setStep((prev) => prev - 1);
+  const handleBack = () => {
+    setErrorNotice("");
+    setStep((prev) => prev - 1);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -162,6 +101,7 @@ const ProfileSetup = () => {
           <form ref={formRef} noValidate>
             <div className="step-content">
               <h2>Basic Information</h2>
+              <p className={errorNotice ? "error-text" : "notice-text"}>* All fields are required to proceed.</p>
               <input type="text" name="fname" placeholder="First Name" value={profile.fname} onChange={handleChange} required />
               <input type="text" name="lname" placeholder="Last Name" value={profile.lname} onChange={handleChange} required />
               <input type="number" name="age" placeholder="Your Age" value={profile.age} onChange={handleChange} required />
@@ -179,56 +119,33 @@ const ProfileSetup = () => {
           </form>
         )}
 
-        {step === 2 && (
+        {[2, 3, 4, 5].includes(step) && (
           <div className="step-content">
-            <h2>Select Your Hobbies</h2>
+            <h2>
+              {step === 2 ? "Select Your Hobbies" :
+               step === 3 ? "Food Preferences" :
+               step === 4 ? "Thematic Preferences" :
+               "Lifestyle Preferences"}
+            </h2>
+            <p className={errorNotice ? "error-text" : "notice-text"}>* Select at least 2 options to proceed. Recommended: pick 3+ for better suggestions.</p>
             <div className="grid-container">
-              {hobbiesList.map((hobby) => (
-                <button key={hobby} type="button" className={`grid-item ${profile.hobbies.includes(hobby) ? "selected" : ""}`} onClick={() => handleSelect("hobbies", hobby)}>
-                  {hobby}
+              {(step === 2 ? hobbiesList :
+                step === 3 ? foodList :
+                step === 4 ? thematicList :
+                lifestyleList).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className={`grid-item ${profile[step === 2 ? "hobbies" : step === 3 ? "foodPreferences" : step === 4 ? "thematicPreferences" : "lifestylePreferences"].includes(item) ? "selected" : ""}`}
+                  onClick={() => handleSelect(step === 2 ? "hobbies" : step === 3 ? "foodPreferences" : step === 4 ? "thematicPreferences" : "lifestylePreferences", item)}
+                >
+                  {item}
                 </button>
               ))}
             </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="step-content">
-            <h2>Food Preferences</h2>
-            <div className="grid-container">
-              {foodList.map((food) => (
-                <button key={food} type="button" className={`grid-item ${profile.foodPreferences.includes(food) ? "selected" : ""}`} onClick={() => handleSelect("foodPreferences", food)}>
-                  {food}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="step-content">
-            <h2>Thematic Preferences</h2>
-            <div className="grid-container">
-              {thematicList.map((theme) => (
-                <button key={theme} type="button" className={`grid-item ${profile.thematicPreferences.includes(theme) ? "selected" : ""}`} onClick={() => handleSelect("thematicPreferences", theme)}>
-                  {theme}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {step === 5 && (
-          <div className="step-content">
-            <h2>Lifestyle Preferences</h2>
-            <div className="grid-container">
-              {lifestyleList.map((lifestyle) => (
-                <button key={lifestyle} type="button" className={`grid-item ${profile.lifestylePreferences.includes(lifestyle) ? "selected" : ""}`} onClick={() => handleSelect("lifestylePreferences", lifestyle)}>
-                  {lifestyle}
-                </button>
-              ))}
-            </div>
-            <button className="btn" onClick={handleSubmit}>Save Profile</button>
+            {step === 5 && (
+              <button className="btn" onClick={handleSubmit}>Save Profile</button>
+            )}
           </div>
         )}
 
