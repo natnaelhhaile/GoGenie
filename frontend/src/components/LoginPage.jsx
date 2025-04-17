@@ -42,20 +42,23 @@ const LoginPage = () => {
         Authorization: `Bearer ${token}`,
       };
 
-      // Check if user preferences exist
-      const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`, {
-        headers,
-        validateStatus: () => true // allow non-200 without throwing
-      });
-      
-      if (response.status === 200 && response.data) {
-        console.log("Preferences found, redirecting to Dashboard");
-        navigate("/dashboard");
-      } else {
-        console.log("No preferences found or not set up, redirecting to Profile Setup");
-        await axios.post(`${BACKEND_URL}/api/users/new-user`, {}, { headers });
-        navigate("/profile-setup");      
-      }
+      // ✅ 1. Ensure user exists in DB
+    await axios.post(`${BACKEND_URL}/api/users/new-user`, {}, { headers });
+
+    // ✅ 2. Check for preferences
+    const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`, {
+      headers,
+      validateStatus: () => true
+    });
+
+    if (response.status === 200 && response.data) {
+      console.log("User preferences found:", response.data);
+      navigate("/dashboard");
+    } else {
+      console.log("No preferences found, redirecting to profile setup.");
+      navigate("/profile-setup");
+    }
+
     } catch (err) {
       console.error("Login Error:", err.message);
       setError(err.message); // Display error message

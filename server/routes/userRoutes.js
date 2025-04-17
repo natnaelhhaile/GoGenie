@@ -28,28 +28,30 @@ const router = express.Router();
 // New routes for 1. login|register | 2. preferences |  March 13, 2024
 // Check if user exists, if not, create one
 router.post("/new-user", verifyFirebaseToken, async (req, res) => {
-  console.log("request accepted")
+  console.log("✅ request accepted");
+
   try {
     const uid = req.user.uid;
     const email = req.user.email;
-    // const { userId, email } = req.body;
 
-    // Check if user exists in database
-    let user = await User.findOne({ uid: uid });
+    // 🔍 Check if user exists by uid or email (to avoid duplication)
+    let user = await User.findOne({ $or: [{ uid }, { email }] });
 
     if (!user) {
-      // If user doesn't exist, create a new user
-      user = new User({ uid: uid, email });
+      user = new User({ uid, email });
       await user.save();
-      console.log("New user created:", user);
+      console.log("✅ New user created:", user);
+    } else {
+      console.log("ℹ️ User already exists:", user.email);
     }
 
     res.status(200).json({ message: "User authenticated successfully" });
   } catch (error) {
-    console.error("Error in login/register:", error);
+    console.error("❌ Error in login/register:", error);
     res.status(500).json({ message: "Server error", error });
   }
 });
+
 
 // Route to Save or Update User Preferences
 router.post("/preferences", verifyFirebaseToken, async (req, res) => {
