@@ -71,10 +71,8 @@ router.get("/user-venues/:userId", async (req, res) => {
             user: userId,
           });
           console.log("new venue saved: ", newVenue);
-  
           await newVenue.save();
           savedVenues.push(newVenue);
-          console.log("venue id: Siem", venue.fsq_id)
         }
       }
   
