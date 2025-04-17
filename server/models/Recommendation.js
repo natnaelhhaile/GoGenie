@@ -12,10 +12,7 @@ const recommendationSchema = new mongoose.Schema({
   },
   link: { type: String },
   priority_score: { type: Number, default: 0 }, // Default score if needed
-  photos: {
-    prefix: { type: String },
-    suffix: { type: String },
-  },
+  photos: { type: [String], default: [] },
   distance: { type: Number},
   user: { type: String },
 });

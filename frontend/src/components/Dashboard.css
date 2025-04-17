@@ -1,15 +1,5 @@
 /* 🌟 Fix: Adjust Dashboard Container */
-.dashboard-container {
-  width: 100%; /* Take full available width */
-  max-width: 100%; /* Remove fixed width */
-  background-color: white;
-  border-radius: 25px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  padding: 35px;
-  margin: 10px auto;
-  text-align: center;
-  font-family: poppins;
-}
+
 
 /* 🌟 Header Styling */
 .dashboard-header {
@@ -109,10 +99,15 @@
 /* 🌟 Fix: Places Section - Multi-Column */ 
 .places-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* Dynamic grid */
+  grid-template-columns: 1fr 1fr; /* Two fixed columns */
   gap: 25px;
-  justify-content: center;
   margin-top: 10px;
+}
+
+@media (max-width: 399px) {
+  .places-section {
+    grid-template-columns: 1fr; /* Switch to 1 column */
+  }
 }
 
 /* 🌟 Fix: Place Item */
@@ -122,7 +117,7 @@
   padding: 10px;
   text-align: center;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  width: 100%; /* Takes full width of grid column */
+  width: 100%; /* Take full width of the column */
 }
 
 /* 🌟 Fix: Place Image */
@@ -183,31 +178,6 @@
   font-size: 0.9rem;
 }
 
-/* 🌟 Fix: Responsive Layout */
-@media (min-width: 600px) {
-  .places-section {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important; /* More columns */
-  }
-  .dashboard-container {
-    /* margin: 10px 0px 10px 0px; */
-    width: 100%; /* Take full available width */
-    max-width: 400px !important; /* Remove fixed width */
-    background-color: white;
-    border-radius: 25px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    padding: 35px 35px 35px 15px;
-    margin: 10px auto;
-    text-align: center;
-    font-family: poppins;
-  }
-}
-
-@media (min-width: 900px) {
-  .places-section {
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); /* 3-4 Columns */
-    /* gap: 5px; */
-  }
-}
 
 
 
@@ -253,18 +223,12 @@
   color: #3F5A5B;
 }
 
-@media (min-width: 768px) {
-  .dashboard-container {
-    max-width: 300px; /* Adjusts for tablets */
-  }
-}
-
 
 /* 🌟 User Details Modal */
-.nav-icon.user {
+.nav-icon.user, .nav-icon.favorites {
   cursor: pointer;
 }
-.nav-icon.user:hover {
+.nav-icon.user:hover, .nav-icon.favorites:hover {
   color: #3F5A5B;
 }
 .user-modal {
@@ -277,7 +241,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1;
 }
 
 .user-modal-content {
@@ -287,7 +251,7 @@
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
   text-align: center;
   width: 90%;
-  max-width: 350px;
+  max-width: 300px;
 }
 
 .user-modal-content h3 {
@@ -316,3 +280,5 @@
   cursor: pointer;
   font-weight: bold;
 }
+
+

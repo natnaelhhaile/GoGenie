@@ -10,6 +10,9 @@ import { IoSearchOutline, IoPersonOutline, IoLocationSharp } from "react-icons/i
 import { FaThumbsUp } from "react-icons/fa";
 import { FaThumbsDown } from "react-icons/fa";
 import "./Dashboard.css"; // Ensure styling is imported
+import Container from "../components/Container"; // Adjust path if different
+// import TestFoursquarePhotos from "./TestFoursquarePhotos"; // test if photos are loaded
+
 
 const Dashboard = () => {
   const [userPreferences, setUserPreferences] = useState(null);
@@ -19,7 +22,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
-  // ✅ Preload images from /assets/dum1.png to /assets/dum10.png
+  // ✅ Preload images from /assets/dum1.png to /assets/dum10.png for fallback
   const imageSources = Array.from({ length: 10 }, (_, i) =>
     require(`../assets/dum${i + 1}.jpg`)
   );
@@ -59,16 +62,17 @@ const Dashboard = () => {
 
     fetchUserPreferences();
     fetchRecommendations();
+    
   }, [BACKEND_URL]);
 
   return (
-    <div className="dashboard-container">
+    <Container>
       <header className="dashboard-header">
         <span className="greeting">
           <FaChildReaching className="greeting-icon" /> Hello!
         </span>
       </header>
-
+      
       <section className="username-section">
         <h3 className="username">{message}</h3>
       </section>
@@ -119,10 +123,13 @@ const Dashboard = () => {
             // ✅ Extract city from formatted address
             const addressParts = venue.location.address.split(",");
             const city = addressParts.length >= 2 ? addressParts[addressParts.length - 2].trim() : "Unknown City";
-            // ✅ Assign random image based on venue index
-            const venueImage = imageSources[index % imageSources.length];
+            // get images from the venue object photo
+            const venueImage = venue.photos?.[0] || imageSources[index % imageSources.length]; // Fallback to preloaded images if none available
             return (
-              <div key={venue.venue_id || index} className="place-item">
+              <div key={venue.venue_id || index} className="place-item"
+              onClick={() => navigate("/venue-detail", { state: { venue } })}
+              style={{ cursor: "pointer" }}
+              >
                 <img src={venueImage} alt={venue.name} />
                 <p>{venue.name}</p>
                 <div className="icons-row">
@@ -153,7 +160,7 @@ const Dashboard = () => {
       </section>
 
       <div className="dashboard-footer">
-        <button onClick={() => navigate("/profile-setup")} className="update-preferences">
+        <button onClick={() => navigate("/update-preferences")} className="update-preferences">
           Update Preferences
         </button>
       </div>
@@ -161,33 +168,14 @@ const Dashboard = () => {
       <footer className="bottom-nav">
         <MdHomeFilled className="nav-icon active" />
         <IoSearchOutline className="nav-icon" />
-        <FaHeart className="nav-icon" />
-        <IoPersonOutline className="nav-icon user" onClick={() => setShowUserModal(true)} />
+        <FaHeart className="nav-icon favorites" onClick={() => navigate("/favorites")} />
+        <IoPersonOutline className="nav-icon user" onClick={() => navigate("/profile")} />
       </footer>
 
-      {/* ✅ User Details Modal */}
-      {showUserModal && (
-        <div className="user-modal">
-          <div className="user-modal-content">
-            <h3>User Details</h3>
-            {userPreferences ? (
-              <ul>
-                <li><strong>Name:</strong> {userPreferences.name}</li>
-                <li><strong>Age:</strong> {userPreferences.age}</li>
-                <li><strong>Gender:</strong> {userPreferences.gender}</li>
-                <li><strong>Nationality:</strong> {userPreferences.nationality}</li>
-                <li><strong>Industry:</strong> {userPreferences.industry}</li>
-                <li><strong>Hobbies:</strong> {userPreferences.hobbies.join(", ")}</li>
-                <li><strong>Food Preferences:</strong> {userPreferences.foodPreferences.join(", ")}</li>
-              </ul>
-            ) : (
-              <p>Loading user details...</p>
-            )}
-            <button onClick={() => setShowUserModal(false)}>Close</button>
-          </div>
-        </div>
-      )}
-    </div>
+     
+
+
+    </Container>
   );
 };
 

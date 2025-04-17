@@ -160,11 +160,7 @@ h2 {
   }
 }
 
-@media (min-width: 600px) {
-  .container {
-    max-width: 450px; /* Adjust width for larger screens */
-  }
-}
+
 
 @media (max-width: 360px) {
   .btn {

@@ -1,0 +1,95 @@
+.favorites-container {
+    width: 90%;
+    max-width: 300px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 25px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    font-family: "Poppins", sans-serif;
+    text-align: center;
+}
+
+.favorites-header {
+    background: linear-gradient(to right, #3F5A5B, #567976);
+    color: white;
+    padding: 20px;
+    border-radius: 20px 20px 0 0;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    margin: -20px -20px 20px -20px;
+  }
+
+.favorites-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 15px;
+}
+
+.favorite-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    position: relative;
+}
+
+.favorite-card:hover {
+    transform: translateY(-4px);
+}
+
+.favorite-card img {
+    width: 100%;
+    height: 120px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.favorite-card p {
+    font-size: 14px;
+    font-weight: bold;
+    color: #0A2533;
+    margin: 8px 0 4px;
+}
+
+.favorite-card span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #666;
+}
+
+.favorite-heart {
+    margin-left: 5px;
+    color: #d91e18;
+    font-size: 14px;
+}
+
+.favorite-card.favorited {
+    border: 2px solid #ff4d4d;
+}
+
+.heart-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 20px;
+    color: #e74c3c;
+    background-color: white;
+    border-radius: 50%;
+    padding: 4px;
+    z-index: 10;
+    cursor: pointer;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+  }
+  
+  .heart-icon:hover {
+    transform: scale(1.1);
+  }
+  

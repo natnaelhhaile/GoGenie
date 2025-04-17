@@ -28,5 +28,27 @@ const fetchFoursquareVenues = async (queries, location) => {
   return allVenues; // Limit total results to 10 venues max
 };
 
+const fetchVenuePhotos = async (fsq_id) => {
+  const url = `https://api.foursquare.com/v3/places/${fsq_id}/photos`;
+  const headers = {
+    Accept: "application/json",
+    Authorization: process.env.FOURSQUARE_API_KEY
+  };
 
-module.exports = { fetchFoursquareVenues };
+  try {
+    const response = await axios.get(url, { headers });
+    const photos = response.data;
+
+    // Build direct image URLs
+    const photoURLs = photos.slice(0, 5).map(photo =>
+      `${photo.prefix}original${photo.suffix}`
+    );
+
+    return photoURLs;
+  } catch (error) {
+    console.error(`❌ Error fetching photos for venue ${fsq_id}:`, error.message);
+    return [];
+  }
+};
+
+module.exports = { fetchFoursquareVenues, fetchVenuePhotos };

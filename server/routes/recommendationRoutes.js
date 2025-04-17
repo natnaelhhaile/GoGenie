@@ -5,7 +5,7 @@ const Recommendation = require("../models/Recommendation");
 const UserVenueScore = require("../models/UserVenueScore");
 const { calculateCosineSimilarity } = require("../utils/similarity");
 const { generateFoursquareQueries } = require("../services/openAIService");
-const { fetchFoursquareVenues } = require("../services/foursquareService");
+const { fetchFoursquareVenues, fetchVenuePhotos } = require("../services/foursquareService");
 const tagsVocabulary = require("../utils/tagsVocabulary");
 const extractTagsFromFeatures = require("../utils/extractTagsFromFeatures");
 
@@ -83,6 +83,8 @@ router.get("/user-venues/:userId", verifyFirebaseToken, async (req, res) => {
 
       let finalVenue;
       if (!existingVenue) {
+        const photoURLs = await fetchVenuePhotos(venue.fsq_id);
+
         const newVenue = new Recommendation({
           venue_id: venue.fsq_id,
           name: venue.name,
@@ -97,10 +99,7 @@ router.get("/user-venues/:userId", verifyFirebaseToken, async (req, res) => {
             longitude: venue.geocodes?.main?.longitude,
           },
           link: venue.link,
-          photos: {
-            prefix: venue.photos?.[0]?.prefix || "",
-            suffix: venue.photos?.[0]?.suffix || "",
-          },
+          photos: photoURLs,
           distance,
         });
         finalVenue = await newVenue.save();

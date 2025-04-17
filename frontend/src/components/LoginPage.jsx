@@ -47,8 +47,7 @@ const LoginPage = () => {
         navigate("/dashboard");
       } else {
         console.log("No preferences found or not set up, redirecting to Profile Setup");
-        await axios.post(`${BACKEND_URL}/api/users/new-user`, { 
-        });
+        await axios.post(`${BACKEND_URL}/api/users/new-user`);
         navigate("/profile-setup");      
       }
     } catch (err) {

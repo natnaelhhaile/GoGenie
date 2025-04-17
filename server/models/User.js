@@ -14,16 +14,6 @@ const UserSchema = new mongoose.Schema({
     lowercase: true, // standardize emails
     trim: true
   },
-  fname: {
-    type: String,
-    trim: true,
-    default: ""
-  },
-  lname: {
-    type: String,
-    trim: true,
-    default: ""
-  },
   createdAt: {
     type: Date,
     default: Date.now
