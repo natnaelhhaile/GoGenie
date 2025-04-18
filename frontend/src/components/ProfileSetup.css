@@ -152,7 +152,7 @@ html, body {
   padding: 12px;
   border-radius: 5px;
   border: 1px solid #ddd;
-  width: 85%;
+  width: 85% !important;
   font-size: 1rem;
   box-sizing: border-box;
   margin: auto;
@@ -168,7 +168,7 @@ html, body {
   border-radius: 5px;
   border: 1px solid #ddd;
   margin: 0 auto; /* center horizontally */
-  width: 100%;    /* or use a fixed width like 80% for better control */
+  width: 85% !important;    /* or use a fixed width like 80% for better control */
   max-width: 400px;
   display: block;
   appearance: none;
