@@ -1,21 +1,63 @@
-.image-wrapper2 img {
+/* Match fullscreen layout */
+.fullscreen-wrapper {
+  height: 100svh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(to bottom right, #fdfdfd, #f2f2f2);
+}
+
+/* Inner login container (like .landing-inner) */
+.login-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 420px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* Image styling reused from landing */
+.hero-image {
   width: 100%;
   max-width: 300px;
   height: auto;
-  margin-bottom: 40px;
+  margin-bottom: 32px;
   border-radius: 16px;
 }
 
-/* Input fields styling */
-.input-group {
+/* Title */
+h2 {
+  font-size: 1.5rem;
+  color: #222;
+  margin-bottom: 20px;
+}
+
+/* Form layout */
+.login-form {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: start;
+  align-items: center;
+}
+
+/* Input group styling */
+.input-group {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   width: 100%;
   margin-bottom: 15px;
 }
 
 .input-group label {
+  position: absolute;
+  left: 8%;
+  bottom: 85%;
   font-size: 14px;
   font-weight: bold;
   margin-bottom: 5px;
@@ -23,25 +65,27 @@
 }
 
 .input-group input {
-  width: 100%;
+  width: 80%;
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 5px;
   font-size: 16px;
   background-color: #f8f8f8;
+  margin: 10px auto;
 }
 
-/* Style the Sign In button */
+/* Button */
 .btn {
   background-color: black;
   color: white;
-  border: none;
   padding: 12px;
   border-radius: 25px;
+  border: none;
   font-size: 1rem;
-  cursor: pointer;
   width: 100%;
   max-width: 280px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
   margin-top: 10px;
 }
 
@@ -49,15 +93,58 @@
   background-color: #333;
 }
 
-/* Forgot Password Link */
+/* Forgot password link */
 .forgot-password {
-  font-size: 12px;
+  font-size: 13px;
   color: #0f0f10;
   cursor: pointer;
-  margin-top: 10px;
-  text-align: start;
+  margin-top: 12px;
+  text-align: center;
 }
 
 .forgot-password:hover {
   text-decoration: underline;
+}
+
+/* Error message */
+.error-text {
+  margin-top: 10px;
+  font-size: 13px;
+  color: red;
+  text-align: center;
+}
+
+/* Responsive scaling */
+@media (min-width: 768px) {
+  .login-inner {
+    max-width: 600px;
+  }
+
+  h2 {
+    font-size: 2rem;
+  }
+
+  .btn {
+    font-size: 1.1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .login-inner {
+    max-width: 720px;
+  }
+
+  .hero-image {
+    max-width: 400px;
+  }
+
+  h2 {
+    font-size: 2.2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .login-inner {
+    max-width: 840px;
+  }
 }
