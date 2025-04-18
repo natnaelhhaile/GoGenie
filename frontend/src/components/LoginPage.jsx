@@ -26,6 +26,7 @@ const LoginPage = () => {
       localStorage.setItem("uid", uid);
 
       const headers = { Authorization: `Bearer ${token}` };
+<<<<<<< Updated upstream
       // ✅ 1. Ensure user exists in DB
     await axios.post(`${BACKEND_URL}/api/users/new-user`, {}, { headers });
 
@@ -42,6 +43,20 @@ const LoginPage = () => {
       console.log("No preferences found, redirecting to profile setup.");
       navigate("/profile-setup");
     }
+=======
+
+      const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${uid}`, {
+        headers,
+        validateStatus: () => true,
+      });
+
+      if (response.status === 200 && response.data) {
+        navigate("/dashboard");
+      } else {
+        await axios.post(`${BACKEND_URL}/api/users/new-user`, {}, { headers });
+        navigate("/profile-setup");
+      }
+>>>>>>> Stashed changes
     } catch (err) {
       console.error("Login Error:", err.message);
       setError(err.message);
