@@ -82,10 +82,19 @@ const ProfileSetup = () => {
     }
     const userId = localStorage.getItem("userId");
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/users/preferences`, {
-        userId,
-        ...profile
-      });
+      // ✅ Get Firebase token
+      const token = localStorage.getItem("token");
+  
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+  
+      const response = await axios.post(
+        `${BACKEND_URL}/api/users/preferences`,
+        { userId, ...profile },
+        { headers }
+      );
+      
       console.log("Preferences saved:", response.data);
       navigate("/recommendation");
     } catch (error) {

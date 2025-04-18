@@ -13,17 +13,19 @@ const router = express.Router();
 
 const MAX_DISTANCE = 10000;
 
-router.get("/user-venues/:userId", verifyFirebaseToken, async (req, res) => {
+// changes: no userId neede
+router.get("/user-venues", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
-
     const cachedVenues = await Recommendation.find({ user: uid }).limit(10);
+    console.log("cachedVenues", cachedVenues);
     if (cachedVenues.length > 0) {
       return res.status(200).json({ recommendations: cachedVenues });
     }
 
-    const userPreferences = await Preferences.findOne({ user: uid });
+    const userPreferences = await Preferences.findOne({ uid: uid });
     if (!userPreferences) {
+      console.log("No preferences found for user:", uid);
       return res.status(404).json({ message: "No preferences found" });
     }
 
