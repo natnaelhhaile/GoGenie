@@ -75,6 +75,7 @@ const LoginPage = () => {
 
             <button className="btn">Sign In</button>
             <p className="forgot-password">Forgot password?</p>
+            <p className="forgot-password">Create an account</p>
             {error && <p className="error-text">{error}</p>}
           </form>
         </div>
