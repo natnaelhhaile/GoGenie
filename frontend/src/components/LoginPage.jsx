@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios"; // Import Axios to send API requests
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import Container from "./Container";
 import "./LoginPage.css";
 import landingImage from "../assets/landing-image.jpg";
@@ -12,6 +12,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
@@ -43,27 +44,28 @@ const LoginPage = () => {
       };
 
       // ✅ 1. Ensure user exists in DB
-    await axios.post(`${BACKEND_URL}/api/users/new-user`, {}, { headers });
+      await axios.post(`${BACKEND_URL}/api/users/new-user`, {}, { headers });
 
-    // ✅ 2. Check for preferences
-    const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`, {
-      headers,
-      validateStatus: () => true
-    });
+      // ✅ 2. Check for preferences
+      const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`, {
+        headers,
+        validateStatus: () => true
+      });
 
-    if (response.status === 200 && response.data) {
-      console.log("User preferences found:", response.data);
-      navigate("/dashboard");
-    } else {
-      console.log("No preferences found, redirecting to profile setup.");
-      navigate("/profile-setup");
-    }
+      if (response.status === 200 && response.data) {
+        console.log("User preferences found:", response.data);
+        navigate("/dashboard");
+      } else {
+        console.log("No preferences found, redirecting to profile setup.");
+        navigate("/profile-setup");
+      }
 
     } catch (err) {
       console.error("Login Error:", err.message);
-      setError(err.message); // Display error message
+      setError(err.message);
     }
   };
+
 
   return (
     <Container>
@@ -92,7 +94,8 @@ const LoginPage = () => {
           />
         </div>
         <button className="btn">Sign In</button>
-        <p className="forgot-password">Forgot password?</p>
+        <p className="forgot-password" onClick={() => navigate("/forgot-password")}>Forgot password?</p>
+
       </form>
       {error && <p style={{ color: "red" }}>{error}</p>}
     </Container>

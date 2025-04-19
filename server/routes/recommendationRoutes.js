@@ -5,7 +5,7 @@ const Recommendation = require("../models/Recommendation");
 const UserVenueScore = require("../models/UserVenueScore");
 const { calculateCosineSimilarity } = require("../utils/similarity");
 const { generateFoursquareQueries } = require("../services/openAIService");
-const { fetchFoursquareVenues, fetchVenuePhotos } = require("../services/foursquareService");
+const { fetchFoursquareVenues, fetchVenuePhotos , fetchVenueDetails} = require("../services/foursquareService");
 const tagsVocabulary = require("../utils/tagsVocabulary");
 const extractTagsFromFeatures = require("../utils/extractTagsFromFeatures");
 
@@ -18,7 +18,6 @@ router.get("/user-venues", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
     const cachedVenues = await Recommendation.find({ user: uid }).limit(10);
-    console.log("cachedVenues", cachedVenues);
     if (cachedVenues.length > 0) {
       return res.status(200).json({ recommendations: cachedVenues });
     }
@@ -155,6 +154,19 @@ router.get("/ranked-recommendations/:userId", verifyFirebaseToken, async (req, r
   } catch (err) {
     console.error("Error fetching ranked recommendations:", err);
     return res.status(500).json({ message: "Server error" });
+  }
+});
+
+// endpoint to get venue details by fsq_id: popularity,stats,hours,rating
+// later maybe user verifyFirebaseToken
+router.get("/details/:venueId", async (req, res) => {
+  const { venueId } = req.params;
+  try {
+    const venue = await fetchVenueDetails(venueId);
+    res.status(200).json(venue);
+  } catch (error) {
+    console.error("Error fetching venue details:", error);
+    res.status(500).json({ message: "Failed to fetch venue details" });
   }
 });
 

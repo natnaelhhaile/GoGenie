@@ -86,7 +86,7 @@ const ProfileSetup = () => {
       );
       
       console.log("Preferences saved:", response.data);
-      navigate("/recommendation");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Error saving preferences:", error.response?.data || error);
     }

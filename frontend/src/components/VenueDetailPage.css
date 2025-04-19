@@ -1,127 +1,181 @@
 /* 🌟 Main Container */
 .venue-detail-container {
-    padding: 20px;
-    max-width: 330px;
-    margin: 20px auto;
-    background-color: #ffffff;
-    border-radius: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    font-family: 'Poppins', sans-serif;
-    text-align: center;
-  }
-  
-  /* 🌟 Large Hero Image */
-  .hero-image {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 16px;
-    margin-bottom: 15px;
-  }
-  
-  /* 🌟 Gallery Scroll Section */
-  .gallery-scroll {
-    display: flex;
-    overflow-x: auto;
-    gap: 10px;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-  }
-  
-  .gallery-scroll img {
-    width: 100px;
-    height: 80px;
-    object-fit: cover;
-    border-radius: 10px;
-    flex-shrink: 0;
-    border: 2px solid #f0f0f0;
-  }
-  
-  /* 🌟 Info Section */
-  .venue-name {
-    font-size: 20px;
-    font-weight: 600;
-    color: #0A2533;
-    margin-bottom: 10px;
-  }
-  
-  .venue-info p {
-    font-size: 14px;
-    color: #333;
-    margin: 4px 0;
-  }
-  
-  .venue-info span.label {
-    font-weight: 600;
-    color: #0A2533;
-  }
-  
-  /* 🌟 Section Dividers */
-  .section-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #3F5A5B;
-    margin: 20px 0 10px;
-    text-align: left;
-  }
-  
-  /* 🌟 Placeholder Box */
-  .placeholder-box {
-    background: #f9f9f9;
-    border-radius: 10px;
-    padding: 15px;
-    font-size: 14px;
-    color: #777;
-    text-align: left;
-  }
-  
-  .venue-external-link {
-    margin-top: 10px;
-  }
-  
-  .venue-external-link a {
-    color: #2c6ed5;
-    font-weight: bold;
-    text-decoration: none;
-    font-size: 14px;
-  }
-  
-  .venue-external-link a:hover {
-    text-decoration: underline;
-  }
-  
-  .venue-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .favorite-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-  }
-  
-  .favorite-icon {
-    font-size: 24px;
-    color: #999;
-  }
-  
-  .favorite-icon.active {
-    color: #e74c3c;
-  }
-  
-  .reviews-section {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin: 10px 0;
-  }
-  
-  .review-card {
-    background: #f3f3f3;
-    padding: 10px;
-    border-radius: 8px;
-    text-align: left;
-  }
-  
+  padding: 20px;
+  max-width: 330px;
+  margin: 20px auto;
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: 'Poppins', sans-serif;
+  text-align: center;
+}
+
+/* 🌟 Large Hero Image */
+.hero-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 16px;
+  margin-bottom: 15px;
+}
+
+/* 🌟 Gallery Scroll Section */
+.gallery-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 10px;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.gallery-scroll img {
+  width: 100px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+  border: 2px solid #f0f0f0;
+}
+
+/* Venue Info Section */
+
+.venue-info {
+  text-align: left;
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.05);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.venue-info p {
+  font-size: 14px;
+  color: #333;
+  margin: 8px 0;
+}
+
+.venue-info .label {
+  font-weight: 600;
+  color: #0A2533;
+  margin-right: 6px;
+}
+
+.venue-info .rating-value {
+  display: inline-flex;
+  align-items: center;
+  background-color: #f6f6f6;
+  padding: 1px 8px;
+  border-radius: 8px;
+  font-weight: 600;
+  color: #444;
+}
+
+.venue-info .rating-value .star-icon {
+  color: #FFD700;
+  margin-right: 6px;
+  font-size: 16px;
+}
+
+.venue-external-link {
+  display: inline-block;
+  margin-top: 12px;
+  font-weight: 500;
+  color: #3f5a5b;
+  text-decoration: none;
+  border-bottom: 1px solid #3f5a5b;
+}
+
+.venue-external-link:hover {
+  color: #1e3636;
+  border-color: #1e3636;
+}
+.open-status {
+  font-weight: bold;
+}
+.open-status.open {
+  color: green;
+}
+.open-status.closed {
+  color: crimson;
+}
+
+
+/* 🌟 Section Dividers */
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #3F5A5B;
+  margin: 20px 0 10px;
+  text-align: left;
+}
+
+/* 🌟 Placeholder Box */
+.placeholder-box {
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 15px;
+  font-size: 14px;
+  color: #777;
+  text-align: left;
+}
+
+.venue-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #0A2533;
+  margin-bottom: 10px;
+}
+
+.venue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.favorite-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.favorite-icon {
+  font-size: 24px;
+  color: #999;
+}
+
+.favorite-icon.active {
+  color: #e74c3c;
+}
+
+.reviews-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.review-card {
+  background: #f3f3f3;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.tip-text {
+  font-style: italic;
+  color: #333;
+}
+
+.tip-date {
+  font-size: 12px;
+  color: #777;
+  margin-top: 4px;
+}
+
+.no-tips {
+  font-style: italic;
+  color: #999;
+  text-align: center;
+}

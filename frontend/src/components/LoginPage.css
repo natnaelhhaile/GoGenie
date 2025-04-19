@@ -61,3 +61,38 @@
 .forgot-password:hover {
   text-decoration: underline;
 }
+/* 
+.forgot-password {
+  color: #3F5A5B;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 10px;
+  text-decoration: underline;
+}
+
+.forgot-password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+  text-align: left;
+}
+
+.forgot-password-form input {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.back-to-login {
+  cursor: pointer;
+  color: #3F5A5B;
+  font-weight: bold;
+  margin-top: 10px;
+  text-decoration: underline;
+}
+
+.reset-message {
+  margin-top: 10px;
+  font-weight: bold;
+} */

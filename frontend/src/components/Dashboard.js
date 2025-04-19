@@ -41,7 +41,7 @@ const Dashboard = () => {
           };
           const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`, { headers });
           setUserPreferences(response.data);
-          console.log("User Preferences:", response.data);
+          setMessage(`${response.data.fname} ${response.data.lname ? response.data.lname : ""}`);
         } catch (error) {
           console.error("❌ Error fetching preferences:", error);
         }
@@ -127,51 +127,53 @@ const Dashboard = () => {
       </section>
 
       {/* ✅ Places Section (Updated to show recommendations) */}
-      <section className="places-section">
-        {recommendations.length > 0 ? (
-          
-          recommendations.map((recomend, index) => {
-            // extract the venue object from recommend object, it comes in form {venue: {venue, priority_score gele}}
-            const venue = recomend.venue;
-            console.log("Venue exact:", venue);
-            const addressParts = venue?.location?.address?.split(",") || [];
-            const city = addressParts.length >= 2 ? addressParts[addressParts.length - 2].trim() : "Unknown City";
+      <div className="dashboard-scroll-area">
+        <section className="places-section" >
+          {recommendations.length > 0 ? (
 
-            // get images from the venue object photo
-            const venueImage = venue.photos?.[0] || imageSources[index % imageSources.length]; // Fallback to preloaded images if none available
-            return (
-              <div key={venue.venue_id || index} className="place-item"
-                onClick={() => navigate("/venue-detail", { state: { venue } })}
-                style={{ cursor: "pointer" }}
-              >
-                <img src={venueImage} alt={venue.name || "Venue"} />
-                <p>{venue.name || "Unnamed venue"}</p>
-                <div className="icons-row">
-                  <span><FaThumbsUp className="thumbs-up" /></span>
-                  <span className="location-info">
-                    <IoLocationSharp className="location-pin" />
-                    <span className="city-name">{city}</span>
-                  </span>
-                  <span><FaThumbsDown className="thumbs-down" /></span>
+            recommendations.map((recomend, index) => {
+              // extract the venue object from recommend object, it comes in form {venue: {venue, priority_score gele}}
+              const venue = recomend.venue;
+              // console.log("Venue exact:", venue);
+              const addressParts = venue?.location?.address?.split(",") || [];
+              const city = addressParts.length >= 2 ? addressParts[addressParts.length - 2].trim() : "Unknown City";
+
+              // get images from the venue object photo
+              const venueImage = venue.photos?.[0] || imageSources[index % imageSources.length]; // Fallback to preloaded images if none available
+              return (
+                <div key={venue.venue_id || index} className="place-item"
+                  onClick={() => navigate("/venue-detail", { state: { venue } })}
+                  style={{ cursor: "pointer" }}
+                >
+                  <img src={venueImage} alt={venue.name || "Venue"} />
+                  <p>{venue.name || "Unnamed venue"}</p>
+                  <div className="icons-row">
+                    <span><FaThumbsUp className="thumbs-up" /></span>
+                    <span className="location-info">
+                      <IoLocationSharp className="location-pin" />
+                      <span className="city-name">{city}</span>
+                    </span>
+                    <span><FaThumbsDown className="thumbs-down" /></span>
+                  </div>
                 </div>
+              );
+            })
+          ) : (
+            <>
+              <div className="place-item">
+                <img src={require(`../assets/Bowlero_Milpitas.png`)} alt="Bowlero Milpitas" />
+                <p>Bowlero Milpitas</p>
+                <span><GoClock className="clock-icon" /> 20 Min</span>
               </div>
-            );
-          })
-        ) : (
-          <>
-            <div className="place-item">
-              <img src={require(`../assets/Bowlero_Milpitas.png`)} alt="Bowlero Milpitas" />
-              <p>Bowlero Milpitas</p>
-              <span><GoClock className="clock-icon" /> 20 Min</span>
-            </div>
-            <div className="place-item">
-              <img src={require(`../assets/Spin_A_Yarn_Steakhouse.png`)} alt="Spin A Yarn Steakhouse" />
-              <p>Spin A Yarn Steakhouse</p>
-              <span><GoClock className="clock-icon" /> 20 Min </span>
-            </div>
-          </>
-        )}
-      </section>
+              <div className="place-item">
+                <img src={require(`../assets/Spin_A_Yarn_Steakhouse.png`)} alt="Spin A Yarn Steakhouse" />
+                <p>Spin A Yarn Steakhouse</p>
+                <span><GoClock className="clock-icon" /> 20 Min </span>
+              </div>
+            </>
+          )}
+        </section>
+      </div>
 
       <div className="dashboard-footer">
         <button onClick={() => navigate("/update-preferences")} className="update-preferences">
