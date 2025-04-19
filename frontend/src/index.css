@@ -5,9 +5,19 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* prevent the flashing cursor (caret) on the pages  */
+  user-select: none;
+  caret-color: transparent;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+/* ✨ Safe default override for inputs here */
+input, textarea, select {
+  user-select: text;
+  caret-color: auto;
+}
+

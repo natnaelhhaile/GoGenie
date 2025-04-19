@@ -17,7 +17,12 @@ const Recommendation = () => {
         // setMessage(`${user.displayName || user.email.split("@")[0]}`);
         const userId = user.uid;
         try {
-          const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`);
+          const token = localStorage.getItem("token");
+
+          const headers = {
+            Authorization: `Bearer ${token}`,
+          };
+          const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`, {headers});
           setUserPreferences(response.data);
         } catch (error) {
           console.error("❌ Error fetching preferences:", error);
@@ -35,9 +40,9 @@ const Recommendation = () => {
       try {
         console.log("userId", userId);
         const response = await axios.get(`${BACKEND_URL}/api/recommendations/user-venues/${userId}`);
-  
+
         console.log("✅ AI Response:", response.data);
-  
+
         if (Array.isArray(response.data.recommendations)) {
           setRecommendations(response.data.recommendations); // ✅ Now handling structured data
         } else {

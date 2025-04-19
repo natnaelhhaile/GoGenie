@@ -14,6 +14,7 @@ import FavoritesPage from "./components/FavoritesPage";
 import ProfilePage from "./components/ProfilePage";
 import EditProfilePage from "./components/EditProfilePage";
 import UpdatePreferences from "./components/UpdatePreferences"; 
+import ForgotPassword from "./components/ForgotPassword";
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/edit-profile" element={<EditProfilePage />} />
             <Route path="/update-preferences" element={<UpdatePreferences />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
           </Route>
         </Routes>
       </Router>

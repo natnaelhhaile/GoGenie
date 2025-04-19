@@ -7,6 +7,8 @@ import { FaHeart } from "react-icons/fa";
 import { MdHomeFilled } from "react-icons/md";
 import { GoClock } from "react-icons/go";
 import { IoSearchOutline, IoPersonOutline, IoLocationSharp } from "react-icons/io5";
+import { FaThumbsUp } from "react-icons/fa";
+import { FaThumbsDown } from "react-icons/fa";
 import "./Dashboard.css"; // Ensure styling is imported
 import Container from "../components/Container"; // Adjust path if different
 // import TestFoursquarePhotos from "./TestFoursquarePhotos"; // test if photos are loaded
@@ -33,8 +35,13 @@ const Dashboard = () => {
         const userId = user.uid;
 
         try {
-          const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`);
+          const token = localStorage.getItem("token");
+          const headers = {
+            Authorization: `Bearer ${token}`,
+          };
+          const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`, { headers });
           setUserPreferences(response.data);
+          setMessage(`${response.data.fname} ${response.data.lname ? response.data.lname : ""}`);
         } catch (error) {
           console.error("❌ Error fetching preferences:", error);
         }
@@ -47,9 +54,14 @@ const Dashboard = () => {
       const userId = user.uid;
 
       try {
-        const response = await axios.get(`${BACKEND_URL}/api/recommendations/user-venues/${userId}`);
+        const token = localStorage.getItem("token");
+        const headers = {
+          Authorization: `Bearer ${token}`,
+        };
+        const response = await axios.get(`${BACKEND_URL}/api/recommendations/user-venues`, { headers });
         if (Array.isArray(response.data.recommendations)) {
           setRecommendations(response.data.recommendations);
+          console.log("Recommendations:", response.data.recommendations[0]);
         } else {
           console.error("❌ Unexpected response format:", response.data);
         }
@@ -60,7 +72,7 @@ const Dashboard = () => {
 
     fetchUserPreferences();
     fetchRecommendations();
-    
+
   }, [BACKEND_URL]);
 
   return (
@@ -70,7 +82,7 @@ const Dashboard = () => {
           <FaChildReaching className="greeting-icon" /> Hello!
         </span>
       </header>
-      
+
       <section className="username-section">
         <h3 className="username">{message}</h3>
       </section>
@@ -115,40 +127,53 @@ const Dashboard = () => {
       </section>
 
       {/* ✅ Places Section (Updated to show recommendations) */}
-      <section className="places-section">
-        {recommendations.length > 0 ? (
-          recommendations.map((venue, index) => {
-            // ✅ Extract city from formatted address
-            const addressParts = venue.location.address.split(",");
-            const city = addressParts.length >= 2 ? addressParts[addressParts.length - 2].trim() : "Unknown City";
-            // get images from the venue object photo
-            const venueImage = venue.photos?.[0] || imageSources[index % imageSources.length]; // Fallback to preloaded images if none available
-            return (
-              <div key={venue.venue_id || index} className="place-item"
-              onClick={() => navigate("/venue-detail", { state: { venue } })}
-              style={{ cursor: "pointer" }}
-              >
-                <img src={venueImage} alt={venue.name} />
-                <p>{venue.name}</p>
-                <span><IoLocationSharp className="clock-icon" /> {city} </span>
+      <div className="dashboard-scroll-area">
+        <section className="places-section" >
+          {recommendations.length > 0 ? (
+
+            recommendations.map((recomend, index) => {
+              // extract the venue object from recommend object, it comes in form {venue: {venue, priority_score gele}}
+              const venue = recomend.venue;
+              // console.log("Venue exact:", venue);
+              const addressParts = venue?.location?.address?.split(",") || [];
+              const city = addressParts.length >= 2 ? addressParts[addressParts.length - 2].trim() : "Unknown City";
+
+              // get images from the venue object photo
+              const venueImage = venue.photos?.[0] || imageSources[index % imageSources.length]; // Fallback to preloaded images if none available
+              return (
+                <div key={venue.venue_id || index} className="place-item"
+                  onClick={() => navigate("/venue-detail", { state: { venue } })}
+                  style={{ cursor: "pointer" }}
+                >
+                  <img src={venueImage} alt={venue.name || "Venue"} />
+                  <p>{venue.name || "Unnamed venue"}</p>
+                  <div className="icons-row">
+                    <span><FaThumbsUp className="thumbs-up" /></span>
+                    <span className="location-info">
+                      <IoLocationSharp className="location-pin" />
+                      <span className="city-name">{city}</span>
+                    </span>
+                    <span><FaThumbsDown className="thumbs-down" /></span>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <>
+              <div className="place-item">
+                <img src={require(`../assets/Bowlero_Milpitas.png`)} alt="Bowlero Milpitas" />
+                <p>Bowlero Milpitas</p>
+                <span><GoClock className="clock-icon" /> 20 Min</span>
               </div>
-            );
-          })
-        ) : (
-          <>
-            <div className="place-item">
-              <img src={require(`../assets/Bowlero_Milpitas.png`)} alt="Bowlero Milpitas" />
-              <p>Bowlero Milpitas</p>
-              <span><GoClock className="clock-icon" /> 20 Min</span>
-            </div>
-            <div className="place-item">
-              <img src={require(`../assets/Spin_A_Yarn_Steakhouse.png`)} alt="Spin A Yarn Steakhouse" />
-              <p>Spin A Yarn Steakhouse</p>
-              <span><GoClock className="clock-icon" /> 20 Min </span>
-            </div>
-          </>
-        )}
-      </section>
+              <div className="place-item">
+                <img src={require(`../assets/Spin_A_Yarn_Steakhouse.png`)} alt="Spin A Yarn Steakhouse" />
+                <p>Spin A Yarn Steakhouse</p>
+                <span><GoClock className="clock-icon" /> 20 Min </span>
+              </div>
+            </>
+          )}
+        </section>
+      </div>
 
       <div className="dashboard-footer">
         <button onClick={() => navigate("/update-preferences")} className="update-preferences">
@@ -163,7 +188,7 @@ const Dashboard = () => {
         <IoPersonOutline className="nav-icon user" onClick={() => navigate("/profile")} />
       </footer>
 
-     
+
 
 
     </Container>

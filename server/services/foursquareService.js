@@ -51,4 +51,25 @@ const fetchVenuePhotos = async (fsq_id) => {
   }
 };
 
-module.exports = { fetchFoursquareVenues, fetchVenuePhotos };
+// fetch venue details by fsq_id: popularity,stats,hours,rating
+const fetchVenueDetails = async (venueId) => {
+  const fields = 'fsq_id,popularity,stats,hours,rating,tips';
+  try {
+    const response = await axios.get(`https://api.foursquare.com/v3/places/${venueId}`, {
+      headers: {
+        Accept: "application/json",
+        Authorization: process.env.FOURSQUARE_API_KEY
+      },
+      params: {
+        fields: fields,
+      },
+    });
+    return response.data;
+  }
+  catch (error) {
+    console.error(`Error fetching venue details for ${venueId}:`, error.message);
+    return null;
+  };
+};
+
+  module.exports = { fetchFoursquareVenues, fetchVenuePhotos, fetchVenueDetails };
