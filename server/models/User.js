@@ -5,7 +5,6 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    index: true, // Optimized lookups using Firebase UID
   },
   email: {
     type: String,
@@ -13,11 +12,7 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     lowercase: true, // standardize emails
     trim: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
   }
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("User", UserSchema);

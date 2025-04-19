@@ -75,11 +75,13 @@ h2 {
   align-items: center !important;
   justify-content: flex-start !important;
   width: 100% !important;
-  max-width: 280px;
-  padding: 12px;
-  border-radius: 25px;
-  box-sizing: border-box;
-  overflow: hidden;
+  max-width: 280px !important;
+  padding: 12px !important;
+  border-radius: 25px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  font-size: 1rem !important;
+  font-weight: bold !important;
   background-color: white;
 }
 
@@ -100,8 +102,8 @@ h2 {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 1rem;
-  font-weight: bold;
+  font-size: 1rem !important;
+  font-weight: bold !important;
   text-align: center;
   white-space: nowrap;
   z-index: 1;

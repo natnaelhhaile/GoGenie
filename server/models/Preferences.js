@@ -1,8 +1,12 @@
 const mongoose = require("mongoose");
 
 const PreferencesSchema = new mongoose.Schema({
-  uid: { type: String, ref: "User", required: true, unique: true },
-  // name: { type: String, required: true },
+  uid: { 
+    type: String, 
+    ref: "User", 
+    required: true, 
+    unique: true, 
+  },
   fname: {
     type: String,
     trim: true,

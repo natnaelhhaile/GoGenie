@@ -1,7 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext"; // Provide Auth State
-import Auth from "./components/Auth";
+// import Auth from "./components/Auth";
 import Recommendation from "./components/Recommendation";
 import Dashboard from "./components/Dashboard";
 // import Home from "./components/Home";
@@ -21,7 +21,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/login2" element={<Auth />} />
+          {/* <Route path="/login2" element={<Auth />} /> */}
           <Route path="/login" element={<LoginPage />} />
           
           {/* Protected Routes */}

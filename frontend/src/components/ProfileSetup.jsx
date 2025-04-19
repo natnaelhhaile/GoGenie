@@ -80,7 +80,6 @@ const ProfileSetup = () => {
       setErrorNotice("Please select at least 2 options to proceed. Recommended: pick 3 or more for better suggestions.");
       return;
     }
-    const userId = localStorage.getItem("userId");
     try {
       // ✅ Get Firebase token
       const token = localStorage.getItem("token");
@@ -91,12 +90,12 @@ const ProfileSetup = () => {
   
       const response = await axios.post(
         `${BACKEND_URL}/api/users/preferences`,
-        { userId, ...profile },
+        { ...profile },
         { headers }
       );
       
       console.log("Preferences saved:", response.data);
-      navigate("/recommendation");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Error saving preferences:", error.response?.data || error);
     }

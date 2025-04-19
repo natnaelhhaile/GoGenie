@@ -120,12 +120,16 @@ h2 {
     max-width: 600px;
   }
 
+  .hero-image {
+    max-width: 300px;
+  }
+
   h2 {
-    font-size: 2rem;
+    font-size: 2.5rem;
   }
 
   .btn {
-    font-size: 1.1rem;
+    font-size: 1.4rem !important;
   }
 }
 
@@ -135,16 +139,28 @@ h2 {
   }
 
   .hero-image {
-    max-width: 400px;
+    max-width: 340px;
   }
 
   h2 {
-    font-size: 2.2rem;
+    font-size: 2.8rem;
   }
 }
 
 @media (min-width: 1280px) {
   .login-inner {
-    max-width: 840px;
+    max-width: 640px;
+  }
+
+  .hero-image {
+    max-width: 260px;
+  }
+
+  h2 {
+    font-size: 2rem;
+  }
+
+  .btn {
+    font-size: 1rem !important;
   }
 }

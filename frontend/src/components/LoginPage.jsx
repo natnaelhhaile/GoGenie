@@ -16,37 +16,37 @@ const LoginPage = () => {
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     const auth = getAuth();
-
+  
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const uid = userCredential.user.uid;
       const token = await userCredential.user.getIdToken();
-
+  
       localStorage.setItem("token", token);
-      localStorage.setItem("uid", uid);
-
+  
       const headers = { Authorization: `Bearer ${token}` };
-      // ✅ 1. Ensure user exists in DB
-    await axios.post(`${BACKEND_URL}/api/users/new-user`, {}, { headers });
-
-    // ✅ 2. Check for preferences
-    const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${uid}`, {
-      headers,
-      validateStatus: () => true
-    });
-
-    if (response.status === 200 && response.data) {
-      console.log("User preferences found:", response.data);
-      navigate("/dashboard");
-    } else {
-      console.log("No preferences found, redirecting to profile setup.");
-      navigate("/profile-setup");
-    }
+  
+      // Call backend once and get preference status
+      const response = await axios.post(`${BACKEND_URL}/api/users/check-new-user`, {}, { headers });
+  
+      if (response.status === 200) {
+        const { hasPreferences } = response.data;
+        console.log("Preferences found - front-end: ", hasPreferences);
+  
+        if (hasPreferences) {
+          console.log("✅ Preferences found, redirecting to dashboard");
+          navigate("/dashboard");
+        } else {
+          console.log("ℹ️ No preferences found, redirecting to profile setup");
+          navigate("/profile-setup");
+        }
+      } else {
+        throw new Error("Unexpected response from server.");
+      }
     } catch (err) {
       console.error("Login Error:", err.message);
-      setError(err.message);
+      setError("Invalid login credentials or server error.");
     }
-  };
+  };  
 
   return (
     <div className="fullscreen-wrapper">
@@ -87,5 +87,6 @@ const LoginPage = () => {
     </div>
   );
 };
+
 
 export default LoginPage;
