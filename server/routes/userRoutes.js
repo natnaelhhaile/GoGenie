@@ -1,121 +1,54 @@
-const express = require('express');
+const express = require("express");
 const verifyFirebaseToken = require("../middleware/firebaseAuth");
-const User = require('../models/User');
-const Preferences = require('../models/Preferences');
+const User = require("../models/User");
+const Preferences = require("../models/Preferences");
 
 const router = express.Router();
 
-// Register a new user | Not implemented with firebase only firebase is used need to save them in mongoDB
-// router.post('/register', async (req, res) => {
-//   try {
-//     const { fName, lName, email, password } = req.body;
+// Utility: Validate arrays of strings
+const isValidStringArray = (arr) => Array.isArray(arr) && arr.every(item => typeof item === "string");
 
-//     let user = await User.findOne({ email });
-//     if (user) {
-//       return res.status(400).json({ message: "User already exists" })
-//     }
-
-//     user = new User({ fName, lName, email, password });
-//     await user.save();
-
-//     res.status(201).json({ message: "Account created successfully", user });
-//   } catch (error) {
-//     res.status(500).json({ message: "Server error", error });
-//   }
-// });
-
-
-// New routes for 1. login|register | 2. preferences |  March 13, 2024
-// Check if user exists, if not, create one
-router.post("/new-user", verifyFirebaseToken, async (req, res) => {
-  console.log("✅ request accepted");
-
+// Create user if new
+router.post("/check-new-user", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
     const email = req.user.email;
 
-    // 🔍 Check if user exists by uid or email (to avoid duplication)
+    // Check if user exists
     let user = await User.findOne({ $or: [{ uid }, { email }] });
 
     if (!user) {
       user = new User({ uid, email });
       await user.save();
-      console.log("✅ New user created:", user);
+      console.log("✅ New user created:", user.email);
     } else {
       console.log("ℹ️ User already exists:", user.email);
     }
 
-    res.status(200).json({ message: "User authenticated successfully" });
+    // Check for preferences
+    const existingPrefs = await Preferences.findOne({ uid });
+    const hasPreferences = !!existingPrefs;
+    console.log("Preferences found: ", hasPreferences);
+
+    res.status(200).json({
+      message: "User authenticated successfully",
+      hasPreferences
+    });
+
   } catch (error) {
     console.error("❌ Error in login/register:", error);
     res.status(500).json({ message: "Server error", error });
   }
 });
 
-
-// Route to Save or Update User Preferences
-router.post("/preferences", verifyFirebaseToken, async (req, res) => {
+// ✅ Fetch preferences
+router.get("/preferences", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
-    const { fname, lname, age, gender, nationality, industry, location, hobbies, foodPreferences, thematicPreferences, lifestylePreferences } = req.body;
-
-    // Check if user exists
-    const user = await User.findOne({uid : uid});
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    // Check if preferences already exist for user
-    let preferences = await Preferences.findOne({ uid: uid });
-
-    if (preferences) {
-      // Update existing preferences
-      preferences.fname = fname;
-      preferences.lname = lname;
-      preferences.age = age;
-      preferences.gender = gender;
-      preferences.nationality = nationality;
-      preferences.industry = industry;
-      preferences.location = location;
-      preferences.hobbies = hobbies;
-      preferences.foodPreferences = foodPreferences;
-      preferences.thematicPreferences = thematicPreferences;
-      preferences.lifestylePreferences = lifestylePreferences;
-    } else {
-      // Create new preferences document
-      preferences = new Preferences({
-        uid: uid, // now it is stored as a string
-        fname,
-        lname,
-        age,
-        gender,
-        nationality,
-        industry,
-        location,
-        hobbies,
-        foodPreferences,
-        thematicPreferences,
-        lifestylePreferences
-      });
-    }
-
-    await preferences.save();
-    res.status(200).json({ message: "Preferences updated successfully!", preferences });
-
-  } catch (error) {
-    console.log("Error saving preferences(userRoute):", error);
-    res.status(500).json({ message: "Server error", error });
-  }
-});
-
-// Route to Fetch user with preferences
-router.get("/preferences/:userId", verifyFirebaseToken, async (req, res) => {
-  try {
-    const uid = req.user.uid;
-
-    // Find the user's preferences
-    const preferences = await Preferences.findOne({ uid: uid });
+    const preferences = await Preferences.findOne({ uid });
 
     if (!preferences) {
-      return res.status(200).json();
+      return res.status(404).json({ message: "Preferences not found" });
     }
 
     res.status(200).json(preferences);
@@ -125,56 +58,93 @@ router.get("/preferences/:userId", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// the whole profile set up here from dashboard with navigate("/profile-setup") to here
-// Route to update preferences 
-// router.put("/preferences/:userId", async (req, res) => {
-//   try {
-//     const { userId } = req.params;
-//     const { name, age, gender, nationality, industry, location, hobbies, foodPreferences, thematicPreferences } = req.body;
+// ✅ Create or overwrite preferences with validation
+router.post("/preferences", verifyFirebaseToken, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    const {
+      fname,
+      lname,
+      age,
+      gender,
+      nationality,
+      industry,
+      location,
+      hobbies,
+      foodPreferences,
+      thematicPreferences,
+      lifestylePreferences,
+    } = req.body;
 
-//     // ✅ Find user preferences
-//     let preferences = await Preferences.findOne({ user: userId });
+    const requiredArrays = [
+      { name: "hobbies", value: hobbies },
+      { name: "foodPreferences", value: foodPreferences },
+      { name: "thematicPreferences", value: thematicPreferences },
+      { name: "lifestylePreferences", value: lifestylePreferences },
+    ];
 
-//     if (!preferences) {
-//       return res.status(404).json({ message: "Preferences not found" });
-//     }
+    for (const field of requiredArrays) {
+      if (!isValidStringArray(field.value)) {
+        return res.status(400).json({ message: `${field.name} must be an array of strings.` });
+      }
+    }
 
-//     // ✅ Update preferences
-//     preferences.name = name;
-//     preferences.age = age;
-//     preferences.gender = gender;
-//     preferences.nationality = nationality;
-//     preferences.industry = industry;
-//     preferences.location = location;
-//     preferences.hobbies = hobbies;
-//     preferences.foodPreferences = foodPreferences;
-//     preferences.thematicPreferences = thematicPreferences;
+    const user = await User.findOne({ uid });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-//     await preferences.save();
-//     res.status(200).json({ message: "Preferences updated successfully!", preferences });
+    const preferences = new Preferences({
+      uid,
+      fname,
+      lname,
+      age,
+      gender,
+      nationality,
+      industry,
+      location,
+      hobbies,
+      foodPreferences,
+      thematicPreferences,
+      lifestylePreferences
+    });
+    
+    await preferences.save();    
 
-//   } catch (error) {
-//     console.error("❌ Error updating preferences:", error);
-//     res.status(500).json({ message: "Server error", error });
-//   }
-// });
+    res.status(200).json({ message: "Preferences saved successfully!", preferences });
+  } catch (error) {
+    console.error("❌ Error saving preferences:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
 
-// April 16, Siem
-// ✅ PUT: Update user preferences only
-router.put("/preferences/:userId", verifyFirebaseToken, async (req, res) => {
+// ✅ Update preferences subset (hobbies, foodPreferences, thematicPreferences)
+router.put("/preferences", verifyFirebaseToken, async (req, res) => {
   const uid = req.user.uid;
   const { hobbies, foodPreferences, thematicPreferences } = req.body;
 
+  const updates = {};
+
+  if (hobbies) {
+    if (!isValidStringArray(hobbies))
+      return res.status(400).json({ message: "Hobbies must be an array of strings." });
+    updates.hobbies = hobbies;
+  }
+
+  if (foodPreferences) {
+    if (!isValidStringArray(foodPreferences))
+      return res.status(400).json({ message: "Food preferences must be an array of strings." });
+    updates.foodPreferences = foodPreferences;
+  }
+
+  if (thematicPreferences) {
+    if (!isValidStringArray(thematicPreferences))
+      return res.status(400).json({ message: "Thematic preferences must be an array of strings." });
+    updates.thematicPreferences = thematicPreferences;
+  }
+
   try {
     const updated = await Preferences.findOneAndUpdate(
-      { uid: uid },
-      {
-        $set: {
-          hobbies,
-          foodPreferences,
-          thematicPreferences,
-        },
-      },
+      { uid },
+      { $set: updates },
       { new: true, runValidators: true }
     );
 
@@ -189,14 +159,14 @@ router.put("/preferences/:userId", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// Update user details: name, username, age, gender, nationality
-router.put("/details/:userId", verifyFirebaseToken, async (req, res) => {
+// ✅ Update basic user details (fname, lname, age, gender, nationality, etc.)
+router.put("/details", verifyFirebaseToken, async (req, res) => {
   const uid = req.user.uid;
   const updateData = req.body;
 
   try {
     const updated = await Preferences.findOneAndUpdate(
-      { uid: uid },
+      { uid },
       { $set: updateData },
       { new: true }
     );
@@ -205,16 +175,14 @@ router.put("/details/:userId", verifyFirebaseToken, async (req, res) => {
       return res.status(404).json({ message: "User preferences not found." });
     }
 
-    return res.status(200).json({
-      message: "Preferences updated successfully.",
+    res.status(200).json({
+      message: "User details updated successfully.",
       preferences: updated,
     });
   } catch (error) {
-    console.error("❌ Error updating preferences:", error);
-    return res.status(500).json({ message: "Server error." });
+    console.error("❌ Error updating user details:", error);
+    res.status(500).json({ message: "Server error." });
   }
 });
-
-
 
 module.exports = router;

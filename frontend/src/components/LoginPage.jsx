@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios"; // Import Axios to send API requests
+import axios from "axios";
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import Container from "./Container";
 import "./LoginPage.css";
@@ -17,90 +17,78 @@ const LoginPage = () => {
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     const auth = getAuth();
-
-    console.log(BACKEND_URL);
-
+  
     try {
-      // Firebase Authentication
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      console.log("Email Login Successful:", userCredential.user);
-
-      // Retrieve userId and Token from Firebase
-      const userId = userCredential.user.uid; // Firebase userId
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const token = await userCredential.user.getIdToken();
-
-      // Store in Local Storage
+  
       localStorage.setItem("token", token);
-      localStorage.setItem("userId", userId);
-      console.log(token);
-
-      // Create headers for all authenticated requests
-      const headers = {
-        Authorization: `Bearer ${token}`,
-      };
-
-      // ✅ 1. Ensure user exists in DB
-      await axios.post(`${BACKEND_URL}/api/users/new-user`, {}, { headers });
-
-      // ✅ 2. Check for preferences
-      const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`, {
-        headers,
-        validateStatus: () => true
-      });
-
-      if (response.status === 200 && response.data) {
-        console.log("User preferences found:", response.data);
-        navigate("/dashboard");
+  
+      const headers = { Authorization: `Bearer ${token}` };
+  
+      // Call backend once and get preference status
+      const response = await axios.post(`${BACKEND_URL}/api/users/check-new-user`, {}, { headers });
+  
+      if (response.status === 200) {
+        const { hasPreferences } = response.data;
+        console.log("Preferences found - front-end: ", hasPreferences);
+  
+        if (hasPreferences) {
+          console.log("✅ Preferences found, redirecting to dashboard");
+          navigate("/dashboard");
+        } else {
+          console.log("ℹ️ No preferences found, redirecting to profile setup");
+          navigate("/profile-setup");
+        }
       } else {
-        console.log("No preferences found, redirecting to profile setup.");
-        navigate("/profile-setup");
+        throw new Error("Unexpected response from server.");
       }
-
     } catch (err) {
       console.error("Login Error:", err.message);
-      setError(err.message);
+      setError("Invalid login credentials or server error.");
     }
-  };
-
+  };  
 
   return (
-    <Container>
-      <div className="image-wrapper2">
-        <img src={landingImage} alt="People socializing" />
-      </div>
-      <form onSubmit={handleEmailLogin}>
-        <div className="input-group">
-          <label>Email</label>
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div className="input-group">
-          <label>Password</label>
-          <input
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button className="btn">Sign In</button>
-        <p className="forgot-password" onClick={() => navigate("/forgot-password")}>Forgot password?</p>
+    <div className="fullscreen-wrapper">
+      <Container>
+        <div className="login-inner">
+          <img src={landingImage} alt="People socializing" className="hero-image" />
+          <h2>Welcome back 👋</h2>
 
+          <form className="login-form" onSubmit={handleEmailLogin}>
+            <div className="input-group">
+              <label>Email</label>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="input-group">
+              <label>Password</label>
+              <input
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button className="btn">Sign In</button>
+            <p className="forgot-password" onClick={() => navigate("/forgot-password")}>Forgot password?</p>
+            <p className="forgot-password">Create an account</p>
+            {error && <p className="error-text">{error}</p>}
+    
       </form>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-    </Container>
+        </div>
+      </Container>
+    </div>
   );
 };
 
+
 export default LoginPage;
-// Compare this snippet from CultureConnect/frontend/src/components/ProfileSetup.jsx:

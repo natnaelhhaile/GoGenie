@@ -3,18 +3,40 @@ const mongoose = require("mongoose");
 const recommendationSchema = new mongoose.Schema({
   venue_id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
-  category: { type: String },
-  tags: { type: [String] },
+
   location: {
     address: { type: String },
-    latitude: { type: Number },
-    longitude: { type: Number },
+    formattedAddress: { type: String },
+    locality: { type: String },
+    region: { type: String },
+    country: { type: String },
+    postcode: { type: String }
   },
+
+  categories: {
+    type: [String],
+    default: []
+  },
+
+  features: {
+    type: [String],
+    default: []
+  },
+
+  rating: { type: Number },
   link: { type: String },
-  priority_score: { type: Number, default: 0 }, // Default score if needed
-  photos: { type: [String], default: [] },
-  distance: { type: Number},
-  user: { type: String },
-});
+
+  photos: {
+    type: [String],
+    default: []
+  },
+
+  distance: { type: Number },
+
+  // Allows multiple users to be linked to the same recommendation
+  users: [{ type: String, ref: "User" }]
+
+}, { timestamps: true });
+
 
 module.exports = mongoose.model("Recommendation", recommendationSchema);

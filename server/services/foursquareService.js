@@ -2,7 +2,7 @@ const axios = require("axios");
 
 const fetchFoursquareVenues = async (queries, location) => {
   const API_KEY = process.env.FOURSQUARE_API_KEY;
-  const fields = 'fsq_id,name,location,categories,distance,link,photos';
+  const fields = 'fsq_id,name,location,categories,distance,link,rating,photos,features';
   let allVenues = [];
 
   for (const query of queries) {
@@ -25,7 +25,7 @@ const fetchFoursquareVenues = async (queries, location) => {
     }
   }
 
-  return allVenues; // Limit total results to 10 venues max
+  return allVenues;
 };
 
 const fetchVenuePhotos = async (fsq_id) => {

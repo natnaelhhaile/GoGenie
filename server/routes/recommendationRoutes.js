@@ -13,26 +13,28 @@ const router = express.Router();
 
 const MAX_DISTANCE = 10000;
 
-// changes: no userId neede
-router.get("/user-venues", verifyFirebaseToken, async (req, res) => {
+// Route to generate venue recommendations
+router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
-    const cachedVenues = await Recommendation.find({ user: uid }).limit(10);
-    if (cachedVenues.length > 0) {
-      return res.status(200).json({ recommendations: cachedVenues });
-    }
+    console.log("generate recs route reached")
 
-    const userPreferences = await Preferences.findOne({ uid: uid });
+    // Get user preferences
+    const userPreferences = await Preferences.findOne({ uid });
     if (!userPreferences) {
       console.log("No preferences found for user:", uid);
       return res.status(404).json({ message: "No preferences found" });
     }
 
+    // Generate queries and fetch venues
     const queries = await generateFoursquareQueries({
       hobbies: userPreferences.hobbies,
       foodPreferences: userPreferences.foodPreferences,
       thematicPreferences: userPreferences.thematicPreferences,
+      lifestylePreferences: userPreferences.lifestylePreferences
     });
+    console.log(queries);
+    console.log(userPreferences.location);
 
     const venues = await fetchFoursquareVenues(queries, userPreferences.location);
     if (!venues || venues.length === 0) {
@@ -43,68 +45,67 @@ router.get("/user-venues", verifyFirebaseToken, async (req, res) => {
 
     for (const venue of venues) {
       const existingVenue = await Recommendation.findOne({ venue_id: venue.fsq_id });
-      
+
       const userTags = [
         ...(userPreferences.hobbies || []),
         ...(userPreferences.foodPreferences || []),
-        ...(userPreferences.thematicPreferences || [])
+        ...(userPreferences.thematicPreferences || []),
+        ...(userPreferences.lifestylePreferences || [])
       ].map(t => t.toLowerCase());
-      
+
       const venueTags = extractTagsFromFeatures(venue.features || {});
-      
-      const userVector = tagsVocabulary.map(tag => userTags.includes(tag.toLowerCase()) ? 1 : 0);
-      const venueVector = tagsVocabulary.map(tag => venueTags.includes(tag.toLowerCase()) ? 1 : 0);
-      
+
+      const userVector = tagsVocabulary.map(tag =>
+        userTags.includes(tag.toLowerCase()) ? 1 : 0
+      );
+      const venueVector = tagsVocabulary.map(tag =>
+        venueTags.includes(tag.toLowerCase()) ? 1 : 0
+      );
+
       const similarity = calculateCosineSimilarity(userVector, venueVector);
-      
+
       const distance = venue.distance || MAX_DISTANCE;
       const proximityScore = Math.max(0, 1 - distance / MAX_DISTANCE);
 
       const hasRating = typeof venue.rating === 'number';
-      const hasPopularity = typeof venue.popularity === 'number';
-      const normalizedRating = hasRating ? (venue.rating - 3) / 2 : 0;
-      const popularityScore = hasPopularity ? venue.popularity : 0;
+      const normalizedRating = hasRating ? venue.rating / 10 : 0.5;
 
-      let compositeRatingScore;
-      if (hasRating && hasPopularity) {
-        compositeRatingScore = (normalizedRating + popularityScore) / 2;
-      } else if (hasRating) {
-        compositeRatingScore = normalizedRating;
-      } else if (hasPopularity) {
-        compositeRatingScore = popularityScore;
-      } else {
-        compositeRatingScore = 0;
-      }
-  
       const priorityScore = (
         similarity * 0.5 +
         proximityScore * 0.3 +
-        compositeRatingScore * 0.2
+        normalizedRating * 0.2
       ).toFixed(3);
 
       let finalVenue;
       if (!existingVenue) {
-        const photoURLs = await fetchVenuePhotos(venue.fsq_id);
-
         const newVenue = new Recommendation({
           venue_id: venue.fsq_id,
           name: venue.name,
-          category: venue.categories?.[0]?.name || "Unknown",
-          features: venue.features,
-          rating: venue.rating,
-          priority: venue.priority,
-          tags: venueTags,
           location: {
-            address: venue.location.formatted_address,
-            latitude: venue.geocodes?.main?.latitude,
-            longitude: venue.geocodes?.main?.longitude,
+            address: venue.location.address,
+            formatted_address: venue.location.formatted_address,
+            locality: venue.location.locality,
+            region: venue.location.region,
+            country: venue.location.country,
+            postcode: venue.location.postcode,
           },
+          category: venue.categories.map(cat => cat.name),
+          features: venueTags,
+          rating: venue.rating,
           link: venue.link,
-          photos: photoURLs,
+          photos: (venue.photos || [])
+            .slice(0, 5)
+            .map(p => `${p.prefix}original${p.suffix}`),
           distance,
+          users: [uid]
         });
+
         finalVenue = await newVenue.save();
       } else {
+        if (!existingVenue.users.includes(uid)) {
+          existingVenue.users.push(uid);
+          await existingVenue.save();
+        }
         finalVenue = existingVenue;
       }
 
@@ -124,26 +125,27 @@ router.get("/user-venues", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-router.get("/ranked-recommendations/:userId", verifyFirebaseToken, async (req, res) => {
+// Route to fetch cached/ranked venue recommendations
+router.get("/cached-recommendations", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
 
-    // Step 1: Find all user-specific venue scores, ordered by highest score
-    const userScores = await UserVenueScore.find({ uid: uid }).sort({ priorityScore: -1 });
+    const userScores = await UserVenueScore
+      .find({ uid })
+      .sort({ priorityScore: -1 });
 
     if (!userScores.length) {
-      return res.status(404).json({ message: "No personalized scores found for this user." });
+      // ✅ Return empty list with 200 OK
+      return res.status(200).json({ recommendations: [] });
     }
 
-    // Step 2: Collect all venue IDs from scores
     const venueIds = userScores.map(s => s.venue_id);
-
-    // Step 3: Fetch venue details for those IDs
     const venueDocs = await Recommendation.find({ venue_id: { $in: venueIds } });
 
-    // Step 4: Match venue data to score entries
+    const venueMap = new Map(venueDocs.map(v => [v.venue_id, v]));
+
     const scoredVenues = userScores.map(scoreEntry => {
-      const venue = venueDocs.find(v => v.venue_id === scoreEntry.venue_id);
+      const venue = venueMap.get(scoreEntry.venue_id);
       return venue ? {
         venue,
         priorityScore: scoreEntry.priorityScore

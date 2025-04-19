@@ -55,10 +55,10 @@ export const hobbiesList = [
     "Live Music & Jam Nights",
     "Family-Friendly",
     "Study-Friendly",
-    "Rooftop or Outdoor Seating",
+    "Rooftop / Outdoor Seating",
     "Instagrammable Spots",
     "Pet-Friendly Venues",
-    "Karaoke or Game Nights",
+    "Karaoke / Game Nights",
     "Dance or Music Events",
     "International Cuisine Hotspots",
     "Local Hidden Gems"

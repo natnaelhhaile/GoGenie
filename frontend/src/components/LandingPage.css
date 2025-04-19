@@ -1,169 +1,192 @@
-/* Mobile-first design for Landing Page */
-/* .landing-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  height: 100vh;
-  max-width: 400px;
-  margin: auto;
-  background-color: #f8f9fa;
-  padding: 20px; 
- }  */
-
-  
-/* Image container for better mobile fit */
-.image-wrapper img {
-  width: 100%;
-  max-width: 300px;
-  height: auto;
-  margin-bottom: 100px;
-  border-radius: 16px;
+:root {
+  --firebaseui-primary-color: black;
+  --firebaseui-font-family: inherit;
 }
 
-/* Title Styling */
+/* Reset everything */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Fullscreen wrapper that fits everything */
+.fullscreen-wrapper {
+  height: 100svh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(to bottom right, #fdfdfd, #f2f2f2);
+}
+
+/* The content inside */
+.landing-inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  box-sizing: border-box;
+  text-align: center;
+
+  width: 100%;
+  max-width: 420px;
+  transition: max-width 0.3s ease;
+}
+
+/* Image */
+.hero-image {
+  width: 100%;
+  height: auto;
+  max-width: 300px;
+  border-radius: 16px;
+  margin: 20px 0 40px !important;
+  height: 100% !important;
+}
+
+/* Heading */
 h2 {
   font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 20px;
+  color: #222;
+  margin-bottom: 16px;
 }
 
+/* Firebase container */
 #firebaseui-auth-container {
+  width: 100%;
+  gap: 12px;
+}
+
+/* Center the entire list of sign-in providers */
+.firebaseui-idp-list > li {
+  width: 100%;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
+  justify-content: center;
+}
+
+/* Make button container relative */
+.firebaseui-idp-button {
+  position: relative;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
   width: 100% !important;
-  max-width: 380px !important; /*Prevent excessive stretching */
-  margin: auto;
-  border: none;
+  max-width: 280px !important;
+  padding: 12px !important;
+  border-radius: 25px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  font-size: 1rem !important;
+  font-weight: bold !important;
+  background-color: white;
 }
 
-#firebaseui-auth-container button {
-  border: none;
-  padding: 12px;
-  border-radius: 25px;
-  font-size: 1rem;
-  cursor: pointer;
-  margin: auto;
-  max-width: 400px;
+/* Keep icon on the left */
+.firebaseui-idp-icon-wrapper {
+  width: 24px;
+  height: 24px;
+}
+
+/* The actual icon (Google, Email, etc.) */
+.firebaseui-idp-icon {
+  width: 100%;
+  height: 100%;
+}
+
+/* Center the text over the entire button */
+.firebaseui-idp-text {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1rem !important;
+  font-weight: bold !important;
   text-align: center;
+  white-space: nowrap;
+  z-index: 1;
+  pointer-events: none;
 }
 
-/* buttons  */
-.button-group {
+/* Hide the third span inside firebase button */
+.firebaseui-idp-button span:nth-child(3) {
+  display: none !important;
+}
+
+/* OR separator */
+.or-separator {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 15px;
-  width: 100%; /* Ensure buttons take full width */
-  max-width: 300px; /* Prevent excessive stretching */
-  margin: auto;
+  margin: 20px 0;
+  gap: 10px;
+  width: 100%;
 }
-
-.btn {
-  background-color: #000;
-  color: white;
+.or-separator hr {
+  flex-grow: 1;
   border: none;
-  padding: 12px;
-  border-radius: 25px;
-  font-size: 1rem;
-  cursor: pointer;
-  width: 100%; /* Make button responsive */
-  max-width: 280px; /* Set max width for better scaling */
+  height: 1px;
+  background: #ccc;
 }
-
-.btn:hover {
-  background-color: #a58662c3;
-}
-
-.image-wrapper2 img {
-  width: 100%;
-  max-width: 300px;
-  height: auto;
-  margin-bottom: 40px;
-  border-radius: 16px;
-}
-
-/* Input fields styling */
-.input-group {
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  width: 100%;
-  margin-bottom: 15px;
-}
-
-.input-group label {
-  font-size: 14px;
+.or-separator span {
+  color: #777;
+  font-size: 0.9rem;
   font-weight: bold;
-  margin-bottom: 5px;
-  color: #333;
 }
 
-.input-group input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 16px;
-  background-color: #f8f8f8;
-}
-
-/* Style the Sign In button */
+/* Button */
 .btn {
   background-color: black;
   color: white;
-  border: none;
-  padding: 12px;
+  padding: 16px !important;
   border-radius: 25px;
+  border: none;
   font-size: 1rem;
-  cursor: pointer;
+  font-weight: bold;
   width: 100%;
   max-width: 280px;
-  margin-top: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 .btn:hover {
   background-color: #333;
 }
 
-
-/* Sign-in link */
-.login-link {
-  font-size: 14px;
-  color: #555;
-  margin-top: 15px;
-  text-align: center;
-}
-
-.login-link span {
-  color: #007bff;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.login-link span:hover {
-  text-decoration: underline;
-}
-
-/* Responsive Adjustments for Larger Screens */
+/* Tablets (iPad landscape or portrait) */
 @media (min-width: 768px) {
-  .landing-container {
-    max-width: 500px;
+  .landing-inner {
+    max-width: 600px;
   }
 
-  .image-wrapper img {
+  h2 {
+    font-size: 2rem;
+  }
+
+  .btn {
+    font-size: 1.1rem;
+  }
+}
+
+/* Small desktops and laptops */
+@media (min-width: 1024px) {
+  .landing-inner {
+    max-width: 720px;
+  }
+
+  .hero-image {
     max-width: 400px;
   }
+
+  h2 {
+    font-size: 2.2rem;
+  }
 }
 
-
-
-@media (max-width: 360px) {
-  .btn {
-    max-width: 260px; /* Reduce button width for smaller screens */
+/* Large desktops */
+@media (min-width: 1280px) {
+  .landing-inner {
+    max-width: 840px;
   }
 }
