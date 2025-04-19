@@ -179,3 +179,15 @@
   color: #999;
   text-align: center;
 }
+
+.icons-row {
+  display: flex;
+  justify-content: start;
+  align-items: center;
+  margin-top: 1rem;
+  font-size: 2rem;
+}
+
+.icons-row span {
+  margin: 0 5px;
+}

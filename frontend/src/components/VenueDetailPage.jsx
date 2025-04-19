@@ -1,6 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { FaThumbsUp, FaThumbsDown } from "react-icons/fa6";
 import { auth } from "../firebase";
 import axios from "axios";
 // import { IoLocationSharp } from "react-icons/io5";
@@ -74,7 +75,7 @@ const VenueDetailPage = () => {
     return <p>Loading venue details...</p>;
   }
 
-  const { name, location, category, distance, photos = [] } = venue;
+  const { name, location, categories, distance, photos = [] } = venue;
   const address = location?.address || "Unknown Address";
   const city = address.split(",").slice(-2, -1)[0]?.trim() || "Unknown City";
   const fsqWebUrl = `https://foursquare.com/v/${venue.name.replace(/\s+/g, "-").toLowerCase()}/${venue.venue_id}`;
@@ -129,7 +130,7 @@ const VenueDetailPage = () => {
 
       <div className="venue-info">
         <p><span className="label">Address:</span>{address}</p>
-        <p><span className="label">Category:</span>{category}</p>
+        <p><span className="label">Categories:</span>{categories.slice(0, 3)}</p>
         <p><span className="label">Distance:</span>{distance} meters</p>
         <p><span className="label">City:</span>{city}</p>
         <p>
@@ -156,6 +157,10 @@ const VenueDetailPage = () => {
         >
           🔗 View on Foursquare
         </a>
+        <div className="icons-row">
+          <span><FaThumbsUp className="thumbs-up" /></span>
+          <span><FaThumbsDown className="thumbs-down" /></span>
+        </div>
       </div>
 
 
@@ -185,7 +190,7 @@ const VenueDetailPage = () => {
       <div className="section-title">Hours</div>
       <div className="placeholder-box">{hours ? hours : "Hours not available."}</div>
 
-      <button className="update-preferences" onClick={() => navigate(-1)}>⬅ Go Back</button>
+      <button className="update-preferences" onClick={() => navigate(-1)}>Go Back</button>
     </div>
   );
 };

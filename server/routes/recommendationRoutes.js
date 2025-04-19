@@ -76,6 +76,8 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
         normalizedRating * 0.2
       ).toFixed(3);
 
+      const photoURLs = await fetchVenuePhotos(venue.fsq_id);
+
       let finalVenue;
       if (!existingVenue) {
         const newVenue = new Recommendation({
@@ -89,13 +91,11 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
             country: venue.location.country,
             postcode: venue.location.postcode,
           },
-          category: venue.categories.map(cat => cat.name),
+          categories: venue.categories.map(cat => cat.name),
           features: venueTags,
           rating: venue.rating,
           link: venue.link,
-          photos: (venue.photos || [])
-            .slice(0, 5)
-            .map(p => `${p.prefix}original${p.suffix}`),
+          photos: photoURLs,
           distance,
           users: [uid]
         });

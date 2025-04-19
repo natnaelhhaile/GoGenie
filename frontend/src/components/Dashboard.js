@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { FaChildReaching, FaHeart, FaThumbsUp, FaThumbsDown } from "react-icons/fa6";
+import { FaChildReaching, FaHeart } from "react-icons/fa6";
 import { MdHomeFilled } from "react-icons/md";
 import { GoClock } from "react-icons/go";
 import { IoSearchOutline, IoPersonOutline, IoLocationSharp } from "react-icons/io5";
@@ -129,7 +129,7 @@ const Dashboard = () => {
 
   const hasMoreToLoad = recommendations.filter((recomend) => {
     if (activeCategory === "All") return true;
-    return (recomend.venue?.category || []).some((cat) =>
+    return (recomend.venue?.categories || []).some((cat) =>
       cat.toLowerCase().includes(activeCategory.toLowerCase())
     );
   }).length > visibleCount;
@@ -201,7 +201,7 @@ const Dashboard = () => {
             {recommendations
             .filter((recommend) => {
               if (activeCategory === "All") return true;
-              return (recommend.venue?.category || []).some((cat) =>
+              return (recommend.venue?.categories || []).some((cat) =>
                 cat.toLowerCase().includes(activeCategory.toLowerCase())
               );
             })
@@ -218,12 +218,10 @@ const Dashboard = () => {
                   <img src={venueImage} alt={venue.name} />
                   <p>{venue.name}</p>
                   <div className="icons-row">
-                    <span><FaThumbsUp className="thumbs-up" /></span>
                     <span className="location-info">
                       <IoLocationSharp className="location-pin" />
                       <span className="city-name">{city}</span>
                     </span>
-                    <span><FaThumbsDown className="thumbs-down" /></span>
                   </div>
                 </div>
               );

@@ -53,7 +53,7 @@ const fetchVenuePhotos = async (fsq_id) => {
 
 // fetch venue details by fsq_id: popularity,stats,hours,rating
 const fetchVenueDetails = async (venueId) => {
-  const fields = 'fsq_id,popularity,stats,hours,rating,tips';
+  const fields = 'fsq_id,popularity,categories,stats,hours,rating,tips';
   try {
     const response = await axios.get(`https://api.foursquare.com/v3/places/${venueId}`, {
       headers: {
