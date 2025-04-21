@@ -2,20 +2,20 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import Container from "./Container";
+import axiosInstance from "../api/axiosInstance";
+import { useAuth } from "../context/AuthContext";
 import "./ProfileSetup.css";
-import axios from "axios";
 
 const UpdatePreferences = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [step, setStep] = useState(1);
   const [profile, setProfile] = useState({
     hobbies: [],
     foodPreferences: [],
     thematicPreferences: []
   });
-
-  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-  const userId = localStorage.getItem("userId");
 
   const hobbiesList = ["Music", "Reading", "Sports", "Gaming", "Traveling"];
   const foodList = ["Vegan", "Seafood", "Fast Food", "Desserts"];
@@ -24,16 +24,16 @@ const UpdatePreferences = () => {
   useEffect(() => {
     const fetchPreferences = async () => {
       try {
-        const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${userId}`);
-        const { hobbies, foodPreferences, thematicPreferences } = response.data;
+        const res = await axiosInstance.get("/api/users/preferences");
+        const { hobbies, foodPreferences, thematicPreferences } = res.data;
         setProfile({ hobbies, foodPreferences, thematicPreferences });
-      } catch (error) {
-        console.error("❌ Error fetching preferences:", error);
+      } catch (err) {
+        console.error("❌ Error fetching preferences:", err);
       }
     };
 
-    fetchPreferences();
-  }, [BACKEND_URL, userId]);
+    if (user) fetchPreferences();
+  }, [user]);
 
   const handleSelect = (type, value) => {
     setProfile((prev) => ({
@@ -49,24 +49,23 @@ const UpdatePreferences = () => {
 
   const handleSubmit = async () => {
     try {
-      const response = await axios.put(`${BACKEND_URL}/api/users/preferences/${userId}`, {
+      const res = await axiosInstance.put("/api/users/preferences", {
         hobbies: profile.hobbies,
         foodPreferences: profile.foodPreferences,
         thematicPreferences: profile.thematicPreferences,
       });
-
-      console.log("✅ Preferences updated:", response.data);
+      console.log("✅ Preferences updated:", res.data);
       navigate("/dashboard");
-    } catch (error) {
-      console.error("❌ Error updating preferences:", error);
+    } catch (err) {
+      console.error("❌ Error updating preferences:", err);
     }
   };
 
   return (
     <Container>
-      <motion.div 
+      <motion.div
         className="profile-setup-container"
-        initial={{ opacity: 0, y: 20 }} 
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
@@ -129,8 +128,16 @@ const UpdatePreferences = () => {
         )}
 
         <div className="step-buttons">
-          {step > 1 && <button className="btn secondary" onClick={handleBack}>Back</button>}
-          {step < 3 && <button className="btn" onClick={handleNext}>Next</button>}
+          {step > 1 && (
+            <button className="btn secondary" onClick={handleBack}>
+              Back
+            </button>
+          )}
+          {step < 3 && (
+            <button className="btn" onClick={handleNext}>
+              Next
+            </button>
+          )}
         </div>
       </motion.div>
     </Container>

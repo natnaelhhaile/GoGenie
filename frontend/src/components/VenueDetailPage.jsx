@@ -1,138 +1,109 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaThumbsUp, FaThumbsDown } from "react-icons/fa6";
-import { auth } from "../firebase";
-import axios from "axios";
-// import { IoLocationSharp } from "react-icons/io5";
 import { IoHeartOutline, IoHeart } from "react-icons/io5";
+import { useAuth } from "../context/AuthContext";
+import axiosInstance from "../api/axiosInstance";
 import "./VenueDetailPage.css";
-
+import BottomNav from "../components/BottomNav";
 
 
 const VenueDetailPage = () => {
   const { state } = useLocation();
   const venue = state?.venue;
   const navigate = useNavigate();
-  const [isFavorite, setIsFavorite] = useState(false); // Toggle save
+  const { user } = useAuth();
+
+  const [isFavorite, setIsFavorite] = useState(false);
   const [rating, setRating] = useState("Loading...");
   const [hours, setHours] = useState(null);
+  const [openNow, setOpenNow] = useState(null);
   const [popularity, setPopularity] = useState(null);
   const [stats, setStats] = useState({ total_ratings: 0, total_tips: 0, total_photos: 0 });
-  const [openNow, setOpenNow] = useState(null);
   const [tips, setTips] = useState([]);
 
+  const fallbackImage = require("../assets/dum1.jpg");
 
+  const address = venue?.location?.address || "Unknown Address";
+  const city = address.split(",").slice(-2, -1)[0]?.trim() || "Unknown City";
+  const fsqWebUrl = `https://foursquare.com/v/${venue?.name.replace(/\s+/g, "-").toLowerCase()}/${venue?.venue_id}`;
+  const photos = venue?.photos || [];
 
   useEffect(() => {
-    const checkFavoriteStatus = async () => {
-      const user = auth.currentUser;
-      if (user && venue?.venue_id) {
-        try {
-          const response = await axios.get(
-            `${process.env.REACT_APP_BACKEND_URL}/api/favorites/is-favorite`,
-            {
-              params: {
-                userId: user.uid,
-                venueId: venue.venue_id,
-              },
-            }
-          );
-          console.log("✅ Favorite status:", response.data.isFavorite);
-          setIsFavorite(response.data.isFavorite);
-        } catch (error) {
-          console.error("❌ Error checking favorite status:", error);
-        }
+    const checkFavorite = async () => {
+      if (!user || !venue?.venue_id) return;
+      try {
+        const res = await axiosInstance.get("/api/favorites/is-favorite", {
+          params: { userId: user.uid, venueId: venue.venue_id }
+        });
+        setIsFavorite(res.data.isFavorite);
+      } catch (err) {
+        console.error("Error checking favorite:", err);
       }
     };
 
-    checkFavoriteStatus();
-  }, [venue]);
+    checkFavorite();
+  }, [venue, user]);
 
-  // useeffect for rating and others
   useEffect(() => {
-    const fetchVenueDetails = async () => {
+    const fetchDetails = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/recommendations/details/${venue.venue_id}`);
+        const res = await axiosInstance.get(`/api/recommendations/details/${venue.venue_id}`);
         setRating(res.data.rating || "No rating available");
         setHours(res.data.hours?.display || null);
         setOpenNow(res.data.hours?.open_now || null);
         setPopularity(res.data.popularity || null);
-        setStats(res.data.stats ? res.data.stats : { total_ratings: 0, total_tips: 0, total_photos: 0 });
-        setTips(res.data.tips || null);
+        setStats(res.data.stats || { total_ratings: 0, total_tips: 0, total_photos: 0 });
+        setTips(res.data.tips || []);
       } catch (err) {
-        console.error("❌ Error fetching venue details:", err.message);
+        console.error("Error fetching details:", err);
         setRating("N/A");
       }
     };
 
-    if (venue?.venue_id) fetchVenueDetails();
+    if (venue?.venue_id) fetchDetails();
   }, [venue]);
 
-
-
-  if (!venue) {
-    return <p>Loading venue details...</p>;
-  }
-
-  const { name, location, categories, distance, photos = [] } = venue;
-  const address = location?.address || "Unknown Address";
-  const city = address.split(",").slice(-2, -1)[0]?.trim() || "Unknown City";
-  const fsqWebUrl = `https://foursquare.com/v/${venue.name.replace(/\s+/g, "-").toLowerCase()}/${venue.venue_id}`;
-
-  // Local fallback photo
-  const fallbackImage = require(`../assets/dum1.jpg`);
-
-
-  // handles favorite toggle
   const handleToggleFavorite = async () => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) return alert("Please log in");
+    if (!user) return alert("Please log in");
 
     const payload = {
-      userId: currentUser.uid,
+      userId: user.uid,
       venueId: venue.venue_id,
       venueData: venue
     };
 
     try {
       if (isFavorite) {
-        await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/favorites/remove`, payload);
+        await axiosInstance.post("/api/favorites/remove", payload);
         setIsFavorite(false);
       } else {
-        await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/favorites/add`, {
-          ...payload,
-          venueData: venue
-        });
+        await axiosInstance.post("/api/favorites/add", payload);
         setIsFavorite(true);
       }
-    } catch (error) {
-      console.error("❌ Error saving favorite:", error);
+    } catch (err) {
+      console.error("Error toggling favorite:", err);
     }
   };
 
+  if (!venue) return <p>Loading venue details...</p>;
+
   return (
     <div className="venue-detail-container">
-
-      <img
-        src={photos[0] || fallbackImage} // Fallback to a default image if none available
-        alt={name}
-        className="hero-image"
-      />
-
+      <img src={photos[0] || fallbackImage} alt={venue.name} className="hero-image" />
 
       <div className="venue-header">
-        <h2 className="venue-name">{name}</h2>
+        <h2 className="venue-name">{venue.name}</h2>
         <button onClick={handleToggleFavorite} className="favorite-button">
           {isFavorite ? <IoHeart className="favorite-icon active" /> : <IoHeartOutline className="favorite-icon" />}
         </button>
       </div>
 
       <div className="venue-info">
-        <p><span className="label">Address:</span>{address}</p>
-        <p><span className="label">Categories:</span>{categories.slice(0, 3)}</p>
-        <p><span className="label">Distance:</span>{distance} meters</p>
-        <p><span className="label">City:</span>{city}</p>
+        <p><span className="label">Address:</span> {address}</p>
+        <p><span className="label">Categories:</span> {venue.categories?.slice(0, 3).join(", ")}</p>
+        <p><span className="label">Distance:</span> {venue.distance} meters</p>
+        <p><span className="label">City:</span> {city}</p>
         <p>
           <span className="label">Rating:</span>
           <span className="rating-value">
@@ -146,24 +117,21 @@ const VenueDetailPage = () => {
             {openNow ? "✅ Open Now" : "❌ Closed"}
           </span>
         </p>
-        <p><span className="label">Popularity:</span> {(popularity * 100).toFixed(0)}%</p>
-        <p><span className="label">Stats:</span> {stats.total_ratings} ratings, {stats.total_tips} tips, {stats.total_photos} photos</p>
+        <p><span className="label">Popularity:</span> {popularity ? `${(popularity * 100).toFixed(0)}%` : "N/A"}</p>
+        <p>
+          <span className="label">Stats:</span>
+          {stats.total_ratings} ratings, {stats.total_tips} tips, {stats.total_photos} photos
+        </p>
 
-        <a
-          href={fsqWebUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="venue-external-link"
-        >
+        <a href={fsqWebUrl} target="_blank" rel="noopener noreferrer" className="venue-external-link">
           🔗 View on Foursquare
         </a>
+
         <div className="icons-row">
-          <span><FaThumbsUp className="thumbs-up" /></span>
-          <span><FaThumbsDown className="thumbs-down" /></span>
+          <FaThumbsUp className="thumbs-up" />
+          <FaThumbsDown className="thumbs-down" />
         </div>
       </div>
-
-
 
       <div className="section-title">More Photos</div>
       <div className="gallery-scroll">
@@ -186,11 +154,13 @@ const VenueDetailPage = () => {
         )}
       </div>
 
-
       <div className="section-title">Hours</div>
-      <div className="placeholder-box">{hours ? hours : "Hours not available."}</div>
+      <div className="placeholder-box">{hours || "Hours not available."}</div>
 
       <button className="update-preferences" onClick={() => navigate(-1)}>Go Back</button>
+
+      <BottomNav />
+      
     </div>
   );
 };

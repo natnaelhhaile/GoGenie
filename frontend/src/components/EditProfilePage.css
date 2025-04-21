@@ -1,42 +1,80 @@
 .edit-title {
-    font-size: 20px;
-    font-weight: bold;
-    color: #0A2533;
-    margin-bottom: 20px;
-  }
-  
-  .edit-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    text-align: left;
-  }
-  
-  .edit-form label {
-    display: flex;
-    flex-direction: column;
-    font-weight: 500;
-    font-size: 14px;
-    color: #0A2533;
-  }
-  
-  .edit-form input,
-  .edit-form select {
-    margin-top: 5px;
-    padding: 8px 10px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 14px;
-  }
-  
-  .save-button {
-    margin-top: 20px;
-    padding: 10px;
-    background-color: #3F5A5B;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-  
+  font-size: 20px;
+  font-weight: bold;
+  color: #0A2533;
+  margin-bottom: 20px;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  text-align: left;
+}
+
+.edit-form label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 500;
+  font-size: 14px;
+  color: #0A2533;
+}
+
+.edit-form input,
+.edit-form select {
+  margin-top: 5px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.save-button {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #3F5A5B;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 30px;
+  overflow: visible;
+  position: static;
+}
+
+/* Input & dropdown styling */
+.edit-form input,
+.step-content select {
+  padding: 12px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  width: 85% !important;
+  font-size: 1rem;
+  box-sizing: border-box;
+  margin: auto;
+}
+
+.react-select__control {
+  width: 85% !important;
+  margin: auto;
+}
+
+.edit-form select {
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  margin: 0 auto; /* center horizontally */
+  width: 85% !important;    /* or use a fixed width like 80% for better control */
+  max-width: 400px;
+  display: block;
+  appearance: none;
+  overflow: visible;
+  position: static;
+}

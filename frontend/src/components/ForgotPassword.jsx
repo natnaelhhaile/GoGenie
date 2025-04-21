@@ -46,7 +46,7 @@ const ForgotPasswordPage = () => {
         onClick={() => navigate("/login")}
         className="btn secondary back-to-login"
       >
-        ← Back to Login
+        Back to Login
       </button>
     </Container>
   );

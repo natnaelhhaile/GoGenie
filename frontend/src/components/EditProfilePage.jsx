@@ -1,42 +1,49 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { auth } from "../firebase";
+import Select from "react-select";
+import axiosInstance from "../api/axiosInstance";
+import { useAuth } from "../context/AuthContext";
 import Container from "../components/Container";
 import "./EditProfilePage.css";
 
 const EditProfilePage = () => {
   const [formData, setFormData] = useState({
-    name: "",
-    username: "",
+    fname: "",
+    lname: "",
     age: "",
     gender: "",
     nationality: ""
   });
+
+  const genderOptions = [
+    { value: "male", label: "Male" },
+    { value: "female", label: "Female" },
+    { value: "nonBinary", label: "Non-Binary" },
+    { value: "preferNot", label: "Prefer Not To Say" },
+  ];
+
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
   useEffect(() => {
     const fetchPreferences = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
       try {
-        const response = await axios.get(`${BACKEND_URL}/api/users/preferences/${user.uid}`);
-        const data = response.data;
+        const res = await axiosInstance.get("/api/users/preferences");
+        const { fname, lname, age, gender, nationality } = res.data;
         setFormData({
-          name: data.name || "",
-          username: data.username || "",
-          age: data.age || "",
-          gender: data.gender || "",
-          nationality: data.nationality || ""
+          fname: fname || "",
+          lname: lname || "",
+          age: age || "",
+          gender: gender || "",
+          nationality: nationality || ""
         });
       } catch (err) {
         console.error("❌ Failed to load user preferences", err);
       }
     };
 
-    fetchPreferences();
-  }, [BACKEND_URL]);
+    if (user) fetchPreferences();
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -45,11 +52,8 @@ const EditProfilePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const user = auth.currentUser;
-    if (!user) return;
-
     try {
-      await axios.put(`${BACKEND_URL}/api/users/details/${user.uid}`, formData);
+      await axiosInstance.put("/api/users/details", formData);
       alert("✅ Profile updated successfully!");
       navigate("/profile");
     } catch (err) {
@@ -62,12 +66,12 @@ const EditProfilePage = () => {
       <h2 className="edit-title">Edit Your Profile</h2>
       <form onSubmit={handleSubmit} className="edit-form">
         <label>
-          Name:
-          <input name="name" value={formData.name} onChange={handleChange} required />
+          First Name:
+          <input name="fname" value={formData.fname} onChange={handleChange} required />
         </label>
         <label>
-          Username:
-          <input name="username" value={formData.username} onChange={handleChange} />
+          Last Name:
+          <input name="lname" value={formData.lname} onChange={handleChange} required />
         </label>
         <label>
           Age:
@@ -75,13 +79,26 @@ const EditProfilePage = () => {
         </label>
         <label>
           Gender:
-          <select name="gender" value={formData.gender} onChange={handleChange}>
-            <option value="">Select</option>
-            <option>Male</option>
-            <option>Female</option>
-            <option>Non-binary</option>
-            <option>Prefer not to say</option>
-          </select>
+          <Select
+                options={genderOptions}
+                value={genderOptions.find((opt) => opt.value === formData.gender)}
+                onChange={(selected) => setFormData({ ...formData, gender: selected.value })}
+                classNamePrefix="react-select"
+                placeholder="Select Gender"
+                styles={{
+                  menu: (base) => ({ ...base, zIndex: 999 }),
+                  control: (base) => ({
+                    ...base,
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "2px 6px",
+                  }),
+                  singleValue: (base) => ({
+                    ...base,
+                    textAlign: "left",
+                  }),
+                }}
+              />
         </label>
         <label>
           Nationality:
