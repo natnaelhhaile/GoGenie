@@ -3,14 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import {
   IoPersonCircleSharp,
-  IoHeart,
+  IoOptions,
   IoLogOut,
-  IoCreate,
-  IoSearchOutline,
-  IoPersonOutline
+  IoCreate
 } from "react-icons/io5";
-import { MdHomeFilled } from "react-icons/md";
-import { FaHeart } from "react-icons/fa6";
 import Container from "../components/Container";
 import axiosInstance from "../api/axiosInstance";
 import "./ProfilePage.css";
@@ -46,25 +42,26 @@ const ProfilePage = () => {
 
   return (
     <Container>
-      <div className="profile-header">
+      <header className="profile-header">
+        <span>My Profile</span>
+      </header>
+      <div className="profile-section">
+        <div className="profile-info">
         <IoPersonCircleSharp className="profile-avatar" />
         <h2>{profileName}</h2>
         <p className="user-email">{auth.currentUser?.email}</p>
-        <button className="edit-btn" onClick={() => navigate("/edit-profile")}>
-          <IoCreate /> Edit Profile
-        </button>
-      </div>
-
-      <div className="profile-actions">
-        <button className="profile-action-btn" onClick={() => navigate("/favorites")}>
-          <IoHeart /> Favorites
-        </button>
-        <button onClick={() => navigate("/update-preferences")} className="update-preferences">
-          Update Preferences
-        </button>
-        <button className="profile-action-btn logout" onClick={handleLogout}>
-          <IoLogOut /> Log Out
-        </button>
+        </div>
+        <div className="profile-settings">
+          <button className="edit-btn" onClick={() => navigate("/edit-profile")}>
+            <IoCreate /> Edit Profile
+          </button>
+          <button className="update-preferences" onClick={() => navigate("/update-preferences")}>
+            <IoOptions /> Update Preferences
+          </button>
+          <button className="logout" onClick={handleLogout}>
+            <IoLogOut /> Log Out
+          </button>
+        </div>
       </div>
 
       <BottomNav />

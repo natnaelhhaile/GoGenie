@@ -1,8 +1,12 @@
+Container {
+    max-width: 1024px;
+    margin: 0 auto;
+    /* padding: 0 1rem; */
+  }
+
 .favorites-container {
     width: 90%;
     max-width: 300px;
-    margin: 20px auto;
-    padding: 20px;
     background-color: white;
     border-radius: 25px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
@@ -11,20 +15,54 @@
 }
 
 .favorites-header {
-    background: linear-gradient(to right, #3F5A5B, #567976);
-    color: white;
-    padding: 20px;
-    border-radius: 20px 20px 0 0;
-    text-align: center;
     font-size: 20px;
     font-weight: bold;
-    margin: -20px -20px 20px -20px;
-  }
+    padding: 1.25rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    position: sticky;
+    top: 0;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.75);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    z-index: 1000;
+    width: 100vw;
+    left: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    color: #777;
+}  
 
 .favorites-section {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 15px;
+    gap: 1rem;
+    width: 90%;
+    margin: 2rem auto;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+@media (min-width: 768px) {
+    .favorites-section {
+      grid-template-columns: repeat(3, 1fr);
+    }
+}
+  
+@media (min-width: 1024px) {
+    .favorites-section {
+      grid-template-columns: repeat(4, 1fr);
+    }
+}
+  
+@media (min-width: 1280px) {
+    .favorites-section {
+      grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+.favorites-section,
+.no-results-text {
+  padding: 0 1rem;
 }
 
 .favorite-card {
@@ -36,6 +74,16 @@
     cursor: pointer;
     transition: transform 0.2s ease;
     position: relative;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUp 0.4s ease forwards;
+}  
+
+@keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
 }
 
 .favorite-card:hover {
@@ -87,9 +135,40 @@
     cursor: pointer;
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s ease;
-  }
+}
   
   .heart-icon:hover {
     transform: scale(1.1);
+}
+
+.location-info {
+    display: flex;
+    justify-content: center;
+    margin: auto;
+    color: #666;
+    font-size: 1.05rem;
   }
+  
+  .location-info span {
+    padding: 1px;
+}
+  
+  .city-name {
+    font-size: .75rem !important;
+}
+
+.no-results-text {
+    text-align: center;
+    padding: 2rem;
+    font-style: italic;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    margin: 3rem;
+}
+  
+.no-results-text span {
+    color: #8a2be2;
+    text-decoration: underline;
+    cursor: pointer;
+}
   

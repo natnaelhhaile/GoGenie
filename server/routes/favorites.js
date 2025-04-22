@@ -1,20 +1,25 @@
 const express = require("express");
 const router = express.Router();
 const Favorite = require("../models/Favorite");
+const Recommendation = require("../models/Recommendation");
+const verifyFirebaseToken = require("../middleware/firebaseAuth");
 
-// POST: Save favorite
+router.use(verifyFirebaseToken);
+
+// POST /api/favorites/add
 router.post("/add", async (req, res) => {
-  const { userId, venueId, venueData } = req.body;
+  const uid = req.user.uid;
+  const { venue_id } = req.body;
 
-  if (!userId || !venueId || !venueData) {
-    return res.status(400).json({ error: "Missing required fields" });
+  if (!venue_id) {
+    return res.status(400).json({ error: "Missing venue_id" });
   }
 
   try {
-    const existing = await Favorite.findOne({ userId, venueId });
+    const existing = await Favorite.findOne({ uid, venue_id });
     if (existing) return res.status(200).json({ message: "Already saved" });
 
-    const newFavorite = new Favorite({ userId, venueId, venueData });
+    const newFavorite = new Favorite({ uid, venue_id });
     await newFavorite.save();
     res.status(201).json({ message: "Favorite saved!" });
   } catch (error) {
@@ -23,70 +28,65 @@ router.post("/add", async (req, res) => {
   }
 });
 
-// GET: Fetch favorites
-router.get('/is-favorite', async (req, res) => {
-  const { userId, venueId } = req.query;
+// GET /api/favorites/is-favorite?venue_id=123
+router.get("/is-favorite", async (req, res) => {
+  const uid = req.user.uid;
+  const { venue_id } = req.query;
 
-  if (!userId || !venueId) {
-    return res.status(400).json({ message: 'Missing userId or venueId' });
+  if (!venue_id) {
+    return res.status(400).json({ error: "Missing venue_id" });
   }
 
   try {
-    const favorite = await Favorite.findOne({ userId, venueId }); // ✅ must match both
+    const favorite = await Favorite.findOne({ uid, venue_id });
     res.json({ isFavorite: !!favorite });
   } catch (error) {
-    console.error('❌ Error checking favorite status:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("❌ Error checking favorite:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// GET: Check if venue is favorited by user
-router.get("/is-favorite", async (req, res) => {
-  const { userId, venueId } = req.query;
-
-  if (!userId || !venueId) {
-    return res.status(400).json({ error: "Missing userId or venueId" });
-  }
+router.get("/list", async (req, res) => {
+  const uid = req.user.uid;
 
   try {
-    const existing = await Favorite.find({ userId });
-    console.log(existing);
-    res.json({ isFavorite: !!existing });
-  } catch (error) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
+    const favorites = await Favorite.find({ uid });
 
-// GET /api/favorites/list/:userId
-router.get("/list/:userId", async (req, res) => {
-  const { userId } = req.params;
+    const enrichedFavorites = await Promise.all(
+      favorites.map(async (fav) => {
+        const venueData = await Recommendation.findOne({ venue_id: fav.venue_id }).lean();
+        return {
+          venue_id: fav.venue_id,
+          createdAt: fav.createdAt,
+          updatedAt: fav.updatedAt,
+          venueData: venueData || null,
+        };
+      })
+    );
 
-  try {
-    const favorites = await Favorite.find({ userId });
-    res.status(200).json({ favorites });
+    res.status(200).json({ favorites: enrichedFavorites });
   } catch (error) {
     console.error("❌ Error fetching favorites:", error);
-    res.status(500).json({ message: "Server error while fetching favorites" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// Unfavorite a venue
+// POST /api/favorites/remove
 router.post("/remove", async (req, res) => {
-  const { userId, venueId } = req.body;
+  const uid = req.user.uid;
+  const { venue_id } = req.body;
 
-  if (!userId || !venueId) {
-    return res.status(400).json({ message: "userId and venueId are required" });
+  if (!venue_id) {
+    return res.status(400).json({ error: "Missing venue_id" });
   }
 
   try {
-    await Favorite.deleteOne({ userId, venueId });
+    await Favorite.deleteOne({ uid, venue_id });
     res.json({ success: true, message: "Removed from favorites" });
   } catch (error) {
     console.error("❌ Error removing favorite:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
-
-
 
 module.exports = router;

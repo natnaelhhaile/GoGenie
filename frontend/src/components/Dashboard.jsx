@@ -2,21 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import {
-  FaChildReaching,
-  FaHeart
-} from "react-icons/fa6";
-import { MdHomeFilled } from "react-icons/md";
-import {
   GoClock
 } from "react-icons/go";
-import {
-  IoSearchOutline,
-  IoPersonOutline,
-  IoLocationSharp
-} from "react-icons/io5";
+import { useAuth } from "../context/AuthContext";
+import { IoLocationSharp, IoHeartOutline, IoHeart } from "react-icons/io5";
 import Container from "../components/Container";
 import "./Dashboard.css";
 import BottomNav from "../components/BottomNav";
+import VenueCard from "../components/VenueCard";
 
 
 const Dashboard = () => {
@@ -26,6 +19,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
   const [visibleCount, setVisibleCount] = useState(10);
+  const { user } = useAuth();
+  const [favoritesMap, setFavoritesMap] = useState({});
   const loaderRef = React.useRef(null);
   const navigate = useNavigate();
 
@@ -35,14 +30,28 @@ const Dashboard = () => {
         const res = await axiosInstance.get("/api/users/preferences");
         if (res.status === 200) {
           setUserPreferences(res.data);
-          setMessage(res.data.fname);
+          setMessage(`${res.data.lname}, ${res.data.fname}`);
         }
       } catch (err) {
         console.error("Error fetching preferences:", err);
       }
     };
     fetchUserPreferences();
-  }, []);
+    const fetchFavorites = async () => {
+      try {
+        const res = await axiosInstance.get("/api/favorites/list");
+        const map = {};
+        res.data.favorites.forEach((fav) => {
+          map[fav.venue_id] = true;
+        });
+        setFavoritesMap(map);
+      } catch (err) {
+        console.error("❌ Error fetching favorites:", err);
+      }
+    };
+  
+    if (user) fetchFavorites();   
+  }, [user]);
 
   useEffect(() => {
     const fetchAIRecommendations = async () => {
@@ -93,10 +102,31 @@ const Dashboard = () => {
     (rec.venue?.categories || []).some((cat) => cat.toLowerCase().includes(activeCategory.toLowerCase()))
   );
 
+  const handleToggleFavorite = async (venue_id) => {
+    if (!user) return alert("Please log in to manage favorites.");
+  
+    try {
+      if (favoritesMap[venue_id]) {
+        await axiosInstance.post("/api/favorites/remove", { venue_id });
+        setFavoritesMap((prev) => {
+          const copy = { ...prev };
+          delete copy[venue_id];
+          return copy;
+        });
+      } else {
+        await axiosInstance.post("/api/favorites/add", { venue_id });
+        setFavoritesMap((prev) => ({ ...prev, [venue_id]: true }));
+      }
+    } catch (err) {
+      console.error("❌ Error toggling favorite:", err);
+    }
+  };
+  
+
   return (
     <Container>
       <header className="dashboard-header">
-        <span className="greeting"><FaChildReaching className="greeting-icon" /> Hello, {message}!</span>
+        <span className="greeting">{message}</span>
       </header>
 
       <section className="featured-section">
@@ -104,7 +134,10 @@ const Dashboard = () => {
         <div className="featured-list">
           {["bj_restaurant", "Fremont_Biryani_House", "Bowlero_Milpitas", "Spin_A_Yarn_Steakhouse"].map((name) => (
             <div key={name} className="featured-item">
-              <img src={require(`../assets/${name}.png`)} alt={name} />
+              <picture>
+                <source srcSet={require(`../assets/${name}.png`)} type="image/webp" />
+                <img src={require(`../assets/${name}.png`)} alt={name} />
+              </picture>
               <p>{name.replace(/_/g, " ")}</p>
               <span><GoClock className="clock-icon" /> 20 Min</span>
             </div>
@@ -115,10 +148,16 @@ const Dashboard = () => {
       <section className="categories-section">
         <h3 className="dashboard-subtitle">Categories</h3>
         <div className="category-list">
-          {["All", "Food", "Activities", "Drinks"].map((cat) => (
-            <button key={cat} className={`category-btn ${activeCategory === cat ? "selected" : ""}`} onClick={() => setActiveCategory(cat)}>
+          {["All", "Food", "Activities", "Drinks", "Drinks", "Drinks", "Drinks", "Drinks"].map((cat) => (
+            <button
+              key={cat}
+              title={`Show ${cat} venues`}
+              className={`category-btn ${activeCategory === cat ? "selected" : ""}`}
+              onClick={() => setActiveCategory(cat)}
+            >
               {cat}
             </button>
+
           ))}
         </div>
       </section>
@@ -136,16 +175,14 @@ const Dashboard = () => {
               const city = venue.location.locality || "Unknown City";
               const venueImage = venue.photos?.[0] || require("../assets/dum1.jpg");
               return (
-                <div key={venue.venue_id} className="place-item" onClick={() => navigate("/venue-detail", { state: { venue } })}>
-                  <img src={venueImage} alt={venue.name} />
-                  <p>{venue.name}</p>
-                  <div className="icons-row">
-                    <span className="location-info">
-                      <IoLocationSharp className="location-pin" />
-                      <span className="city-name">{city}</span>
-                    </span>
-                  </div>
-                </div>
+                <VenueCard
+                  key={venue.venue_id}
+                  venue={venue}
+                  isFavorite={favoritesMap[venue.venue_id]}
+                  onToggleFavorite={() => handleToggleFavorite(venue.venue_id)}
+                  onClick={() => navigate("/venue-detail", { state: { venue } })}
+                  showFavoriteIcon
+                />
               );
             })}
             <div ref={loaderRef} className="scroll-loader">
@@ -161,14 +198,10 @@ const Dashboard = () => {
         )}
       </section>
 
-      <div className="dashboard-footer">
-        <button onClick={() => navigate("/update-preferences")} className="update-preferences">
-          Update Preferences
-        </button>
-      </div>
+
 
       <BottomNav />
-      
+
     </Container>
   );
 };

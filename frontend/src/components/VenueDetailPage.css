@@ -1,8 +1,9 @@
 /* 🌟 Main Container */
 .venue-detail-container {
   padding: 20px;
-  max-width: 330px;
-  margin: 20px auto;
+  width: 90%;
+  max-width: 900px;
+  margin: 1rem auto 4rem;
   background-color: #ffffff;
   border-radius: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -13,28 +14,25 @@
 /* 🌟 Large Hero Image */
 .hero-image {
   width: 100%;
-  height: 200px;
+  height: 250px;
   object-fit: cover;
   border-radius: 16px;
   margin-bottom: 15px;
 }
 
 /* 🌟 Gallery Scroll Section */
-.gallery-scroll {
-  display: flex;
-  overflow-x: auto;
-  gap: 10px;
-  padding-bottom: 10px;
-  margin-bottom: 20px;
-}
-
 .gallery-scroll img {
-  width: 100px;
-  height: 80px;
+  width: 110px;
+  height: 90px;
   object-fit: cover;
   border-radius: 10px;
   flex-shrink: 0;
-  border: 2px solid #f0f0f0;
+  border: 2px solid #eee;
+  transition: transform 0.2s ease;
+}
+
+.gallery-scroll img:hover {
+  transform: scale(1.05);
 }
 
 /* Venue Info Section */
@@ -107,8 +105,18 @@
   font-size: 16px;
   font-weight: 600;
   color: #3F5A5B;
-  margin: 20px 0 10px;
+  margin: 24px 0 12px;
   text-align: left;
+  animation: fadeInUp 0.3s ease forwards;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 🌟 Placeholder Box */
@@ -132,17 +140,28 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0 4px;
+  margin-bottom: 12px;
 }
 
+/* Favorite Button Styles */
 .favorite-button {
   background: none;
   border: none;
   cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+.favorite-button:hover {
+  transform: scale(1.1);
 }
 
 .favorite-icon {
-  font-size: 24px;
+  font-size: 26px;
   color: #999;
+  transition: color 0.2s ease;
 }
 
 .favorite-icon.active {
@@ -182,12 +201,28 @@
 
 .icons-row {
   display: flex;
-  justify-content: start;
+  justify-content: center;
   align-items: center;
   margin-top: 1rem;
-  font-size: 2rem;
+  gap: 20px;
 }
 
-.icons-row span {
-  margin: 0 5px;
+.thumb-icon {
+  font-size: 28px;
+  color: #aaa;
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.3s ease;
+  padding: 10px;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+}
+
+.thumb-icon:hover {
+  transform: scale(1.1);
+  background-color: #e8e8e8;
+}
+
+.thumb-icon.active {
+  color: #8a2be2;
+  background-color: #f3e9ff;
 }

@@ -6,6 +6,7 @@ import { IoLocationSharp, IoHeart } from "react-icons/io5";
 import Container from "../components/Container";
 import "./FavoritesPage.css";
 import BottomNav from "../components/BottomNav";
+import VenueCard from "../components/VenueCard";
 
 
 const FavoritesPage = () => {
@@ -26,10 +27,10 @@ const FavoritesPage = () => {
     if (user) fetchFavorites();
   }, [user]);
 
-  const handleRemoveFavorite = async (venueId) => {
+  const handleRemoveFavorite = async (venue_id) => {
     try {
-      await axiosInstance.post("/api/favorites/remove", { venueId });
-      setFavorites((prev) => prev.filter((f) => f.venueData.venue_id !== venueId));
+      await axiosInstance.post("/api/favorites/remove", { venue_id });
+      setFavorites((prev) => prev.filter((f) => f.venue_id !== venue_id));
     } catch (err) {
       console.error("❌ Error removing favorite:", err);
     }
@@ -37,46 +38,36 @@ const FavoritesPage = () => {
 
   return (
     <Container>
-      <h2 className="favorites-header">Your Favorite Places</h2>
+      <header className="favorites-header">
+        <span>Your Favorite Places</span>
+      </header>
 
       {favorites.length > 0 ? (
         <section className="favorites-section">
           {favorites.map((fav, index) => {
             const venue = fav.venueData;
-            const addressParts = venue.location?.address?.split(",") || [];
-            const city = addressParts.length >= 2 ? addressParts[addressParts.length - 2].trim() : "Unknown City";
+            if (!venue) return null;
 
             return (
-              <div
+              <VenueCard
                 key={venue.venue_id || index}
-                className="favorite-card"
-                onClick={(e) => {
-                  if (e.target.closest(".heart-icon")) return;
-                  navigate("/venue-detail", { state: { venue } });
-                }}
-              >
-                <img src={venue.photos?.[0]} alt={venue.name} />
-                <p>{venue.name}</p>
-                <span>
-                  <IoLocationSharp className="clock-icon" /> {city}
-                </span>
-
-                <IoHeart
-                  className="heart-icon active"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveFavorite(venue.venue_id);
-                  }}
-                />
-              </div>
+                venue={venue}
+                isFavorite={true}
+                onToggleFavorite={() => handleRemoveFavorite(venue.venue_id)}
+                onClick={() => navigate("/venue-detail", { state: { venue } })}
+                showFavoriteIcon
+              />
             );
           })}
         </section>
       ) : (
-        <p>You haven't added any favorites yet.</p>
+        <p className="no-results-text">
+          You haven't added any favorites yet.
+          <br />
+          Go explore and <span onClick={() => navigate("/dashboard")}>add some!</span>
+        </p>
       )}
       <BottomNav />
-      
     </Container>
   );
 };

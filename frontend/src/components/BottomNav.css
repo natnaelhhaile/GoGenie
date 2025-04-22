@@ -4,7 +4,7 @@
     left: 0;
     width: 100%;
     background: white;
-    padding: 10px 0;
+    padding: 1rem 0;
     display: flex;
     justify-content: space-around;
     border-top: 1px solid #ddd;
@@ -17,7 +17,7 @@
     cursor: pointer;
   }
   .nav-icon.active {
-    color: #3F5A5B;
+    color: #8a2be2;
   }
   .nav-icon.user:hover,
   .nav-icon.favorites:hover {

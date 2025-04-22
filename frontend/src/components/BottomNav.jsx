@@ -2,7 +2,7 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MdHomeFilled } from "react-icons/md";
-import { IoSearchOutline, IoPersonOutline } from "react-icons/io5";
+import { IoSearch, IoPerson } from "react-icons/io5";
 import { FaHeart } from "react-icons/fa";
 import "./BottomNav.css";
 
@@ -16,12 +16,12 @@ const BottomNav = () => {
         className={`nav-icon ${location.pathname === "/dashboard" ? "active" : ""}`}
         onClick={() => navigate("/dashboard")}
       />
-      <IoSearchOutline className="nav-icon" onClick={() => navigate("/search")} />
+      <IoSearch className="nav-icon" onClick={() => navigate("/search")} />
       <FaHeart
         className={`nav-icon favorites ${location.pathname === "/favorites" ? "active" : ""}`}
         onClick={() => navigate("/favorites")}
       />
-      <IoPersonOutline
+      <IoPerson
         className={`nav-icon user ${location.pathname === "/profile" ? "active" : ""}`}
         onClick={() => navigate("/profile")}
       />

@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../api/axiosInstance";
 import "./VenueDetailPage.css";
 import BottomNav from "../components/BottomNav";
+import Container from "./Container";
 
 
 const VenueDetailPage = () => {
@@ -22,6 +23,9 @@ const VenueDetailPage = () => {
   const [stats, setStats] = useState({ total_ratings: 0, total_tips: 0, total_photos: 0 });
   const [tips, setTips] = useState([]);
 
+  const [liked, setLiked] = useState(false);
+  const [disliked, setDisliked] = useState(false);
+
   const fallbackImage = require("../assets/dum1.jpg");
 
   const address = venue?.location?.address || "Unknown Address";
@@ -34,7 +38,7 @@ const VenueDetailPage = () => {
       if (!user || !venue?.venue_id) return;
       try {
         const res = await axiosInstance.get("/api/favorites/is-favorite", {
-          params: { userId: user.uid, venueId: venue.venue_id }
+          params: { venueId: venue.venue_id }
         });
         setIsFavorite(res.data.isFavorite);
       } catch (err) {
@@ -68,9 +72,7 @@ const VenueDetailPage = () => {
     if (!user) return alert("Please log in");
 
     const payload = {
-      userId: user.uid,
-      venueId: venue.venue_id,
-      venueData: venue
+      venue_id: venue.venue_id
     };
 
     try {
@@ -86,82 +88,102 @@ const VenueDetailPage = () => {
     }
   };
 
+  const handleLike = () => {
+    setLiked((prev) => !prev);
+    if (!liked && disliked) setDisliked(false); // Unselect dislike if like is selected
+  };
+  
+  const handleDislike = () => {
+    setDisliked((prev) => !prev);
+    if (!disliked && liked) setLiked(false); // Unselect like if dislike is selected
+  };
+  
+
   if (!venue) return <p>Loading venue details...</p>;
 
   return (
-    <div className="venue-detail-container">
-      <img src={photos[0] || fallbackImage} alt={venue.name} className="hero-image" />
+    <Container>
+      <div className="venue-detail-container">
+        <img src={photos[0] || fallbackImage} alt={venue.name} className="hero-image" />
 
-      <div className="venue-header">
-        <h2 className="venue-name">{venue.name}</h2>
-        <button onClick={handleToggleFavorite} className="favorite-button">
-          {isFavorite ? <IoHeart className="favorite-icon active" /> : <IoHeartOutline className="favorite-icon" />}
-        </button>
-      </div>
-
-      <div className="venue-info">
-        <p><span className="label">Address:</span> {address}</p>
-        <p><span className="label">Categories:</span> {venue.categories?.slice(0, 3).join(", ")}</p>
-        <p><span className="label">Distance:</span> {venue.distance} meters</p>
-        <p><span className="label">City:</span> {city}</p>
-        <p>
-          <span className="label">Rating:</span>
-          <span className="rating-value">
-            <span className="star-icon">⭐</span>
-            {rating}
-          </span>
-        </p>
-        <p>
-          <span className="label">Status:</span>
-          <span className={openNow ? "open-status open" : "open-status closed"}>
-            {openNow ? "✅ Open Now" : "❌ Closed"}
-          </span>
-        </p>
-        <p><span className="label">Popularity:</span> {popularity ? `${(popularity * 100).toFixed(0)}%` : "N/A"}</p>
-        <p>
-          <span className="label">Stats:</span>
-          {stats.total_ratings} ratings, {stats.total_tips} tips, {stats.total_photos} photos
-        </p>
-
-        <a href={fsqWebUrl} target="_blank" rel="noopener noreferrer" className="venue-external-link">
-          🔗 View on Foursquare
-        </a>
-
-        <div className="icons-row">
-          <FaThumbsUp className="thumbs-up" />
-          <FaThumbsDown className="thumbs-down" />
+        <div className="venue-header">
+          <h2 className="venue-name">{venue.name}</h2>
+          <button onClick={handleToggleFavorite} className="favorite-button">
+            {isFavorite ? <IoHeart className="favorite-icon active" /> : <IoHeartOutline className="favorite-icon" />}
+          </button>
         </div>
+
+        <div className="venue-info">
+          <p><span className="label">Address:</span> {address}</p>
+          <p><span className="label">Categories:</span> {venue.categories?.slice(0, 3).join(", ")}</p>
+          <p><span className="label">Distance:</span> {venue.distance} meters</p>
+          <p><span className="label">City:</span> {city}</p>
+          <p>
+            <span className="label">Rating:</span>
+            <span className="rating-value">
+              <span className="star-icon">⭐</span>
+              {rating}
+            </span>
+          </p>
+          <p>
+            <span className="label">Status:</span>
+            <span className={openNow ? "open-status open" : "open-status closed"}>
+              {openNow ? "✅ Open Now" : "❌ Closed"}
+            </span>
+          </p>
+          <p><span className="label">Popularity:</span> {popularity ? `${(popularity * 100).toFixed(0)}%` : "N/A"}</p>
+          <p>
+            <span className="label">Stats:</span>
+            {stats.total_ratings} ratings, {stats.total_tips} tips, {stats.total_photos} photos
+          </p>
+
+          <a href={fsqWebUrl} target="_blank" rel="noopener noreferrer" className="venue-external-link">
+            🔗 View on Foursquare
+          </a>
+
+          <div className="icons-row">
+            <FaThumbsUp
+              className={`thumb-icon ${liked ? "active" : ""}`}
+              onClick={handleLike}
+              title="Like"
+            />
+            <FaThumbsDown
+              className={`thumb-icon ${disliked ? "active" : ""}`}
+              onClick={handleDislike}
+              title="Dislike"
+            />
+          </div>
+
+        </div>
+
+        <div className="section-title">More Photos</div>
+        <div className="gallery-scroll">
+          {photos.slice(1).map((src, i) => (
+            <img key={i} src={src} alt={`Gallery ${i + 1}`} />
+          ))}
+        </div>
+
+        <div className="section-title">User Tips</div>
+        <div className="reviews-section">
+          {tips.length > 0 ? (
+            tips.map((tip, index) => (
+              <div className="review-card" key={index}>
+                <p className="tip-text">"{tip.text}"</p>
+                <p className="tip-date">🕒 {new Date(tip.created_at).toLocaleDateString()}</p>
+              </div>
+            ))
+          ) : (
+            <p className="no-tips">No tips available yet.</p>
+          )}
+        </div>
+
+        <div className="section-title">Hours</div>
+        <div className="placeholder-box">{hours || "Hours not available."}</div>
+
+        <BottomNav />
+        
       </div>
-
-      <div className="section-title">More Photos</div>
-      <div className="gallery-scroll">
-        {photos.slice(1).map((src, i) => (
-          <img key={i} src={src} alt={`Gallery ${i + 1}`} />
-        ))}
-      </div>
-
-      <div className="section-title">User Tips</div>
-      <div className="reviews-section">
-        {tips.length > 0 ? (
-          tips.map((tip, index) => (
-            <div className="review-card" key={index}>
-              <p className="tip-text">"{tip.text}"</p>
-              <p className="tip-date">🕒 {new Date(tip.created_at).toLocaleDateString()}</p>
-            </div>
-          ))
-        ) : (
-          <p className="no-tips">No tips available yet.</p>
-        )}
-      </div>
-
-      <div className="section-title">Hours</div>
-      <div className="placeholder-box">{hours || "Hours not available."}</div>
-
-      <button className="update-preferences" onClick={() => navigate(-1)}>Go Back</button>
-
-      <BottomNav />
-      
-    </div>
+    </Container>
   );
 };
 

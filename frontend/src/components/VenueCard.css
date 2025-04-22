@@ -1,0 +1,77 @@
+.venue-card {
+  position: relative;
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  animation: fadeInUp 0.4s ease forwards;
+  opacity: 0;
+  transform: translateY(10px);
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.venue-card img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 8px;
+}  
+
+.venue-card p {
+  font-family: "Inter", sans-serif;
+  font-size: 1rem;
+  color: #0a2533;
+  margin: 0.5rem 0;
+}
+
+.location-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #666;
+  font-size: 0.95rem;
+  gap: 4px;
+}
+
+.city-name {
+  font-size: 0.8rem;
+}
+
+/* 🌟 Favorite Toggle Button */
+.favorite-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: white;
+  border-radius: 50%;
+  padding: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.favorite-toggle:hover {
+  transform: scale(1.1);
+}
+
+.favorite-icon {
+  font-size: 18px;
+  color: #8a2be2;
+  transition: color 0.3s ease;
+}
+
+.favorite-icon.active {
+  color: #e74c3c;
+}
