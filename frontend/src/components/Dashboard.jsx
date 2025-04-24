@@ -10,6 +10,7 @@ import Container from "../components/Container";
 import "./Dashboard.css";
 import BottomNav from "../components/BottomNav";
 import VenueCard from "../components/VenueCard";
+import ChatLauncher from "../components/ChatLauncher";
 
 
 const Dashboard = () => {
@@ -22,6 +23,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [favoritesMap, setFavoritesMap] = useState({});
   const loaderRef = React.useRef(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -197,8 +199,8 @@ const Dashboard = () => {
           <p className="no-results-text">No recommendations found yet. Try <span onClick={() => navigate("/profile-setup")}>updating your preferences</span> or refreshing.</p>
         )}
       </section>
-
-
+      
+      <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
 
       <BottomNav />
 

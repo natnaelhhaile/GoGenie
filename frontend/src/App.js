@@ -13,6 +13,7 @@ import ProfilePage from "./components/ProfilePage";
 import EditProfilePage from "./components/EditProfilePage";
 import UpdatePreferences from "./components/UpdatePreferences"; 
 import ForgotPassword from "./components/ForgotPassword";
+import ChatAssistant from "./components/ChatAssistant";
 
 function App() {
   return (
