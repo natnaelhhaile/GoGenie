@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { FaCommentDots } from "react-icons/fa";
 import ChatAssistant from "../components/ChatAssistant";
 import "./ChatLauncher.css";

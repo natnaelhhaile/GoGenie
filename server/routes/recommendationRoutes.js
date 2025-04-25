@@ -232,6 +232,68 @@ router.get("/categories", verifyFirebaseToken, async (req, res) => {
   }
 });
 
+// Route to look for venues that match user searches
+
+router.get("/search", verifyFirebaseToken, async (req, res) => {
+  const { query } = req.query;
+  const uid = req.user.uid;
+  if (!query) {
+    return res.status(400).json({ message: "Search query is required" });
+  }
+
+  try {
+    const regex = new RegExp(query, "i");
+
+    // 1) find matching venues
+    const venues = await Recommendation.find({
+      $or: [
+        { name: regex },
+        { categories: regex },
+        { tags: regex },
+        { "location.formattedAddress": regex },
+        { "location.locality": regex },
+      ],
+    }).limit(50);
+
+    if (venues.length === 0) {
+      return res.status(200).json({ results: [] });
+    }
+
+    // 2) load any existing user scores
+    const venueIds = venues.map(v => v.venue_id);
+    const scores = await UserVenueScore.find({
+      uid,
+      venue_id: { $in: venueIds }
+    });
+
+    const scoreMap = {};
+    scores.forEach(s => {
+      scoreMap[s.venue_id] = s.priorityScore;
+    });
+
+    // 3) sort by saved score or fallback (popularity/rating)
+    const sorted = venues
+      .map(v => {
+        const saved = scoreMap[v.venue_id];
+        const fallback = Math.min(1, ((v.popularity || v.rating || 0) / 10));
+        return {
+          venue: v,
+          score: saved !== undefined ? saved : fallback
+        };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 30)       // cap results
+      .map(item => item.venue);  // unwrap
+
+    // 4) return only the sorted venues
+    res.status(200).json({ results: sorted });
+
+  } catch (error) {
+    console.error("❌ Search error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // endpoint to get venue details by fsq_id: popularity,stats,hours,rating
 router.get("/details/:venue_id", async (req, res) => {
   const { venue_id } = req.params;

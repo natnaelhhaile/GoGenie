@@ -14,6 +14,7 @@ import EditProfilePage from "./components/EditProfilePage";
 import UpdatePreferences from "./components/UpdatePreferences";
 import ForgotPassword from "./components/ForgotPassword";
 import ChatAssistant from "./components/ChatAssistant";
+import Search from "./components/Search";
 import useSessionExpiration from "./hooks/useSessionExpiration";
 
 function AppRoutes() {
@@ -35,6 +36,7 @@ function AppRoutes() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/edit-profile" element={<EditProfilePage />} />
         <Route path="/update-preferences" element={<UpdatePreferences />} />
+        <Route path="/search" element={<Search />} />
       </Route>
     </Routes>
   );
