@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import Container from "../components/Container";
 import BottomNav from "../components/BottomNav";
 import VenueCard from "../components/VenueCard";
+import ChatLauncher from "../components/ChatLauncher";
 import "./Dashboard.css";
 
 const LIMIT = 10;
@@ -30,6 +31,7 @@ const Dashboard = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [favoritesMap, setFavoritesMap] = useState({});
   const loaderRef = useRef(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const fetchUserPreferences = useCallback(async () => {
     try {
@@ -216,6 +218,8 @@ const Dashboard = () => {
           </p>
         )}
       </section>
+      
+      <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
 
       <BottomNav />
     </Container>

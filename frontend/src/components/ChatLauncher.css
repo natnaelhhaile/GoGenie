@@ -1,0 +1,30 @@
+.chat-launcher-icon {
+    position: fixed;
+    bottom: 65px;
+    right: 25px;
+    background-color: #5C2D91;
+    color: white;
+    border-radius: 50%;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    z-index: 1000;
+    transition: background 0.3s ease;
+}
+
+ .chat-window {
+    position: fixed;
+    bottom: 120px;
+    right: 25px;
+    width: 340px;
+    max-height: 500px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    overflow-y: auto;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    
+}

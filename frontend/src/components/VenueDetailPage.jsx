@@ -7,6 +7,8 @@ import axiosInstance from "../api/axiosInstance";
 import "./VenueDetailPage.css";
 import BottomNav from "../components/BottomNav";
 import Container from "./Container";
+import ChatLauncher from "../components/ChatLauncher";
+
 
 
 const VenueDetailPage = () => {
@@ -28,6 +30,7 @@ const VenueDetailPage = () => {
 
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const fallbackImage = require("../assets/dum1.jpg");
 
@@ -223,6 +226,7 @@ const VenueDetailPage = () => {
         <div className="section-title">Hours</div>
         <div className="placeholder-box">{hours || "Hours not available."}</div>
 
+        <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
         <BottomNav />
         
       </div>
