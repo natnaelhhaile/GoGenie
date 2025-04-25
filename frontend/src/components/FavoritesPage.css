@@ -2,16 +2,6 @@ Container {
     max-width: 1024px;
     margin: 0 auto;
     /* padding: 0 1rem; */
-  }
-
-.favorites-container {
-    width: 90%;
-    max-width: 300px;
-    background-color: white;
-    border-radius: 25px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    font-family: "Poppins", sans-serif;
-    text-align: center;
 }
 
 .favorites-header {
@@ -38,7 +28,7 @@ Container {
     display: grid;
     gap: 1rem;
     width: 90%;
-    margin: 2rem auto;
+    margin: 1rem auto 4rem;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
@@ -63,98 +53,6 @@ Container {
 .favorites-section,
 .no-results-text {
   padding: 0 1rem;
-}
-
-.favorite-card {
-    background: #FFFFFF;
-    border-radius: 12px;
-    padding: 10px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-    position: relative;
-    opacity: 0;
-    transform: translateY(10px);
-    animation: fadeInUp 0.4s ease forwards;
-}  
-
-@keyframes fadeInUp {
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-}
-
-.favorite-card:hover {
-    transform: translateY(-4px);
-}
-
-.favorite-card img {
-    width: 100%;
-    height: 120px;
-    border-radius: 8px;
-    object-fit: cover;
-}
-
-.favorite-card p {
-    font-size: 14px;
-    font-weight: bold;
-    color: #0A2533;
-    margin: 8px 0 4px;
-}
-
-.favorite-card span {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    color: #666;
-}
-
-.favorite-heart {
-    margin-left: 5px;
-    color: #d91e18;
-    font-size: 14px;
-}
-
-.favorite-card.favorited {
-    border: 2px solid #ff4d4d;
-}
-
-.heart-icon {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 20px;
-    color: #e74c3c;
-    background-color: white;
-    border-radius: 50%;
-    padding: 4px;
-    z-index: 10;
-    cursor: pointer;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease;
-}
-  
-  .heart-icon:hover {
-    transform: scale(1.1);
-}
-
-.location-info {
-    display: flex;
-    justify-content: center;
-    margin: auto;
-    color: #666;
-    font-size: 1.05rem;
-  }
-  
-  .location-info span {
-    padding: 1px;
-}
-  
-  .city-name {
-    font-size: .75rem !important;
 }
 
 .no-results-text {

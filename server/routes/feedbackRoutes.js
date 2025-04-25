@@ -1,93 +1,116 @@
 const express = require("express");
-const Preferences = require("../models/Preferences");
+const verifyFirebaseToken = require("../middleware/firebaseAuth");
+const User = require("../models/User");
 const Recommendation = require("../models/Recommendation");
 const UserVenueScore = require("../models/UserVenueScore");
+const VenueTagVote = require("../models/VenueTagVote");
+const tagsVocabulary = require("../utils/tagsVocabulary");
 const { calculateCosineSimilarity } = require("../utils/similarity");
-const tags_vocabulary = require("../utils/tagsVocabulary");
-const extractTagsFromFeatures = require("../utils/extractTagsFromFeatures");
 
 const router = express.Router();
 const MAX_DISTANCE = 10000;
 const DECAY_FACTOR = 0.95;
 
-router.post("/feedback", async (req, res) => {
+// POST /api/feedback
+router.post("/", verifyFirebaseToken, async (req, res) => {
+  const uid = req.user.uid;
+  const { venue_id, feedback } = req.body;
+
+  console.log("Feedback received:", feedback);
+
+  if (!venue_id || !["up", "down", "none"].includes(feedback)) {
+    return res.status(400).json({ message: "Invalid feedback request." });
+  }
+
   try {
-    const { userId, venueId, feedback } = req.body; // feedback = "up" | "down"
-    if (!userId || !venueId || !["up", "down"].includes(feedback)) {
-      return res.status(400).json({ message: "Invalid request." });
-    }
+    const user = await User.findOne({ uid });
+    const venue = await Recommendation.findOne({ venue_id });
+    if (!user || !venue) return res.status(404).json({ message: "User or venue not found." });
 
-    const preferenceDoc = await Preferences.findOne({ user: userId });
-    const venue = await Recommendation.findOne({ venue_id: venueId });
-    if (!preferenceDoc || !venue) {
-      return res.status(404).json({ message: "User or venue not found." });
-    }
+    const weights = user.tagWeights || {};
+    const venueTags = venue.tags || [];
 
-    // ✅ Extract clean tags using updated logic
-    const venueTags = extractTagsFromFeatures(venue.features || {});
+    tagsVocabulary.forEach(tag => {
+      const current = weights[tag] || 0;
+      const relevant = venueTags.includes(tag);
 
-    // ✅ Update tag weights in Preferences
-    const weights = preferenceDoc.tagWeights || {};
-    tags_vocabulary.forEach(tag => {
-      const currentWeight = weights[tag] || 0;
-      const isRelevant = venueTags.includes(tag);
-
-      // Apply decay
-      let newWeight = currentWeight * DECAY_FACTOR;
-
-      // Apply feedback adjustment
-      if (isRelevant) {
-        newWeight += feedback === "up" ? 0.2 : -0.2;
+      let newWeight = current * DECAY_FACTOR;
+      if (relevant) {
+        newWeight += feedback === "up" ? 0.2 : feedback === "down" ? -0.2 : 0;
       }
-
-      // Clamp between -1 and 1
       weights[tag] = Math.max(-1, Math.min(1, newWeight));
     });
 
-    preferenceDoc.tagWeights = weights;
-    await preferenceDoc.save();
+    user.tagWeights = weights;
+    await user.save();
 
-    // ✅ Build weighted user vector
-    const userVector = tags_vocabulary.map(tag => weights[tag] || 0);
-    const venueVector = tags_vocabulary.map(tag => venueTags.includes(tag) ? 1 : 0);
+    const userVector = tagsVocabulary.map(tag => weights[tag] || 0);
+    const venueVector = tagsVocabulary.map(tag => venueTags.includes(tag) ? 1 : 0);
     const similarity = calculateCosineSimilarity(userVector, venueVector);
-
-    // ✅ Recompute priority score
-    const distance = venue.distance || MAX_DISTANCE;
-    const proximityScore = Math.max(0, 1 - distance / MAX_DISTANCE);
-
-    const hasRating = typeof venue.rating === 'number';
-    const hasPopularity = typeof venue.popularity === 'number';
-    const normalizedRating = hasRating ? (venue.rating - 3) / 2 : 0;
-    const popularityScore = hasPopularity ? venue.popularity : 0;
-
-    let compositeRatingScore;
-    if (hasRating && hasPopularity) {
-      compositeRatingScore = (normalizedRating + popularityScore) / 2;
-    } else if (hasRating) {
-      compositeRatingScore = normalizedRating;
-    } else if (hasPopularity) {
-      compositeRatingScore = popularityScore;
-    } else {
-      compositeRatingScore = 0;
-    }
+    const proximityScore = Math.max(0, 1 - (venue.distance || MAX_DISTANCE) / MAX_DISTANCE);
+    const ratingScore = typeof venue.rating === "number" ? venue.rating / 10 : 0.5;
 
     const priorityScore = (
-      similarity * 0.5 +
-      proximityScore * 0.3 +
-      compositeRatingScore * 0.2
+      similarity * 0.4 +
+      ratingScore * 0.2 +
+      proximityScore * 0.4
     ).toFixed(3);
 
     await UserVenueScore.findOneAndUpdate(
-      { user: userId, venue_id: venueId },
-      { priority_score: parseFloat(priorityScore) },
+      { uid, venue_id },
+      { priorityScore: parseFloat(priorityScore), feedback },
       { upsert: true, new: true }
     );
 
-    return res.status(200).json({ message: "Feedback recorded.", priorityScore });
+    if (feedback === "up") {
+      const topTags = Object.entries(weights)
+        .filter(([tag, weight]) => weight > 0.5)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([tag]) => tag);
+
+      const venueTagSet = new Set(venue.tags || []);
+      let modified = false;
+
+      for (const tag of topTags) {
+        const voteDoc = await VenueTagVote.findOneAndUpdate(
+          { venue_id, tag },
+          { $addToSet: { voters: uid } },
+          { upsert: true, new: true }
+        );
+
+        if (voteDoc.voters.length >= 2 && !venueTagSet.has(tag)) {
+          venueTagSet.add(tag);
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        venue.tags = Array.from(venueTagSet);
+        await venue.save();
+      }
+    }
+
+    res.status(200).json({ message: "Feedback recorded.", priorityScore });
   } catch (err) {
-    console.error("Error handling feedback:", err);
-    return res.status(500).json({ message: "Server error." });
+    console.error("Error recording feedback:", err);
+    res.status(500).json({ message: "Server error." });
+  }
+});
+
+// GET /api/feedback/:venue_id
+router.get("/:venue_id", verifyFirebaseToken, async (req, res) => {
+  const uid = req.user.uid;
+  const { venue_id } = req.params;
+
+  try {
+    const score = await UserVenueScore.findOne({ uid, venue_id: venue_id });
+    if (!score) return res.status(200).json({ feedback: "none" });
+
+    res.status(200).json({ feedback: score.feedback || "none" });
+  } catch (err) {
+    console.error("Error fetching feedback:", err);
+    res.status(500).json({ message: "Server error." });
   }
 });
 

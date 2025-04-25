@@ -12,6 +12,11 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     lowercase: true, // standardize emails
     trim: true
+  },
+  tagWeights: { 
+    type: Map, 
+    of: Number, 
+    default: {} // Initialize with empty object
   }
 }, { timestamps: true });
 

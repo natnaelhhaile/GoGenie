@@ -1,10 +1,10 @@
 .venue-card {
   position: relative;
   background: #fff;
-  border-radius: 10px;
+  border-radius: .75rem;
   padding: 10px;
   text-align: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   cursor: pointer;
   transition: transform 0.2s ease;
   animation: fadeInUp 0.4s ease forwards;
@@ -19,6 +19,10 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.venue-card:hover {
+  transform: translateY(-3px);
 }
 
 .venue-card img {
@@ -41,7 +45,11 @@
   align-items: center;
   color: #666;
   font-size: 0.95rem;
-  gap: 4px;
+  gap: .25rem;
+}
+
+.location-pin {
+  margin-top: .2rem;
 }
 
 .city-name {
@@ -60,6 +68,7 @@
   z-index: 10;
   cursor: pointer;
   transition: transform 0.2s ease;
+  height: 1.15rem;
 }
 
 .favorite-toggle:hover {
@@ -67,11 +76,11 @@
 }
 
 .favorite-icon {
-  font-size: 18px;
-  color: #8a2be2;
+  font-size: 1.25rem !important;
+  color: #8a2be2 !important;
   transition: color 0.3s ease;
 }
 
 .favorite-icon.active {
-  color: #e74c3c;
+  color: #8a2be2 !important;
 }

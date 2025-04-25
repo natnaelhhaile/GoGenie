@@ -12,9 +12,9 @@ import axiosInstance from "../api/axiosInstance";
 import "./ProfilePage.css";
 import BottomNav from "../components/BottomNav";
 
-
 const ProfilePage = () => {
   const [profileName, setProfileName] = useState("User");
+  const [summary, setSummary] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,12 +28,25 @@ const ProfilePage = () => {
       }
     };
 
+    const fetchSummary = async () => {
+      try {
+        const response = await axiosInstance.get("/api/users/summary");
+        console.log("📦 Summary API response:", response.data);
+        setSummary(response.data.summary || "No summary available yet.");
+      } catch (error) {
+        console.error("❌ Error fetching summary:", error);
+        setSummary("Could not load summary.");
+      }
+    };    
+
     fetchUserProfile();
+    fetchSummary();
   }, []);
 
   const handleLogout = async () => {
     try {
       await auth.signOut();
+      localStorage.removeItem("sessionStart");
       navigate("/login");
     } catch (error) {
       console.error("❌ Error logging out:", error);
@@ -47,10 +60,16 @@ const ProfilePage = () => {
       </header>
       <div className="profile-section">
         <div className="profile-info">
-        <IoPersonCircleSharp className="profile-avatar" />
-        <h2>{profileName}</h2>
-        <p className="user-email">{auth.currentUser?.email}</p>
+          <IoPersonCircleSharp className="profile-avatar" />
+          <h2>{profileName}</h2>
+          <p className="user-email">{auth.currentUser?.email}</p>
+
+          <div className="summary-box">
+            <h3 className="summary-title">Your Preference Summary</h3>
+            <p className="summary-text">{summary}</p>
+          </div>
         </div>
+
         <div className="profile-settings">
           <button className="edit-btn" onClick={() => navigate("/edit-profile")}>
             <IoCreate /> Edit Profile
@@ -65,7 +84,6 @@ const ProfilePage = () => {
       </div>
 
       <BottomNav />
-      
     </Container>
   );
 };

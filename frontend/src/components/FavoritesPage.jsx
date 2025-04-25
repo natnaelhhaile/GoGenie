@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
-import { IoLocationSharp, IoHeart } from "react-icons/io5";
 import Container from "../components/Container";
 import "./FavoritesPage.css";
 import BottomNav from "../components/BottomNav";

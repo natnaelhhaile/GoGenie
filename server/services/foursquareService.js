@@ -2,7 +2,7 @@ const axios = require("axios");
 
 const fetchFoursquareVenues = async (queries, location) => {
   const API_KEY = process.env.FOURSQUARE_API_KEY;
-  const fields = 'fsq_id,name,location,categories,distance,link,rating,photos,features';
+  const fields = 'fsq_id,name,location,categories,distance,link,rating,photos,features,popularity,stats,hours,tips';
   let allVenues = [];
 
   for (const query of queries) {
@@ -52,10 +52,10 @@ const fetchVenuePhotos = async (fsq_id) => {
 };
 
 // fetch venue details by fsq_id: popularity,stats,hours,rating
-const fetchVenueDetails = async (venueId) => {
+const fetchVenueDetails = async (venue_id) => {
   const fields = 'fsq_id,popularity,categories,stats,hours,rating,tips';
   try {
-    const response = await axios.get(`https://api.foursquare.com/v3/places/${venueId}`, {
+    const response = await axios.get(`https://api.foursquare.com/v3/places/${venue_id}`, {
       headers: {
         Accept: "application/json",
         Authorization: process.env.FOURSQUARE_API_KEY
@@ -67,7 +67,7 @@ const fetchVenueDetails = async (venueId) => {
     return response.data;
   }
   catch (error) {
-    console.error(`Error fetching venue details for ${venueId}:`, error.message);
+    console.error(`Error fetching venue details for ${venue_id}:`, error.message);
     return null;
   };
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FaThumbsUp, FaThumbsDown } from "react-icons/fa6";
 import { IoHeartOutline, IoHeart } from "react-icons/io5";
 import { useAuth } from "../context/AuthContext";
@@ -10,9 +10,12 @@ import Container from "./Container";
 
 
 const VenueDetailPage = () => {
+  const navigate = useNavigate();
   const { state } = useLocation();
   const venue = state?.venue;
-  const navigate = useNavigate();
+  if (!venue) {
+    navigate("/dashboard");
+  }
   const { user } = useAuth();
 
   const [isFavorite, setIsFavorite] = useState(false);
@@ -28,8 +31,10 @@ const VenueDetailPage = () => {
 
   const fallbackImage = require("../assets/dum1.jpg");
 
-  const address = venue?.location?.address || "Unknown Address";
-  const city = address.split(",").slice(-2, -1)[0]?.trim() || "Unknown City";
+  const address = venue?.location?.formattedAdress || 
+                `${venue?.location?.address}, ${venue.location.locality}, ${venue.location.region} ${venue.location.postcode}` || 
+                "Unknown Address";
+  const distanceMiles = venue.distance * 0.000621371;
   const fsqWebUrl = `https://foursquare.com/v/${venue?.name.replace(/\s+/g, "-").toLowerCase()}/${venue?.venue_id}`;
   const photos = venue?.photos || [];
 
@@ -38,7 +43,7 @@ const VenueDetailPage = () => {
       if (!user || !venue?.venue_id) return;
       try {
         const res = await axiosInstance.get("/api/favorites/is-favorite", {
-          params: { venueId: venue.venue_id }
+          params: { venue_id: venue.venue_id }
         });
         setIsFavorite(res.data.isFavorite);
       } catch (err) {
@@ -68,6 +73,21 @@ const VenueDetailPage = () => {
     if (venue?.venue_id) fetchDetails();
   }, [venue]);
 
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      if (!user || !venue?.venue_id) return;
+      try {
+        const res = await axiosInstance.get(`/api/feedback/${venue.venue_id}`);
+        if (res.data.feedback === "up") setLiked(true);
+        else if (res.data.feedback === "down") setDisliked(true);
+      } catch (err) {
+        console.error("Error fetching previous feedback:", err);
+      }
+    };
+  
+    fetchFeedback();
+  }, [venue, user]);  
+
   const handleToggleFavorite = async () => {
     if (!user) return alert("Please log in");
 
@@ -88,16 +108,39 @@ const VenueDetailPage = () => {
     }
   };
 
-  const handleLike = () => {
-    setLiked((prev) => !prev);
-    if (!liked && disliked) setDisliked(false); // Unselect dislike if like is selected
+  const handleLike = async () => {
+    if (!user) return alert("Please log in");
+  
+    const isActivating = !liked;
+    setLiked(isActivating);
+    if (disliked) setDisliked(false);
+  
+    try {
+      await axiosInstance.post("/api/feedback", {
+        venue_id: venue.venue_id,
+        feedback: isActivating ? "up" : "none" // treat unliking as neutral feedback
+      });
+    } catch (err) {
+      console.error("Error sending like feedback:", err);
+    }
   };
   
-  const handleDislike = () => {
-    setDisliked((prev) => !prev);
-    if (!disliked && liked) setLiked(false); // Unselect like if dislike is selected
-  };
+  const handleDislike = async () => {
+    if (!user) return alert("Please log in");
   
+    const isActivating = !disliked;
+    setDisliked(isActivating);
+    if (liked) setLiked(false);
+  
+    try {
+      await axiosInstance.post("/api/feedback", {
+        venue_id: venue.venue_id,
+        feedback: isActivating ? "down" : "none" // treat undisliking as neutral feedback
+      });
+    } catch (err) {
+      console.error("Error sending dislike feedback:", err);
+    }
+  };  
 
   if (!venue) return <p>Loading venue details...</p>;
 
@@ -115,9 +158,9 @@ const VenueDetailPage = () => {
 
         <div className="venue-info">
           <p><span className="label">Address:</span> {address}</p>
-          <p><span className="label">Categories:</span> {venue.categories?.slice(0, 3).join(", ")}</p>
-          <p><span className="label">Distance:</span> {venue.distance} meters</p>
-          <p><span className="label">City:</span> {city}</p>
+          <p><span className="label">Categories:</span> {venue.categories?.slice(0, 5).join(", ")}</p>
+          <p><span className="label">Distance:</span> {(distanceMiles).toFixed(1) || "?"} miles</p>
+          <p><span className="label">City:</span> {venue.location?.locality || "Unknown City"}</p>
           <p>
             <span className="label">Rating:</span>
             <span className="rating-value">

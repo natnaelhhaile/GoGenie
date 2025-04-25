@@ -2,6 +2,8 @@ const express = require("express");
 const verifyFirebaseToken = require("../middleware/firebaseAuth");
 const User = require("../models/User");
 const Preferences = require("../models/Preferences");
+const buildTagWeights = require("../utils/tagWeightBuilder");
+const generatePreferenceSummary = require("../utils/aiPreferenceSummary");
 
 const router = express.Router();
 
@@ -13,7 +15,7 @@ router.post("/check-new-user", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
     const email = req.user.email;
-
+    console.log("user logged in")
     // Check if user exists
     let user = await User.findOne({ $or: [{ uid }, { email }] });
 
@@ -48,7 +50,7 @@ router.get("/preferences", verifyFirebaseToken, async (req, res) => {
     const preferences = await Preferences.findOne({ uid });
 
     if (!preferences) {
-      return res.status(404).json({ message: "Preferences not found" });
+      return res.status(204).json({ message: "Preferences not found" });
     }
 
     res.status(200).json(preferences);
@@ -58,7 +60,7 @@ router.get("/preferences", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// ✅ Create or overwrite preferences with validation
+// ✅ Create preferences with validation
 router.post("/preferences", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
@@ -75,21 +77,22 @@ router.post("/preferences", verifyFirebaseToken, async (req, res) => {
       thematicPreferences,
       lifestylePreferences,
     } = req.body;
-
+    
     const requiredArrays = [
       { name: "hobbies", value: hobbies },
       { name: "foodPreferences", value: foodPreferences },
       { name: "thematicPreferences", value: thematicPreferences },
       { name: "lifestylePreferences", value: lifestylePreferences },
     ];
-
+    
     for (const field of requiredArrays) {
       if (!isValidStringArray(field.value)) {
         return res.status(400).json({ message: `${field.name} must be an array of strings.` });
       }
     }
-
+    
     const user = await User.findOne({ uid });
+    console.log("✅ userRoutes mounted", user);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const preferences = new Preferences({
@@ -107,39 +110,39 @@ router.post("/preferences", verifyFirebaseToken, async (req, res) => {
       lifestylePreferences
     });
     
-    await preferences.save();    
+    await preferences.save();   
 
-    res.status(200).json({ message: "Preferences saved successfully!", preferences });
+    const tagWeights = buildTagWeights({ hobbies, foodPreferences, thematicPreferences, lifestylePreferences });
+    await User.findOneAndUpdate({ uid }, { tagWeights }, { upsert: true });
+
+    res.status(200).json({ message: "Preferences and tagWeights saved successfully.", preferences });
   } catch (error) {
     console.error("❌ Error saving preferences:", error);
     res.status(500).json({ message: "Server error", error });
   }
 });
 
-// ✅ Update preferences subset (hobbies, foodPreferences, thematicPreferences)
+// Update preferences subset (hobbies, foodPreferences, thematicPreferences)
 router.put("/preferences", verifyFirebaseToken, async (req, res) => {
   const uid = req.user.uid;
-  const { hobbies, foodPreferences, thematicPreferences } = req.body;
-
+  const { hobbies, foodPreferences, thematicPreferences, lifestylePreferences } = req.body;
   const updates = {};
 
-  if (hobbies) {
-    if (!isValidStringArray(hobbies))
-      return res.status(400).json({ message: "Hobbies must be an array of strings." });
-    updates.hobbies = hobbies;
+  const requiredArrays = [
+    { name: "hobbies", value: hobbies },
+    { name: "foodPreferences", value: foodPreferences },
+    { name: "thematicPreferences", value: thematicPreferences },
+    { name: "lifestylePreferences", value: lifestylePreferences }
+  ];
+  
+  for (const field of requiredArrays) {
+    if (!isValidStringArray(field.value)) 
+      return res.status(400).json({ message: `${field.name} must be an array of strings.` });
+    updates[field.name] = field.value;
   }
 
-  if (foodPreferences) {
-    if (!isValidStringArray(foodPreferences))
-      return res.status(400).json({ message: "Food preferences must be an array of strings." });
-    updates.foodPreferences = foodPreferences;
-  }
-
-  if (thematicPreferences) {
-    if (!isValidStringArray(thematicPreferences))
-      return res.status(400).json({ message: "Thematic preferences must be an array of strings." });
-    updates.thematicPreferences = thematicPreferences;
-  }
+  updates["summary"] = undefined;
+  updates["summaryUpdatedAt"] = undefined;
 
   try {
     const updated = await Preferences.findOneAndUpdate(
@@ -149,40 +152,85 @@ router.put("/preferences", verifyFirebaseToken, async (req, res) => {
     );
 
     if (!updated) {
-      return res.status(404).json({ message: "Preferences not found for user." });
+      return res.status(404).json({ message: "Updated user preferences not found." });
     }
 
-    res.status(200).json({ message: "Preferences updated successfully.", preferences: updated });
+    const tagWeights = buildTagWeights(updated);
+    await User.findOneAndUpdate({ uid }, { tagWeights }, { upsert: true });
+
+    res.status(200).json({ message: "Preferences and tagWeights updated successfully.", preferences: updated });
   } catch (error) {
-    console.error("❌ Error updating preferences:", error);
+    console.error("Error updating preferences:", error);
     res.status(500).json({ message: "Internal server error." });
   }
 });
 
-// ✅ Update basic user details (fname, lname, age, gender, nationality, etc.)
+// Update basic user details (fname, lname, age, gender, nationality, etc.)
 router.put("/details", verifyFirebaseToken, async (req, res) => {
   const uid = req.user.uid;
-  const updateData = req.body;
+  const { fname, lname, age, gender, nationality, industry, location } = req.body;
 
+  const updates = {};
+  if (fname) updates.fname = fname;
+  if (lname) updates.lname = lname;
+  if (age) updates.age = age;
+  if (gender) updates.gender = gender;
+  if (nationality) updates.nationality = nationality;
+  if (industry) updates.industry = industry;
+  if (location) updates.location = location;
+  
   try {
     const updated = await Preferences.findOneAndUpdate(
       { uid },
-      { $set: updateData },
-      { new: true }
+      { $set: updates },
+      { new: true, runValidators: true }
     );
 
-    if (!updated) {
-      return res.status(404).json({ message: "User preferences not found." });
-    }
+    if (!updated) return res.status(404).json({ message: "Updated user details not found." });
 
-    res.status(200).json({
-      message: "User details updated successfully.",
-      preferences: updated,
-    });
+    res.status(200).json({ message: "User details updated successfully.", preferences: updated });
   } catch (error) {
-    console.error("❌ Error updating user details:", error);
+    console.error("Error updating user details:", error);
     res.status(500).json({ message: "Server error." });
   }
 });
+
+// Generates a short summary of user preferences using AI
+// GET /summary
+router.get("/summary", verifyFirebaseToken, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    const preferences = await Preferences.findOne({ uid });
+
+    if (!preferences) {
+      console.warn(`⚠️ Preferences not found for UID: ${uid}`);
+      return res.status(204).json({ message: "Preferences not found" });
+    }
+
+    if (preferences.summary && preferences.summaryUpdatedAt) {
+      console.log("📦 Returning cached summary");
+      return res.status(200).json({ summary: preferences.summary });
+    }
+
+    console.log("⏳ Generating new summary...");
+    const summary = await generatePreferenceSummary(preferences);
+
+    if (!summary) {
+      console.warn("⚠️ Summary generation returned null");
+      return res.status(500).json({ message: "Summary generation failed" });
+    }
+
+    preferences.summary = summary;
+    preferences.summaryUpdatedAt = new Date();
+    await preferences.save();
+
+    console.log("✅ Summary saved to DB");
+    return res.status(200).json({ summary });
+  } catch (error) {
+    console.error("❌ Error in /summary route:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 module.exports = router;

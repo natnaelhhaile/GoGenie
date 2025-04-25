@@ -1,6 +1,7 @@
 const express = require("express");
 const verifyFirebaseToken = require("../middleware/firebaseAuth");
 const Preferences = require("../models/Preferences");
+const User = require("../models/User");
 const Recommendation = require("../models/Recommendation");
 const UserVenueScore = require("../models/UserVenueScore");
 const { calculateCosineSimilarity } = require("../utils/similarity");
@@ -19,20 +20,22 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
     const uid = req.user.uid;
     console.log("generate recs route reached")
 
+    const user = await User.findOne({ uid });
+    if (!user) return res.status(404).json({ message: "User not found." });
+
     // Get user preferences
     const userPreferences = await Preferences.findOne({ uid });
     if (!userPreferences) {
       console.log("No preferences found for user:", uid);
-      return res.status(404).json({ message: "No preferences found" });
+      return res.status(204).json({ message: "No preferences found" });
     }
 
     // Generate queries and fetch venues
-    const queries = await generateFoursquareQueries({
-      hobbies: userPreferences.hobbies,
-      foodPreferences: userPreferences.foodPreferences,
-      thematicPreferences: userPreferences.thematicPreferences,
-      lifestylePreferences: userPreferences.lifestylePreferences
-    });
+    const queries = await generateFoursquareQueries(user.tagWeights);
+    if (!queries || queries.length === 0) {
+      return res.status(404).json({ message: "No queries returned" });
+    }
+
     console.log(queries);
     console.log(userPreferences.location);
 
@@ -46,18 +49,9 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
     for (const venue of venues) {
       const existingVenue = await Recommendation.findOne({ venue_id: venue.fsq_id });
 
-      const userTags = [
-        ...(userPreferences.hobbies || []),
-        ...(userPreferences.foodPreferences || []),
-        ...(userPreferences.thematicPreferences || []),
-        ...(userPreferences.lifestylePreferences || [])
-      ].map(t => t.toLowerCase());
-
+      const tagWeights = user.tagWeights || {};
+      const userVector = tagsVocabulary.map(tag => tagWeights[tag] || 0);
       const venueTags = extractTagsFromFeatures(venue.features || {});
-
-      const userVector = tagsVocabulary.map(tag =>
-        userTags.includes(tag.toLowerCase()) ? 1 : 0
-      );
       const venueVector = tagsVocabulary.map(tag =>
         venueTags.includes(tag.toLowerCase()) ? 1 : 0
       );
@@ -67,13 +61,12 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
       const distance = venue.distance || MAX_DISTANCE;
       const proximityScore = Math.max(0, 1 - distance / MAX_DISTANCE);
 
-      const hasRating = typeof venue.rating === 'number';
-      const normalizedRating = hasRating ? venue.rating / 10 : 0.5;
+      const ratingScore = typeof venue.rating === "number" ? venue.rating / 10 : 0.5;
 
       const priorityScore = (
-        similarity * 0.5 +
-        proximityScore * 0.3 +
-        normalizedRating * 0.2
+        similarity * 0.4 +
+        proximityScore * 0.4 +
+        ratingScore * 0.2
       ).toFixed(3);
 
       const photoURLs = await fetchVenuePhotos(venue.fsq_id);
@@ -85,14 +78,14 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
           name: venue.name,
           location: {
             address: venue.location.address,
-            formatted_address: venue.location.formatted_address,
+            formattedAddress: venue.location.formattedAddress,
             locality: venue.location.locality,
             region: venue.location.region,
             country: venue.location.country,
             postcode: venue.location.postcode,
           },
           categories: venue.categories.map(cat => cat.name),
-          features: venueTags,
+          tags: venueTags,
           rating: venue.rating,
           link: venue.link,
           photos: photoURLs,
@@ -125,18 +118,22 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
   }
 });
 
-// Route to fetch cached/ranked venue recommendations
+// GET /api/recommendations/cached-recommendations?offset=0&limit=10
 router.get("/cached-recommendations", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
 
+    const offset = parseInt(req.query.offset) || 0;
+    const limit = parseInt(req.query.limit) || 10;
+
     const userScores = await UserVenueScore
       .find({ uid })
-      .sort({ priorityScore: -1 });
+      .sort({ priorityScore: -1 })
+      .skip(offset)
+      .limit(limit);
 
     if (!userScores.length) {
-      // ✅ Return empty list with 200 OK
-      return res.status(200).json({ recommendations: [] });
+      return res.status(204).json({ recommendations: [] });
     }
 
     const venueIds = userScores.map(s => s.venue_id);
@@ -152,19 +149,18 @@ router.get("/cached-recommendations", verifyFirebaseToken, async (req, res) => {
       } : null;
     }).filter(Boolean);
 
-    return res.status(200).json({ recommendations: scoredVenues });
+    res.status(200).json({ recommendations: scoredVenues });
   } catch (err) {
-    console.error("Error fetching ranked recommendations:", err);
-    return res.status(500).json({ message: "Server error" });
+    console.error("Error fetching paginated recommendations:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // endpoint to get venue details by fsq_id: popularity,stats,hours,rating
-// later maybe user verifyFirebaseToken
-router.get("/details/:venueId", async (req, res) => {
-  const { venueId } = req.params;
+router.get("/details/:venue_id", async (req, res) => {
+  const { venue_id } = req.params;
   try {
-    const venue = await fetchVenueDetails(venueId);
+    const venue = await fetchVenueDetails(venue_id);
     res.status(200).json(venue);
   } catch (error) {
     console.error("Error fetching venue details:", error);

@@ -25,7 +25,9 @@ const PreferencesSchema = new mongoose.Schema({
   hobbies: { type: [String], required: true },
   foodPreferences: { type: [String], required: true },
   thematicPreferences: { type: [String], required: true },
-  lifestylePreferences: { type: [String], required: true }
+  lifestylePreferences: { type: [String], required: true },
+  summary: { type: String },
+  summaryUpdatedAt: { type: Date }  
 });
 
 module.exports = mongoose.model("Preferences", PreferencesSchema);

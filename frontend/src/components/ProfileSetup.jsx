@@ -2,10 +2,16 @@ import React, { useState, useRef } from "react";
 import Select from "react-select";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { getAuth } from "firebase/auth";
 import Container from "./Container";
 import "./ProfileSetup.css";
 import axiosInstance from "../api/axiosInstance";
-import { hobbiesList, foodList, thematicList, lifestyleList } from "../constants/preferencesData";
+import { 
+  hobbiesList, 
+  foodList, 
+  thematicList, 
+  lifestyleList 
+} from "../constants/preferencesData";
 
 const ProfileSetup = () => {
   const navigate = useNavigate();
@@ -66,6 +72,12 @@ const ProfileSetup = () => {
     setStep((prev) => prev + 1);
   };
 
+  const handleCancel = () => {
+    getAuth().signOut();
+    localStorage.removeItem("sessionStart");
+    navigate("/login");
+  }
+
   const handleBack = () => {
     setErrorNotice("");
     setStep((prev) => prev - 1);
@@ -119,7 +131,7 @@ const ProfileSetup = () => {
                   menu: (base) => ({ ...base, zIndex: 999 }),
                   control: (base) => ({
                     ...base,
-                    width: "100%",
+                    width: "85%",
                     textAlign: "left",
                     padding: "2px 6px",
                   }),
@@ -130,7 +142,7 @@ const ProfileSetup = () => {
                 }}
               />
               <input type="text" name="nationality" placeholder="Nationality" value={profile.nationality} onChange={handleChange} required />
-              <input type="text" name="industry" placeholder="Industry" value={profile.industry} onChange={handleChange} required />
+              <input type="text" name="industry" placeholder="Profession" value={profile.industry} onChange={handleChange} required />
               <input type="text" name="location" placeholder="Location (city, CA)" value={profile.location} onChange={handleChange} required />
             </div>
           </form>
@@ -200,6 +212,11 @@ const ProfileSetup = () => {
         )}
 
         <div className="step-buttons">
+          {step === 1 && (
+            <button className="btn secondary" onClick={handleCancel}>
+              Cancel
+            </button>
+          )}
           {step > 1 && (
             <button className="btn secondary" onClick={handleBack}>
               Back

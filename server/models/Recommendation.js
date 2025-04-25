@@ -18,7 +18,7 @@ const recommendationSchema = new mongoose.Schema({
     default: []
   },
 
-  features: {
+  tags: {
     type: [String],
     default: []
   },

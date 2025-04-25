@@ -1,4 +1,4 @@
-**<h1 align="center">GoGenie 🌍 | AI-Powered Venue Recommendation System</h1>**  
+**<h1 align="center">GoGenie | AI-Powered Venue Recommendation System</h1>**  
 
 **<p align="center">🚀 Connect. Explore. Experience.</p>**  
 A personalized recommendation platform that suggests real-world venues based on user preferences using OpenAI + Foursquare API.

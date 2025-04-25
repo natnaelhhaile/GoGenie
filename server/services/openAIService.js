@@ -2,34 +2,46 @@ const OpenAI = require("openai");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const generateFoursquareQueries = async (preferences) => {
+const generateFoursquareQueries = async (tagWeights = {}) => {
   try {
-    const preferenceText = `
-      The user has selected these preferences:
-      - Hobbies: ${preferences.hobbies.join(", ")}
-      - Food Preferences: ${preferences.foodPreferences.join(", ")}
-      - Thematic Preferences: ${preferences.thematicPreferences.join(", ")}
+    // Filter top relevant tags by weight
+    const sortedTags = Object.entries(tagWeights)
+      .filter(([_, weight]) => weight > 0.4)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([tag]) => tag);
 
-      Generate **3 structured search queries** optimized for Foursquare API.
-      - Do **NOT** include any location or city name.
-      - Use categories like "cafe", "live music venue", "bookstore", "outdoor park".
-      - Queries should be **short and precise**.
+    if (sortedTags.length === 0) return [];
+
+    const prompt = `
+You are a recommendation system expert generating search queries for the Foursquare Places API.
+
+The user is interested in the following topics (from their past preferences and feedback): 
+${sortedTags.join(", ")}
+
+👉 Generate exactly **5 short, precise search queries** using Foursquare-relevant terms (e.g., "rooftop bar", "cozy cafe", "arcade", "plant-based dining").
+👉 Avoid using any specific location or city.
+👉 Focus on variety: each query should represent a distinct theme or experience.
+👉 Only return the queries, one per line, no extra explanations.
     `;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
-        { role: "system", content: "You are an expert in location-based recommendations and Foursquare search optimization." },
-        { role: "user", content: preferenceText }
+        { role: "system", content: "You are an expert in location-based recommendations." },
+        { role: "user", content: prompt }
       ]
     });
 
-    return response.choices[0].message.content
-      .split("\n") // Convert OpenAI response to array
-      .map(q => q.trim()) // Remove whitespace
-      .filter(q => q.length > 0); // Remove empty strings
+    const result = response.choices?.[0]?.message?.content || "";
+
+    return result
+      .split("\n")
+      .map((q) => q.trim())
+      .filter((q) => q.length > 0);
+
   } catch (error) {
-    console.error("❌ OpenAI Error:", error);
+    console.error("❌ OpenAI Query Generation Error:", error.message);
     return [];
   }
 };
