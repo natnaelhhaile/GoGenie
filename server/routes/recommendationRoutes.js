@@ -6,42 +6,59 @@ const Recommendation = require("../models/Recommendation");
 const UserVenueScore = require("../models/UserVenueScore");
 const { calculateCosineSimilarity } = require("../utils/similarity");
 const { generateFoursquareQueries } = require("../services/openAIService");
-const { fetchFoursquareVenues, fetchVenuePhotos , fetchVenueDetails} = require("../services/foursquareService");
+const {   
+  fetchFoursquareVenuesByCoords,
+  fetchFoursquareVenuesByText, 
+  fetchVenuePhotos, 
+  fetchVenueDetails
+} = require("../services/foursquareService");
 const tagsVocabulary = require("../utils/tagsVocabulary");
 const extractTagsFromFeatures = require("../utils/extractTagsFromFeatures");
 
 const router = express.Router();
 
-const MAX_DISTANCE = 10000;
+const MAX_DISTANCE = 40000;
 
 // Route to generate venue recommendations
 router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
-    console.log("generate recs route reached")
+    console.log("🔁 Generating recommendations for:", uid);
 
     const user = await User.findOne({ uid });
     if (!user) return res.status(404).json({ message: "User not found." });
 
-    // Get user preferences
     const userPreferences = await Preferences.findOne({ uid });
     if (!userPreferences) {
-      console.log("No preferences found for user:", uid);
+      console.log("⚠️ No preferences found for user:", uid);
       return res.status(204).json({ message: "No preferences found" });
     }
 
-    // Generate queries and fetch venues
     const queries = await generateFoursquareQueries(user.tagWeights);
     if (!queries || queries.length === 0) {
       return res.status(404).json({ message: "No queries returned" });
     }
 
-    console.log(queries);
-    console.log(userPreferences.location);
+    const location = userPreferences.location;
+    let venues = [];
 
-    const venues = await fetchFoursquareVenues(queries, userPreferences.location);
+    if (location?.lat && location?.lng) {
+      console.log("📍 Using coordinates:", location.lat, location.lng);
+      venues = await fetchFoursquareVenuesByCoords(queries, {
+        lat: location.lat,
+        lng: location.lng,
+        radius: MAX_DISTANCE
+      });
+    } else if (typeof location?.text === "string" && location.text.trim() !== "") {
+      console.log("📍 Using fallback location text:", location.text);
+      venues = await fetchFoursquareVenuesByText(queries, location.text);
+    } else {
+      console.warn("⚠️ No valid location found.");
+      return res.status(400).json({ message: "Location required to generate recommendations." });
+    }
+
     if (!venues || venues.length === 0) {
-      return res.status(404).json({ message: "No venues found" });
+      return res.status(404).json({ message: "No venues found." });
     }
 
     const savedVenues = [];
@@ -57,10 +74,8 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
       );
 
       const similarity = calculateCosineSimilarity(userVector, venueVector);
-
       const distance = venue.distance || MAX_DISTANCE;
       const proximityScore = Math.max(0, 1 - distance / MAX_DISTANCE);
-
       const ratingScore = typeof venue.rating === "number" ? venue.rating / 10 : 0.5;
 
       const priorityScore = (
@@ -69,7 +84,17 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
         ratingScore * 0.2
       ).toFixed(3);
 
-      const photoURLs = await fetchVenuePhotos(venue.fsq_id);
+      // ✅ Photo handling logic
+      let photoURLs = [];
+      if (venue.photos && Array.isArray(venue.photos) && venue.photos.length > 0) {
+        photoURLs = venue.photos
+          .filter(p => p.prefix && p.suffix)
+          .map(p => `${p.prefix}original${p.suffix}`);
+      }
+
+      if (photoURLs.length === 0) {
+        photoURLs = await fetchVenuePhotos(venue.fsq_id);
+      }
 
       let finalVenue;
       if (!existingVenue) {
@@ -78,7 +103,7 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
           name: venue.name,
           location: {
             address: venue.location.address,
-            formattedAddress: venue.location.formattedAddress,
+            formattedAddress: venue.location.formatted_address,
             locality: venue.location.locality,
             region: venue.location.region,
             country: venue.location.country,
@@ -89,10 +114,13 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
           rating: venue.rating,
           link: venue.link,
           photos: photoURLs,
+          popularity: venue.popularity,
+          stats: venue.stats,
+          hours: venue.hours,
+          tips: venue.tips,
           distance,
           users: [uid]
         });
-
         finalVenue = await newVenue.save();
       } else {
         if (!existingVenue.users.includes(uid)) {
@@ -111,9 +139,10 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
       savedVenues.push({ venue: finalVenue, priorityScore });
     }
 
+    console.log("✅ Recommendations generated:", savedVenues.length);
     return res.status(200).json({ recommendations: savedVenues });
   } catch (error) {
-    console.error("Error fetching recommendations:", error);
+    console.error("❌ Error generating recommendations:", error);
     return res.status(500).json({ message: "Server error" });
   }
 });

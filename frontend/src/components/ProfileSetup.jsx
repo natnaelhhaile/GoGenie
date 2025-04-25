@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Select from "react-select";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -6,17 +6,21 @@ import { getAuth } from "firebase/auth";
 import Container from "./Container";
 import "./ProfileSetup.css";
 import axiosInstance from "../api/axiosInstance";
-import { 
-  hobbiesList, 
-  foodList, 
-  thematicList, 
-  lifestyleList 
+import {
+  hobbiesList,
+  foodList,
+  thematicList,
+  lifestyleList,
 } from "../constants/preferencesData";
 
 const ProfileSetup = () => {
   const navigate = useNavigate();
   const formRef = useRef(null);
   const [step, setStep] = useState(1);
+  const [geoCoords, setGeoCoords] = useState(null);
+  const [geoError, setGeoError] = useState(null);
+  const [locationText, setLocationText] = useState("");
+
   const [profile, setProfile] = useState({
     fname: "",
     lname: "",
@@ -24,13 +28,31 @@ const ProfileSetup = () => {
     gender: "",
     nationality: "",
     industry: "",
-    location: "",
     hobbies: [],
     foodPreferences: [],
     thematicPreferences: [],
     lifestylePreferences: [],
   });
+
   const [errorNotice, setErrorNotice] = useState("");
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setGeoCoords({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          });
+        },
+        (err) => {
+          console.warn("Geolocation error:", err);
+          setGeoError("Unable to retrieve precise location. You can still manually enter your city.");
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    }
+  }, []);
 
   const genderOptions = [
     { value: "male", label: "Male" },
@@ -72,30 +94,46 @@ const ProfileSetup = () => {
     setStep((prev) => prev + 1);
   };
 
-  const handleCancel = () => {
-    getAuth().signOut();
-    localStorage.removeItem("sessionStart");
-    navigate("/login");
-  }
-
   const handleBack = () => {
     setErrorNotice("");
     setStep((prev) => prev - 1);
   };
 
+  const handleCancel = () => {
+    getAuth().signOut();
+    localStorage.removeItem("sessionStart");
+    navigate("/login");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (profile.lifestylePreferences.length < 2) {
       setErrorNotice("Please select at least 2 options to proceed. Recommended: pick 3 or more for better suggestions.");
       return;
     }
 
+    if (!geoCoords || !locationText.trim()) {
+      setErrorNotice("Please provide both city/state and allow location access.");
+      return;
+    }
+
     try {
-      const res = await axiosInstance.post("/api/users/preferences", profile);
+      const payload = {
+        ...profile,
+        location: {
+          lat: geoCoords.lat,
+          lng: geoCoords.lng,
+          text: locationText.trim()
+        }
+      };
+
+      const res = await axiosInstance.post("/api/users/preferences", payload);
       console.log("✅ Preferences saved:", res.data);
       navigate("/dashboard");
     } catch (err) {
       console.error("❌ Error saving preferences:", err);
+      setErrorNotice("Failed to save profile. Please try again.");
     }
   };
 
@@ -118,9 +156,11 @@ const ProfileSetup = () => {
             <div className="step-content">
               <h2>Basic Information</h2>
               <p className={errorNotice ? "error-text" : "notice-text"}>* All fields are required to proceed.</p>
+
               <input type="text" name="fname" placeholder="First Name" value={profile.fname} onChange={handleChange} required />
               <input type="text" name="lname" placeholder="Last Name" value={profile.lname} onChange={handleChange} required />
               <input type="number" name="age" placeholder="Your Age" value={profile.age} onChange={handleChange} required />
+
               <Select
                 options={genderOptions}
                 value={genderOptions.find((opt) => opt.value === profile.gender)}
@@ -141,9 +181,23 @@ const ProfileSetup = () => {
                   }),
                 }}
               />
+
               <input type="text" name="nationality" placeholder="Nationality" value={profile.nationality} onChange={handleChange} required />
               <input type="text" name="industry" placeholder="Profession" value={profile.industry} onChange={handleChange} required />
-              <input type="text" name="location" placeholder="Location (city, CA)" value={profile.location} onChange={handleChange} required />
+              <input type="text" name="locationText" placeholder="Location (city, state)" value={locationText} onChange={(e) => setLocationText(e.target.value)} required />
+
+              <div className="geo-status">
+                {geoCoords ? (
+                  <p className="geo-success">📍 Location Detected: {geoCoords.lat.toFixed(4)}, {geoCoords.lng.toFixed(4)}</p>
+                ) : geoError ? (
+                  <p className="geo-fallback">
+                    ⚠️ {geoError} <br />
+                    Please enter your city manually below.
+                  </p>
+                ) : (
+                  <p className="geo-waiting">⏳ Attempting to detect your location...</p>
+                )}
+              </div>
             </div>
           </form>
         )}

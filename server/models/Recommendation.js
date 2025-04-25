@@ -31,6 +31,10 @@ const recommendationSchema = new mongoose.Schema({
     default: []
   },
 
+  popularity: { type: Number },
+  stats: { type: Object },
+  hours: { type: Object },
+  tips: { type: Array },
   distance: { type: Number },
 
   // Allows multiple users to be linked to the same recommendation

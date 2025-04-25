@@ -38,7 +38,7 @@ const Dashboard = () => {
       const res = await axiosInstance.get("/api/users/preferences");
       if (res.status === 200) {
         setUserPreferences(res.data);
-        setMessage(`${res.data.fname} ${res.data.lname}`);
+        setMessage(`${res.data.lname}, ${res.data.fname}`);
       } else {
         console.warn("No preferences found, redirecting...");
         navigate("/profile-setup");
@@ -62,13 +62,19 @@ const Dashboard = () => {
     }
   }, [user]);
 
-  const fetchAIRecommendations = async () => {
+  // Fetch fresh AI recommendations (memoized)
+  const fetchAIRecommendations = useCallback(async () => {
     try {
       const res = await axiosInstance.get("/api/recommendations/generate-recommendations");
       if (res.status === 200 && Array.isArray(res.data.recommendations)) {
         setRecommendations(res.data.recommendations);
         setOffset(LIMIT);
-        if (res.data.recommendations.length < LIMIT) setNoMoreData(true);
+        setLoading(false);
+        if (res.data.recommendations.length === 0) {
+          setNoMoreData(true);
+        } else if (res.data.recommendations.length < LIMIT) {
+          setNoMoreData(true);
+        }
       } else {
         navigate("/profile-setup");
       }
@@ -77,25 +83,33 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   const fetchCachedRecommendations = useCallback(async () => {
     try {
-      const res = await axiosInstance.get(`/api/recommendations/cached-recommendations?offset=${offset}&limit=${LIMIT}`);
-      if (res.status === 200 && Array.isArray(res.data.recommendations)) {
-        const newRecs = res.data.recommendations;
-        setRecommendations((prev) => [...prev, ...newRecs]);
-        setOffset((prev) => prev + LIMIT);
-        if (newRecs.length < LIMIT) setNoMoreData(true);
-      } else {
-        setNoMoreData(true);
-        if (offset === 0) await fetchAIRecommendations();
+      const res = await axiosInstance.get(
+        `/api/recommendations/cached-recommendations?offset=${offset}&limit=${LIMIT}`
+      );
+  
+      if (res.status === 204 || !Array.isArray(res.data.recommendations)) {
+        if (offset === 0) {
+          await fetchAIRecommendations();
+        } else {
+          setNoMoreData(true);
+        }
+        return;
       }
+  
+      const newRecs = res.data.recommendations;
+      setRecommendations((prev) => [...prev, ...newRecs]);
+      setOffset((prev) => prev + LIMIT);
+      if (newRecs.length < LIMIT) setNoMoreData(true);
+      setLoading(false);
     } catch (err) {
       console.error("Cached recommendations error:", err);
       setLoading(false);
     }
-  }, [offset]);
+  }, [fetchAIRecommendations, offset]);  
 
   useEffect(() => {
     if (!user) return;
@@ -140,6 +154,7 @@ const Dashboard = () => {
         });
       } else {
         await axiosInstance.post("/api/favorites/add", { venue_id });
+        console.log("Toggling favorite for:", venue_id);
         setFavoritesMap((prev) => ({ ...prev, [venue_id]: true }));
       }
     } catch (err) {
@@ -203,11 +218,11 @@ const Dashboard = () => {
               />
             ))}
             <div ref={loaderRef} className="scroll-loader">
-              {filteredRecommendations.length > offset ? (
-                <p>Loading more...</p>
-              ) : (
+            {loading ? (
+              <p>Loading more...</p>
+              ) : noMoreData ? (
                 <p>🎉 You’ve reached the end!</p>
-              )}
+              ) : null}
             </div>
           </>
         ) : (
@@ -218,7 +233,7 @@ const Dashboard = () => {
           </p>
         )}
       </section>
-      
+
       <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
 
       <BottomNav />

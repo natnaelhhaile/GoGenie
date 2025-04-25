@@ -10,24 +10,38 @@ const PreferencesSchema = new mongoose.Schema({
   fname: {
     type: String,
     trim: true,
-    default: ""
+    required: true 
   },
   lname: {
     type: String,
     trim: true,
-    default: ""
+    required: true 
   },
   age: { type: Number, required: true },
-  gender: { type: String, required: true },
+  gender: { 
+    type: String, 
+    required: true,
+    enum: ["male", "female", "nonBinary", "preferNot"]
+  },  
   nationality: { type: String, required: true },
   industry: { type: String, required: true },
-  location: { type: String, required: true },
+  location: {   
+    lat: { type: Number, default: undefined },
+    lng: { type: Number, default: undefined },
+    text: { type: String, trim: true, default: undefined },
+    updatedAt: { type: Date, default: Date.now },
+    coordinates: {
+      type: [Number], // [lng, lat] — GeoJSON format!
+      index: "2dsphere", // enables geospatial queries
+      default: undefined
+    }
+  },
   hobbies: { type: [String], required: true },
   foodPreferences: { type: [String], required: true },
   thematicPreferences: { type: [String], required: true },
   lifestylePreferences: { type: [String], required: true },
   summary: { type: String },
   summaryUpdatedAt: { type: Date }  
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("Preferences", PreferencesSchema);

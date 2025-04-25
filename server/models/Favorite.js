@@ -1,18 +1,11 @@
 const mongoose = require("mongoose");
 
-const favoriteSchema = new mongoose.Schema({
-  uid: {
-    type: String,
-    required: true,
-    ref: "User",
-    unique: true
-  },
-  venue_id: {
-    type: String,
-    required: true,
-    ref: "Recommendation",
-    unique: true
-  },
-}, { timestamps: true });
+const FavoriteSchema = new mongoose.Schema({
+  uid: { type: String, required: true },
+  venue_id: { type: String, required: true }
+});
 
-module.exports = mongoose.model("Favorite", favoriteSchema);
+// Compound unique index
+FavoriteSchema.index({ uid: 1, venue_id: 1 }, { unique: true });
+
+module.exports = mongoose.model("Favorite", FavoriteSchema);

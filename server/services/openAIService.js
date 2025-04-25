@@ -4,15 +4,25 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const generateFoursquareQueries = async (tagWeights = {}) => {
   try {
-    // Filter top relevant tags by weight
-    const sortedTags = Object.entries(tagWeights)
-      .filter(([_, weight]) => weight > 0.4)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([tag]) => tag);
+  // Turn Maps into arrays of [tag, weight], or use Object.entries for objects
+  const entries = tagWeights instanceof Map
+    ? Array.from(tagWeights.entries())
+    : Object.entries(tagWeights);
 
-    if (sortedTags.length === 0) return [];
+  console.log("→ entries:", entries);
 
+  const sortedTags = entries
+    .filter(([_, w]) => w > 0.4)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([tag]) => tag);
+
+  console.log("→ sortedTags:", sortedTags);
+
+  if (!sortedTags.length) {
+    console.warn("No tags above threshold; skipping OpenAI call.");
+    return [];
+  }
     const prompt = `
 You are a recommendation system expert generating search queries for the Foursquare Places API.
 
@@ -24,7 +34,7 @@ ${sortedTags.join(", ")}
 👉 Focus on variety: each query should represent a distinct theme or experience.
 👉 Only return the queries, one per line, no extra explanations.
     `;
-
+    console.log(prompt)
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
@@ -34,7 +44,7 @@ ${sortedTags.join(", ")}
     });
 
     const result = response.choices?.[0]?.message?.content || "";
-
+    console.log(result)
     return result
       .split("\n")
       .map((q) => q.trim())

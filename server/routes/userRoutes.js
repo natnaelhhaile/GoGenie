@@ -15,7 +15,6 @@ router.post("/check-new-user", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
     const email = req.user.email;
-    console.log("user logged in")
     // Check if user exists
     let user = await User.findOne({ $or: [{ uid }, { email }] });
 
@@ -38,7 +37,7 @@ router.post("/check-new-user", verifyFirebaseToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Error in login/register:", error);
+    console.error("Error in login/register:", error);
     res.status(500).json({ message: "Server error", error });
   }
 });
@@ -60,7 +59,7 @@ router.get("/preferences", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// ✅ Create preferences with validation
+// Create preferences with validation
 router.post("/preferences", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
@@ -77,23 +76,42 @@ router.post("/preferences", verifyFirebaseToken, async (req, res) => {
       thematicPreferences,
       lifestylePreferences,
     } = req.body;
-    
+
+    // Validate required arrays
     const requiredArrays = [
       { name: "hobbies", value: hobbies },
       { name: "foodPreferences", value: foodPreferences },
       { name: "thematicPreferences", value: thematicPreferences },
       { name: "lifestylePreferences", value: lifestylePreferences },
     ];
-    
+
     for (const field of requiredArrays) {
-      if (!isValidStringArray(field.value)) {
+      if (!Array.isArray(field.value) || field.value.some(item => typeof item !== "string")) {
         return res.status(400).json({ message: `${field.name} must be an array of strings.` });
       }
     }
-    
+
     const user = await User.findOne({ uid });
-    console.log("✅ userRoutes mounted", user);
+    console.log("UID from Firebase token:", req.user.uid, req.user.email);
+    console.log(user)
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    // 🔁 Build location object with support for lat/lng, text, and coordinates
+    let locationPayload = undefined;
+    if (location?.lat && location?.lng) {
+      locationPayload = {
+        lat: location.lat,
+        lng: location.lng,
+        text: typeof location.text === "string" ? location.text : undefined,
+        coordinates: [location.lng, location.lat], // GeoJSON format
+        updatedAt: new Date()
+      };
+    } else if (typeof location?.text === "string") {
+      locationPayload = {
+        text: location.text,
+        updatedAt: new Date()
+      };
+    }
 
     const preferences = new Preferences({
       uid,
@@ -103,19 +121,29 @@ router.post("/preferences", verifyFirebaseToken, async (req, res) => {
       gender,
       nationality,
       industry,
-      location,
+      hobbies,
+      foodPreferences,
+      thematicPreferences,
+      lifestylePreferences,
+      location: locationPayload
+    });
+
+    await preferences.save();
+
+    const tagWeights = buildTagWeights({
       hobbies,
       foodPreferences,
       thematicPreferences,
       lifestylePreferences
     });
-    
-    await preferences.save();   
 
-    const tagWeights = buildTagWeights({ hobbies, foodPreferences, thematicPreferences, lifestylePreferences });
     await User.findOneAndUpdate({ uid }, { tagWeights }, { upsert: true });
 
-    res.status(200).json({ message: "Preferences and tagWeights saved successfully.", preferences });
+    res.status(200).json({
+      message: "Preferences and tagWeights saved successfully.",
+      preferences
+    });
+
   } catch (error) {
     console.error("❌ Error saving preferences:", error);
     res.status(500).json({ message: "Server error", error });
@@ -168,7 +196,9 @@ router.put("/preferences", verifyFirebaseToken, async (req, res) => {
 // Update basic user details (fname, lname, age, gender, nationality, etc.)
 router.put("/details", verifyFirebaseToken, async (req, res) => {
   const uid = req.user.uid;
-  const { fname, lname, age, gender, nationality, industry, location } = req.body;
+  const {
+    fname, lname, age, gender, nationality, industry, location
+  } = req.body;
 
   const updates = {};
   if (fname) updates.fname = fname;
@@ -177,8 +207,21 @@ router.put("/details", verifyFirebaseToken, async (req, res) => {
   if (gender) updates.gender = gender;
   if (nationality) updates.nationality = nationality;
   if (industry) updates.industry = industry;
-  if (location) updates.location = location;
-  
+
+  // ✅ Handle hybrid location support (lat/lng OR text fallback)
+  if (location?.lat && location?.lng) {
+    updates.location = {
+      lat: location.lat,
+      lng: location.lng,
+      updatedAt: new Date(),
+    };
+  } else if (typeof location?.text === "string") {
+    updates.location = {
+      text: location.text,
+      updatedAt: new Date(),
+    };
+  }
+
   try {
     const updated = await Preferences.findOneAndUpdate(
       { uid },
@@ -186,7 +229,9 @@ router.put("/details", verifyFirebaseToken, async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!updated) return res.status(404).json({ message: "Updated user details not found." });
+    if (!updated) {
+      return res.status(404).json({ message: "Updated user details not found." });
+    }
 
     res.status(200).json({ message: "User details updated successfully.", preferences: updated });
   } catch (error) {
@@ -196,7 +241,6 @@ router.put("/details", verifyFirebaseToken, async (req, res) => {
 });
 
 // Generates a short summary of user preferences using AI
-// GET /summary
 router.get("/summary", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;

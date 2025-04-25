@@ -64,7 +64,7 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
 
     if (feedback === "up") {
       const topTags = Object.entries(weights)
-        .filter(([tag, weight]) => weight > 0.5)
+        .filter(([tag, weight]) => weight > 0.4)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
         .map(([tag]) => tag);

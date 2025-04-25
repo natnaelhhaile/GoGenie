@@ -4,7 +4,7 @@ import Select from "react-select";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
 import Container from "../components/Container";
-import "./ProfileSetup.css"; // Reusing unified styling
+import "./ProfileSetup.css";
 
 const EditProfilePage = () => {
   const navigate = useNavigate();
@@ -13,6 +13,8 @@ const EditProfilePage = () => {
 
   const [initialFormData, setInitialFormData] = useState(null);
   const [errorNotice, setErrorNotice] = useState("");
+  const [geoCoords, setGeoCoords] = useState(null);
+  const [geoError, setGeoError] = useState(null);
   const [formData, setFormData] = useState({
     fname: "",
     lname: "",
@@ -20,9 +22,8 @@ const EditProfilePage = () => {
     gender: "",
     nationality: "",
     industry: "",
-    location: ""
+    locationText: "",
   });
-
 
   const genderOptions = [
     { value: "male", label: "Male" },
@@ -36,30 +37,47 @@ const EditProfilePage = () => {
       try {
         const res = await axiosInstance.get("/api/users/preferences");
         const { fname, lname, age, gender, nationality, industry, location } = res.data;
-        
-        const updates = {};
-        if (fname) updates.fname = fname;
-        if (lname) updates.lname = lname;
-        if (age) updates.age = age;
-        if (gender) updates.gender = gender;
-        if (nationality) updates.nationality = nationality;
-        if (industry) updates.industry = industry;
-        if (location) updates.location = location;
+
+        const updates = {
+          fname, lname, age, gender, nationality, industry,
+          locationText: location?.text || "",
+        };
 
         setFormData(updates);
         setInitialFormData(updates);
+
+        if (location?.lat && location?.lng) {
+          setGeoCoords({ lat: location.lat, lng: location.lng });
+        }
       } catch (err) {
         console.error("❌ Failed to load user details", err);
       }
     };
 
-    if (user) fetchDetails();
+    const detectLocation = () => {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setGeoCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          },
+          (err) => {
+            console.warn("⚠️ Geolocation denied or failed:", err);
+            setGeoError("Location detection failed. You can enter your city manually.");
+          },
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      }
+    };
+
+    if (user) {
+      fetchDetails();
+      detectLocation();
+    }
   }, [user]);
 
   const handleCancel = () => {
     navigate("/profile");
-    return;
-  }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -69,24 +87,28 @@ const EditProfilePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const isEqual = JSON.stringify(formData) === JSON.stringify(initialFormData);
-    if (isEqual) {
-      navigate("/profile");
-      return;
-    }
-
     if (formRef.current && !formRef.current.checkValidity()) {
       formRef.current.reportValidity();
       setErrorNotice("Please fill out all required fields correctly.");
       return;
     }
 
+    const payload = {
+      ...formData,
+      location: geoCoords
+        ? { lat: geoCoords.lat, lng: geoCoords.lng }
+        : formData.locationText
+        ? { text: formData.locationText }
+        : undefined,
+    };
+
     try {
-      await axiosInstance.put("/api/users/details", formData);
+      await axiosInstance.put("/api/users/details", payload);
       alert("✅ Profile updated successfully!");
       navigate("/profile");
     } catch (err) {
       console.error("❌ Error updating profile", err);
+      setErrorNotice("Failed to update profile. Please try again.");
     }
   };
 
@@ -123,6 +145,7 @@ const EditProfilePage = () => {
             onChange={handleChange}
             required
           />
+
           <Select
             options={genderOptions}
             value={genderOptions.find((opt) => opt.value === formData.gender)}
@@ -143,6 +166,7 @@ const EditProfilePage = () => {
               })
             }}
           />
+
           <input
             type="text"
             name="nationality"
@@ -159,14 +183,26 @@ const EditProfilePage = () => {
             onChange={handleChange}
             required
           />
+
           <input
             type="text"
-            name="location"
+            name="locationText"
             placeholder="Location (e.g., San Jose, CA)"
-            value={formData.location}
+            value={formData.locationText}
             onChange={handleChange}
-            required
+            required={!geoCoords}
           />
+          <div className="geo-status">
+            {geoCoords ? (
+              <p className="geo-success">
+                📍 Location auto-detected: {geoCoords.lat.toFixed(4)}, {geoCoords.lng.toFixed(4)}
+              </p>
+            ) : geoError ? (
+              <p className="geo-fallback">⚠️ {geoError}</p>
+            ) : (
+              <p className="geo-waiting">⏳ Trying to detect location...</p>
+            )}
+          </div>
 
           <div className="step-buttons">
             <button className="btn secondary" onClick={handleCancel}>

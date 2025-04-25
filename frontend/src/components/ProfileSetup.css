@@ -272,3 +272,11 @@ html, body {
     width: 90%;
   }
 }
+
+.geo-fallback {
+  color: red;
+}
+
+.geo-success {
+  color: green;
+}
