@@ -189,7 +189,7 @@ router.get("/cached-recommendations", verifyFirebaseToken, async (req, res) => {
 
     const sortedCategories = Object.entries(categoryCounts)
       .sort((a, b) => b[1] - a[1]) // sort by count desc
-      .map(([cat]) => cat);         // get only the names
+      .map(([cat]) => cat);        // get only the names
 
     res.status(200).json({ 
       recommendations: scoredVenues,
@@ -197,6 +197,37 @@ router.get("/cached-recommendations", verifyFirebaseToken, async (req, res) => {
     });
   } catch (err) {
     console.error("Error fetching paginated recommendations:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Route to fetch top categories of user dashboard venues
+router.get("/categories", verifyFirebaseToken, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+
+    const userScores = await UserVenueScore.find({ uid });
+    const venueIds = userScores.map(s => s.venue_id);
+
+    const venueDocs = await Recommendation.find({ venue_id: { $in: venueIds } });
+
+    const categoryCounts = {};
+    venueDocs.forEach(venue => {
+      if (Array.isArray(venue.categories)) {
+        venue.categories.forEach(cat => {
+          categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+        });
+      }
+    });
+
+    const sortedCategories = Object.entries(categoryCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([cat]) => cat);
+
+    res.status(200).json({ categories: sortedCategories });
+  } catch (error) {
+    console.error("❌ Error fetching categories:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

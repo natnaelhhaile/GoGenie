@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import axiosInstance from "../api/axiosInstance";
 import { GoClock } from "react-icons/go";
 import { useAuth } from "../context/AuthContext";
@@ -28,11 +29,11 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [noMoreData, setNoMoreData] = useState(false);
   const [message, setMessage] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
   const [favoritesMap, setFavoritesMap] = useState({});
+  const [categories, setCategories] = useState(["All"]);
+  const [activeCategory, setActiveCategory] = useState("All");
   const loaderRef = useRef(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [availableCategories, setAvailableCategories] = useState(["All"]);
 
   const fetchUserPreferences = useCallback(async () => {
     try {
@@ -41,7 +42,6 @@ const Dashboard = () => {
         setUserPreferences(res.data);
         setMessage(`${res.data.lname}, ${res.data.fname}`);
       } else {
-        console.warn("No preferences found, redirecting...");
         navigate("/profile-setup");
       }
     } catch (err) {
@@ -63,17 +63,24 @@ const Dashboard = () => {
     }
   }, [user]);
 
-  // Fetch fresh AI recommendations (memoized)
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await axiosInstance.get("/api/recommendations/categories");
+      if (res.status === 200 && Array.isArray(res.data.categories)) {
+        setCategories(["All", ...res.data.categories]);
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
+  }, []);
+
   const fetchAIRecommendations = useCallback(async () => {
     try {
       const res = await axiosInstance.get("/api/recommendations/generate-recommendations");
       if (res.status === 200 && Array.isArray(res.data.recommendations)) {
         setRecommendations(res.data.recommendations);
         setOffset(LIMIT);
-        setLoading(false);
-        if (res.data.recommendations.length === 0) {
-          setNoMoreData(true);
-        } else if (res.data.recommendations.length < LIMIT) {
+        if (res.data.recommendations.length === 0 || res.data.recommendations.length < LIMIT) {
           setNoMoreData(true);
         }
       } else {
@@ -91,7 +98,7 @@ const Dashboard = () => {
       const res = await axiosInstance.get(
         `/api/recommendations/cached-recommendations?offset=${offset}&limit=${LIMIT}`
       );
-  
+
       if (res.status === 204 || !Array.isArray(res.data.recommendations)) {
         if (offset === 0) {
           await fetchAIRecommendations();
@@ -100,32 +107,27 @@ const Dashboard = () => {
         }
         return;
       }
-  
+
       const newRecs = res.data.recommendations;
       setRecommendations((prev) => [...prev, ...newRecs]);
       setOffset((prev) => prev + LIMIT);
-  
-      // 🔥 Now safely set categories if available
-      if (Array.isArray(res.data.categories)) {
-        setAvailableCategories(["All", ...res.data.categories]);
-      }
-  
       if (newRecs.length < LIMIT) setNoMoreData(true);
-  
+
     } catch (err) {
       console.error("Cached recommendations error:", err);
+    } finally {
       setLoading(false);
     }
-  }, [fetchAIRecommendations, offset]);  
+  }, [fetchAIRecommendations, offset]);
 
   useEffect(() => {
     if (!user) return;
 
-    // Load preferences and recommendations in parallel
     fetchUserPreferences();
     fetchCachedRecommendations();
     fetchFavorites();
-  }, [user, fetchUserPreferences, fetchCachedRecommendations, fetchFavorites]);
+    fetchCategories(); // 🆕 fetching categories separately
+  }, [user, fetchUserPreferences, fetchCachedRecommendations, fetchFavorites, fetchCategories]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -161,7 +163,6 @@ const Dashboard = () => {
         });
       } else {
         await axiosInstance.post("/api/favorites/add", { venue_id });
-        console.log("Toggling favorite for:", venue_id);
         setFavoritesMap((prev) => ({ ...prev, [venue_id]: true }));
       }
     } catch (err) {
@@ -194,14 +195,21 @@ const Dashboard = () => {
       <section className="categories-section">
         <h3 className="dashboard-subtitle">Categories</h3>
         <div className="category-list">
-          {availableCategories.map((cat) => (
-            <button
+          {categories.map((cat) => (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              animate={{
+                backgroundColor: activeCategory === cat ? "#8a2be2" : "#E5E7EB",
+                color: activeCategory === cat ? "#FFFFFF" : "#111827",
+                transition: { duration: 0.2 },
+              }}
               key={cat}
-              className={`category-btn ${activeCategory === cat ? "selected" : ""}`}
+              className="category-btn"
               onClick={() => setActiveCategory(cat)}
             >
               {cat}
-            </button>
+            </motion.button>
           ))}
         </div>
       </section>
@@ -225,8 +233,8 @@ const Dashboard = () => {
               />
             ))}
             <div ref={loaderRef} className="scroll-loader">
-            {loading ? (
-              <p>Loading more...</p>
+              {loading ? (
+                <p>Loading more...</p>
               ) : noMoreData ? (
                 <p>🎉 You’ve reached the end!</p>
               ) : null}

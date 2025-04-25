@@ -1,4 +1,3 @@
-// src/components/BottomNav.jsx
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MdHomeFilled } from "react-icons/md";

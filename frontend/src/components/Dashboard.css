@@ -13,7 +13,7 @@ Container {
   color: #3F5A5B;
   font-weight: bold;
   text-align: left;
-  border-left: 4px solid #a35ce6;
+  border-left: 4px solid #8a2be2;
   background-color: rgba(0, 0, 0, 0.025);
 }
 
@@ -143,26 +143,19 @@ Container {
 }
 
 .category-btn {
-  padding: 10px 18px;
-  background-color: #EAEAEA;
-  color: #333;
+  padding: 8px 16px;
   border-radius: 20px;
-  font-weight: 500;
-  font-size: 14px;
   border: none;
+  font-size: 0.9rem;
+  margin: 6px;
   cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.3s ease;
-}
-
-.category-btn.selected {
-  background-color: #8a2be2;
-  color: white;
+  transition: all 0.2s ease;
+  background-color: #e5e7eb; /* Light gray default */
+  color: #111827; /* Dark text default */
 }
 
 .category-btn:hover {
-  background-color: #d6c6ff;
-  color: #222;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* 🌟 Recommendations Grid */
