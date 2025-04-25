@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { FaThumbsUp, FaThumbsDown } from "react-icons/fa6";
 import { IoHeartOutline, IoHeart } from "react-icons/io5";
 import { useAuth } from "../context/AuthContext";
@@ -7,12 +7,13 @@ import axiosInstance from "../api/axiosInstance";
 import "./VenueDetailPage.css";
 import BottomNav from "../components/BottomNav";
 import Container from "./Container";
+import ChatLauncher from "../components/ChatLauncher";
+
 
 
 const VenueDetailPage = () => {
   const { state } = useLocation();
   const venue = state?.venue;
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   const [isFavorite, setIsFavorite] = useState(false);
@@ -25,6 +26,7 @@ const VenueDetailPage = () => {
 
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const fallbackImage = require("../assets/dum1.jpg");
 
@@ -180,6 +182,7 @@ const VenueDetailPage = () => {
         <div className="section-title">Hours</div>
         <div className="placeholder-box">{hours || "Hours not available."}</div>
 
+        <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
         <BottomNav />
         
       </div>

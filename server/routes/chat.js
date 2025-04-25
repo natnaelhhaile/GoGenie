@@ -14,6 +14,23 @@ You are GoGenie, a helpful venue recommendation assistant. You answer user quest
 from a given list based on the user's hobbies, preferences, and situation. You can also answer questions about specific venues using
 their metadata like name, rating, open hours, category, or popularity.
 
+- If recommending a venue, retain the venue id of the venue and return a JSON object with the structure:
+  {
+    "type": "recommendation",
+    "venue": {
+      "venue_id": "venue_id",
+      "name": "Venue Name",
+      "category": "Category",
+      "address": "Full Address",
+      "description": "Short conversational reason why this place is good"
+    }
+  }
+- If responding conversationally without a venue, return:
+  {
+    "type": "text",
+    "message": "Your response text here"
+  }
+
 User Preferences:
 - Hobbies: ${userPreferences.hobbies.join(", ")}
 - Food Preferences: ${userPreferences.foodPreferences.join(", ")}
@@ -21,15 +38,15 @@ User Preferences:
 - Lifestyle: ${userPreferences.lifestylePreferences.join(", ")}
 
 Venues Available:
-${venues.map(v => 
-  `- ${v.name} (${v.categories.join(", ")}) — Located at ${v.location.address}, ${v.location.locality}, ${v.location.region}, ${v.location.country}`
-).join("\n")}
+${venues.map(v =>
+    `- ${v.name} (${v.categories.join(", ")}) — Located at ${v.location.address}, ${v.location.locality}, ${v.location.region}, ${v.location.country}`
+  ).join("\n")}
 
 
-Now respond to the following user query in a friendly and helpful way:
+Now respond to the following user query
 "${userMessage}"
 
-Make sure your response is personalized, helpful, and based on the venue data or preferences.
+Use JSON as the only output.
 `;
 
   return basePrompt;
@@ -45,9 +62,9 @@ router.post("/venue-assistant", verifyFirebaseToken, async (req, res) => {
     // console.log(message)
     // console.log(userPreferences);
 
-    const recommendedVenues = await Recommendation.find({ users: { $in: [uid] } }).limit(20);
-    console.log("number of venues got: ",recommendedVenues.length)
-    // console.log(recommendedVenues);
+    const recommendedVenues = await Recommendation.find({ users: { $in: [uid] } }).limit(10);
+    console.log("number of venues got: ", recommendedVenues.length)
+    console.log(recommendedVenues[0]);
 
     if (!userPreferences || !recommendedVenues) {
       return res.status(404).json({ error: "User or recommendations not found" });
@@ -56,18 +73,50 @@ router.post("/venue-assistant", verifyFirebaseToken, async (req, res) => {
     const prompt = buildPrompt(message, userPreferences, recommendedVenues);
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "You are a venue assistant chatbot." },
         { role: "user", content: prompt },
       ],
-      max_tokens: 400,
+      max_tokens: 300,
     });
 
-    res.status(200).json({ reply: response.choices[0].message.content });
+    let replyContent = response.choices?.[0]?.message?.content;
+
+    try {
+      const parsed = JSON.parse(replyContent);
+      res.status(200).json({ reply: parsed });
+    } catch (err) {
+      console.error("❌ JSON parse error:", err.message);
+      res.status(200).json({ reply: { type: "text", message: replyContent || "Sorry, I couldn't format that." } });
+    }
   } catch (error) {
     console.error("❌ Venue Assistant Error:", error.message);
     res.status(500).json({ error: "Failed to generate a reply" });
+  }
+});;
+
+router.get("/venue-name", verifyFirebaseToken, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    const { name } = req.query;
+
+    if (!name) {
+      return res.status(400).json({ error: "Venue name is required" });
+    }
+    // Case-insensitive search using regex
+    const venue = await Recommendation.findOne({
+      name: { $regex: new RegExp(`^${name.trim()}`, "i") }
+    });
+
+    if (!venue) {
+      return res.status(404).json({ error: "Venue not found" });
+    }
+    console.log("Venue found:", venue);
+    return res.status(200).json(venue);
+  } catch (error) {
+    console.error("❌ Error fetching venue by name:", error.message);
+    res.status(500).json({ error: "Server error while fetching venue" });
   }
 });
 

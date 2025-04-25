@@ -92,3 +92,32 @@
   background-color: #d6c6ff;
   color: #222;
 }
+
+.recommendation-card {
+  background: #fff8f1;
+  border: 1px solid #e0d5c2;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.recommendation-card h4 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  color: #3f5a5b;
+}
+
+.details-button {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background-color: #3f5a5b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.details-button:hover {
+  background-color: #2f4445;
+}
