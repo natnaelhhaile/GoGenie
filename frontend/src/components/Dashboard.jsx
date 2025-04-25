@@ -32,6 +32,7 @@ const Dashboard = () => {
   const [favoritesMap, setFavoritesMap] = useState({});
   const loaderRef = useRef(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState(["All"]);
 
   const fetchUserPreferences = useCallback(async () => {
     try {
@@ -103,8 +104,14 @@ const Dashboard = () => {
       const newRecs = res.data.recommendations;
       setRecommendations((prev) => [...prev, ...newRecs]);
       setOffset((prev) => prev + LIMIT);
+  
+      // 🔥 Now safely set categories if available
+      if (Array.isArray(res.data.categories)) {
+        setAvailableCategories(["All", ...res.data.categories]);
+      }
+  
       if (newRecs.length < LIMIT) setNoMoreData(true);
-      setLoading(false);
+  
     } catch (err) {
       console.error("Cached recommendations error:", err);
       setLoading(false);
@@ -187,7 +194,7 @@ const Dashboard = () => {
       <section className="categories-section">
         <h3 className="dashboard-subtitle">Categories</h3>
         <div className="category-list">
-          {["All", "Food", "Activities", "Drinks", "Desserts", "Coffee", "Parks", "Games"].map((cat) => (
+          {availableCategories.map((cat) => (
             <button
               key={cat}
               className={`category-btn ${activeCategory === cat ? "selected" : ""}`}

@@ -79,8 +79,8 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
       const ratingScore = typeof venue.rating === "number" ? venue.rating / 10 : 0.5;
 
       const priorityScore = (
-        similarity * 0.4 +
-        proximityScore * 0.4 +
+        similarity * 0.6 +
+        proximityScore * 0.2 +
         ratingScore * 0.2
       ).toFixed(3);
 
@@ -147,11 +147,10 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
   }
 });
 
-// GET /api/recommendations/cached-recommendations?offset=0&limit=10
+// cached-recommendations?offset=0&limit=10 - Route to fetch recs from db based with pagination 
 router.get("/cached-recommendations", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
-
     const offset = parseInt(req.query.offset) || 0;
     const limit = parseInt(req.query.limit) || 10;
 
@@ -178,7 +177,24 @@ router.get("/cached-recommendations", verifyFirebaseToken, async (req, res) => {
       } : null;
     }).filter(Boolean);
 
-    res.status(200).json({ recommendations: scoredVenues });
+    // 🔥 NEW: Extract and count categories
+    const categoryCounts = {};
+    scoredVenues.forEach(({ venue }) => {
+      if (venue.categories && Array.isArray(venue.categories)) {
+        venue.categories.forEach(cat => {
+          categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+        });
+      }
+    });
+
+    const sortedCategories = Object.entries(categoryCounts)
+      .sort((a, b) => b[1] - a[1]) // sort by count desc
+      .map(([cat]) => cat);         // get only the names
+
+    res.status(200).json({ 
+      recommendations: scoredVenues,
+      categories: sortedCategories 
+    });
   } catch (err) {
     console.error("Error fetching paginated recommendations:", err);
     res.status(500).json({ message: "Server error" });

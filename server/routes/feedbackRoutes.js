@@ -51,9 +51,9 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
     const ratingScore = typeof venue.rating === "number" ? venue.rating / 10 : 0.5;
 
     const priorityScore = (
-      similarity * 0.4 +
+      similarity * 0.6 +
       ratingScore * 0.2 +
-      proximityScore * 0.4
+      proximityScore * 0.2
     ).toFixed(3);
 
     await UserVenueScore.findOneAndUpdate(
