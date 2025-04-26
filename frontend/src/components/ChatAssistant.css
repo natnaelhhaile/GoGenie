@@ -78,9 +78,10 @@
   font-size: 0.95rem;
 }
 
-.chat-input-group button {
-  margin-left: 10px;
-  padding: 2px 10px;
+.chat-button {
+  margin: 10px 5px;
+  padding: 5px 15px;
+  height: 40px;
   background-color: #8a2be2;
   color: white;
   border: none;
@@ -88,10 +89,12 @@
   cursor: pointer;
 }
 
-.chat-input-group button:hover {
+.chat-button:hover {
   background-color: #d6c6ff;
   color: #222;
 }
+
+
 
 .recommendation-card {
   background: #fff8f1;

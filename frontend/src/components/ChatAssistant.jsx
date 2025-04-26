@@ -10,6 +10,16 @@ const ChatAssistant = ({ closeChat }) => {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
   const [actualVenue, setActualVenue] = useState(null);
+  const [fetchingVenue, setFetchingVenue] = useState(false);
+
+
+  useEffect(() => {
+    const storedHistory = localStorage.getItem("chatHistory");
+    if (storedHistory) {
+      setChatHistory(JSON.parse(storedHistory));
+    }
+  }, []);
+
 
   const navigate = useNavigate();
 
@@ -23,7 +33,9 @@ const ChatAssistant = ({ closeChat }) => {
     if (!userInput.trim()) return;
 
     const newMessage = { role: "user", content: userInput };
-    setChatHistory((prev) => [...prev, newMessage]);
+    const updatedHistory = [...chatHistory, newMessage];
+    setChatHistory(updatedHistory);
+    localStorage.setItem("chatHistory", JSON.stringify(updatedHistory));
     setLoading(true);
 
     try {
@@ -32,39 +44,75 @@ const ChatAssistant = ({ closeChat }) => {
       });
 
       const reply = response.data.reply;
+      let updatedHistoryWithReply;
       // Push different content types to chatHistory
       if (reply.type === "text") {
-        setChatHistory((prev) => [...prev, { role: "assistant", type: "text", content: reply.message }]);
+        updatedHistoryWithReply = [...updatedHistory, { role: "assistant", type: "text", content: reply.message }];
       } else if (reply.type === "recommendation") {
         const venueName = reply.venue.name;
         const fetchVenue = await axiosInstance.get("/api/chat/venue-name", {
           params: { name: venueName }
         });
-        const actualVen = fetchVenue.data;
-        setActualVenue(actualVen);
-        setChatHistory((prev) => [...prev, { role: "assistant", type: "recommendation", venue: reply.venue }]);
-        console.log("frontend actual venue:", reply.venue);
+        setActualVenue(fetchVenue.data);
+        updatedHistoryWithReply = [...updatedHistory, { role: "assistant", type: "recommendation", venue: reply.venue }];
       } else {
-        setChatHistory((prev) => [...prev, { role: "assistant", content: "⚠️ Unexpected response format." }]);
+        updatedHistoryWithReply = [...updatedHistory, { role: "assistant", content: "⚠️ Unexpected response format." }];
       }
 
+      setChatHistory(updatedHistoryWithReply);
+      localStorage.setItem("chatHistory", JSON.stringify(updatedHistoryWithReply));
+
+
     } catch (err) {
-      setChatHistory((prev) => [
-        ...prev,
-        { role: "assistant", content: "⚠️ Failed to get a reply. Please try again later." },
-      ]);
+      const errorMessage = { role: "assistant", content: "⚠️ Failed to get a reply. Please try again later." };
+      const errorHistory = [...chatHistory, errorMessage];
+      setChatHistory(errorHistory);
+      localStorage.setItem("chatHistory", JSON.stringify(errorHistory));
     } finally {
       setUserInput("");
       setLoading(false);
     }
   };
 
+  const handleNavigateToVenue = async (venueName) => {
+    setFetchingVenue(true); // Start loading spinner
+
+    try {
+      const fetchVenue = await axiosInstance.get("/api/chat/venue-name", {
+        params: { name: venueName }
+      });
+      const actualVenue = fetchVenue.data;
+      navigate("/venue-detail", { state: { venue: actualVenue } });
+    } catch (error) {
+      console.error("❌ Failed to fetch venue details:", error);
+      alert("Failed to load venue details. Please try again!");
+    } finally {
+      setFetchingVenue(false); // Stop spinner after fetch
+    }
+  };
+
+  const saveChatHistoryToDB = async () => {
+    try {
+      await axiosInstance.post("/api/chat/save-chat-history", { chatHistory });
+    } catch (error) {
+      console.error("❌ Error saving chat history:", error);
+    }
+  };
+
+  const handleCloseChat = async () => {
+    await saveChatHistoryToDB();
+    closeChat(); // then close the chat window
+  };
+  
+
+
+
   return (
     <div className="chat-container">
       {/* Header with Close Button */}
       <div className="chat-header">
         <span>GoGenie Assistant</span>
-        <button className="close-btn" onClick={closeChat}>×</button>
+        <button className="close-btn" onClick={handleCloseChat}>×</button>
       </div>
 
       {/* Chat Messages */}
@@ -79,10 +127,12 @@ const ChatAssistant = ({ closeChat }) => {
                 <p><strong>Address:</strong> {msg.venue.address}</p>
                 <button
                   className="details-button"
-                  onClick={() => navigate("/venue-detail", { state: { venue: actualVenue } })}
+                  onClick={() => handleNavigateToVenue(msg.venue.name)}
+                  disabled={fetchingVenue}
                 >
-                  View Details
+                  {fetchingVenue ? "Loading..." : "View Details"}
                 </button>
+
               </div>
             );
           }
@@ -105,7 +155,7 @@ const ChatAssistant = ({ closeChat }) => {
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
         />
-        <button onClick={handleSendMessage} disabled={loading}>
+        <button className="chat-button" onClick={handleSendMessage} disabled={loading}>
           Send
         </button>
       </div>

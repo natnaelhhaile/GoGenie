@@ -3,6 +3,7 @@ const OpenAI = require("openai");
 const verifyFirebaseToken = require("../middleware/firebaseAuth");
 const Preferences = require("../models/Preferences");
 const Recommendation = require("../models/Recommendation");
+const ChatHistory = require("../models/ChatHistory");
 
 const router = express.Router();
 
@@ -63,8 +64,8 @@ router.post("/venue-assistant", verifyFirebaseToken, async (req, res) => {
     // console.log(userPreferences);
 
     const recommendedVenues = await Recommendation.find({ users: { $in: [uid] } }).limit(10);
-    console.log("number of venues got: ", recommendedVenues.length)
-    console.log(recommendedVenues[0]);
+    // console.log("number of venues got: ", recommendedVenues.length)
+    // console.log(recommendedVenues[0]);
 
     if (!userPreferences || !recommendedVenues) {
       return res.status(404).json({ error: "User or recommendations not found" });
@@ -119,5 +120,29 @@ router.get("/venue-name", verifyFirebaseToken, async (req, res) => {
     res.status(500).json({ error: "Server error while fetching venue" });
   }
 });
+
+// Route to save chat history
+router.post("/save-chat-history", verifyFirebaseToken, async (req, res) => {
+  try {
+    const { chatHistory } = req.body;
+    const uid = req.user.uid;
+
+    if (!chatHistory || !Array.isArray(chatHistory)) {
+      return res.status(400).json({ error: "Invalid chat history format." });
+    }
+
+    const savedChat = await ChatHistory.findOneAndUpdate(
+      { uid },
+      { $set: { history: chatHistory } },
+      { upsert: true, new: true }
+    );
+
+    res.status(200).json({ message: "Chat history saved successfully." });
+  } catch (error) {
+    console.error("❌ Error saving chat history backend:", error.message);
+    res.status(500).json({ error: "Server error saving chat." });
+  }
+});
+
 
 module.exports = router;
