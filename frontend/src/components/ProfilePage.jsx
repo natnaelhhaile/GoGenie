@@ -7,6 +7,7 @@ import {
   IoLogOut,
   IoCreate
 } from "react-icons/io5";
+import { FaRobot } from "react-icons/fa";
 import Container from "../components/Container";
 import axiosInstance from "../api/axiosInstance";
 import "./ProfilePage.css";
@@ -31,7 +32,6 @@ const ProfilePage = () => {
     const fetchSummary = async () => {
       try {
         const response = await axiosInstance.get("/api/users/summary");
-        console.log("📦 Summary API response:", response.data);
         setSummary(response.data.summary || "No summary available yet.");
       } catch (error) {
         console.error("❌ Error fetching summary:", error);
@@ -65,7 +65,10 @@ const ProfilePage = () => {
           <p className="user-email">{auth.currentUser?.email}</p>
 
           <div className="summary-box">
-            <h3 className="summary-title">Your Preference Summary</h3>
+            <FaRobot className="robot" style={{ fontSize: "2.5rem" }}/>&nbsp;
+            <h3 className="summary-title">
+              Your Preference Summary
+            </h3>
             <p className="summary-text">{summary}</p>
           </div>
         </div>

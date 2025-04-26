@@ -12,10 +12,12 @@ const BottomNav = () => {
   return (
     <footer className="bottom-nav">
       <MdHomeFilled
-        className={`nav-icon ${location.pathname === "/dashboard" ? "active" : ""}`}
+        className={`nav-icon dashboard ${location.pathname === "/dashboard" ? "active" : ""}`}
         onClick={() => navigate("/dashboard")}
       />
-      <IoSearch className="nav-icon" onClick={() => navigate("/search")} />
+      <IoSearch 
+        className={`nav-icon search ${location.pathname === "/search" ? "active" : ""}`}
+        onClick={() => navigate("/search")} />
       <FaHeart
         className={`nav-icon favorites ${location.pathname === "/favorites" ? "active" : ""}`}
         onClick={() => navigate("/favorites")}

@@ -2,28 +2,21 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axiosInstance from "../api/axiosInstance";
-import { GoClock } from "react-icons/go";
 import { useAuth } from "../context/AuthContext";
 import Container from "../components/Container";
 import BottomNav from "../components/BottomNav";
 import VenueCard from "../components/VenueCard";
+import FeaturedCard from "../components/FeaturedCard";
 import ChatLauncher from "../components/ChatLauncher";
 import "./Dashboard.css";
 
 const LIMIT = 10;
 
-const featuredImages = {
-  bj_restaurant: require("../assets/bj_restaurant.png"),
-  Fremont_Biryani_House: require("../assets/Fremont_Biryani_House.png"),
-  Bowlero_Milpitas: require("../assets/Bowlero_Milpitas.png"),
-  Spin_A_Yarn_Steakhouse: require("../assets/Spin_A_Yarn_Steakhouse.png"),
-};
-
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [userPreferences, setUserPreferences] = useState(null);
+  const [userPreference, setUserPreferences] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -32,6 +25,8 @@ const Dashboard = () => {
   const [favoritesMap, setFavoritesMap] = useState({});
   const [categories, setCategories] = useState(["All"]);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [featured, setFeatured] = useState([]);
+  const [becauseYouLiked, setBecauseYouLiked] = useState([]);
   const loaderRef = useRef(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -48,6 +43,32 @@ const Dashboard = () => {
       console.error("Error fetching preferences:", err);
     }
   }, [navigate]);
+
+  const fetchFeatured = useCallback(async () => {
+    try {
+      const res = await axiosInstance.get("/api/recommendations/featured");
+      if (res.status === 200 && Array.isArray(res.data.featured)) {
+        setFeatured(res.data.featured);
+      }
+    } catch (err) {
+      console.error("Error fetching featured:", err);
+    }
+  }, []);
+
+  const fetchBecauseYouLiked = useCallback(async () => {
+    try {
+      const res = await axiosInstance.get("/api/recommendations/because-you-liked");
+      if (res.status === 200 && Array.isArray(res.data.results)) {
+        setBecauseYouLiked(res.data.results);
+      }
+    } catch (err) {
+      if (err.response && err.response.status === 204) {
+        console.log("No liked venues yet");
+      } else {
+        console.error("Error fetching because-you-liked:", err);
+      }
+    }
+  }, []);
 
   const fetchFavorites = useCallback(async () => {
     if (!user) return;
@@ -126,8 +147,10 @@ const Dashboard = () => {
     fetchUserPreferences();
     fetchCachedRecommendations();
     fetchFavorites();
-    fetchCategories(); // 🆕 fetching categories separately
-  }, [user, fetchUserPreferences, fetchCachedRecommendations, fetchFavorites, fetchCategories]);
+    fetchCategories();
+    fetchFeatured();
+    fetchBecauseYouLiked();
+  }, [user, fetchUserPreferences, fetchCachedRecommendations, fetchFavorites, fetchCategories, fetchFeatured, fetchBecauseYouLiked]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -176,22 +199,37 @@ const Dashboard = () => {
         <span>{message}</span>
       </header>
 
+      {/* 🔥 Featured Section */}
       <section className="featured-section">
         <h3 className="dashboard-subtitle">Featured</h3>
         <div className="featured-list">
-          {Object.keys(featuredImages).map((name) => (
-            <div key={name} className="featured-item">
-              <picture>
-                <source srcSet={featuredImages[name]} type="image/webp" />
-                <img src={featuredImages[name]} alt={name.replace(/_/g, " ")} />
-              </picture>
-              <p>{name.replace(/_/g, " ")}</p>
-              <span><GoClock className="clock-icon" /> 20 Min</span>
-            </div>
+          {featured.map((venue) => (
+            <FeaturedCard
+              key={venue.venue_id}
+              venue={venue}
+              onClick={() => navigate("/venue-detail", { state: { venue } })}
+            />
           ))}
         </div>
       </section>
 
+      {/* 🔥 Because You Liked Section */}
+      {becauseYouLiked.length > 0 && (
+        <section className="because-liked-section">
+          <h3 className="dashboard-subtitle">You might also love...</h3>
+          <div className="featured-list">
+            {becauseYouLiked.map((venue) => (
+              <FeaturedCard
+                key={venue.venue_id}
+                venue={venue}
+                onClick={() => navigate("/venue-detail", { state: { venue } })}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 🔥 Categories Section */}
       <section className="categories-section">
         <h3 className="dashboard-subtitle">Categories</h3>
         <div className="category-list">
@@ -214,6 +252,7 @@ const Dashboard = () => {
         </div>
       </section>
 
+      {/* 🔥 Main Recommendations Section */}
       <section className="places-section">
         {loading && recommendations.length === 0 ? (
           <div className="loading-container">
@@ -250,7 +289,6 @@ const Dashboard = () => {
       </section>
 
       <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
-
       <BottomNav />
     </Container>
   );

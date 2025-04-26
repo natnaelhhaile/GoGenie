@@ -8,7 +8,7 @@
     display: flex;
     justify-content: space-around;
     border-top: 1px solid #ddd;
-    z-index: 100;
+    z-index: 10000;
   }
   
   .nav-icon {
