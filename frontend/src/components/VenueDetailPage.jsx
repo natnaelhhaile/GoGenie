@@ -4,20 +4,16 @@ import { FaThumbsUp, FaThumbsDown } from "react-icons/fa6";
 import { IoHeartOutline, IoHeart } from "react-icons/io5";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../api/axiosInstance";
-import "./VenueDetailPage.css";
 import BottomNav from "../components/BottomNav";
-import Container from "./Container";
+import Container from "../components/Container";
 import ChatLauncher from "../components/ChatLauncher";
-
-
+import "./VenueDetailPage.css";
 
 const VenueDetailPage = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
   const venue = state?.venue;
-  if (!venue) {
-    navigate("/dashboard");
-  }
+
   const { user } = useAuth();
 
   const [isFavorite, setIsFavorite] = useState(false);
@@ -34,26 +30,36 @@ const VenueDetailPage = () => {
 
   const fallbackImage = require("../assets/dum1.jpg");
 
-  const address = venue?.location?.formattedAdress || 
-                `${venue?.location?.address}, ${venue.location.locality}, ${venue.location.region} ${venue.location.postcode}` || 
-                "Unknown Address";
-  const distanceMiles = venue.distance * 0.000621371;
+  const address =
+    venue?.location?.formattedAddress ||
+    `${venue?.location?.address}, ${venue?.location?.locality}, ${venue?.location?.region} ${venue?.location?.postcode}` ||
+    "Unknown Address";
+
+  const distanceMiles = venue?.distance
+    ? (venue.distance * 0.000621371).toFixed(1)
+    : "?";
+
   const fsqWebUrl = `https://foursquare.com/v/${venue?.name.replace(/\s+/g, "-").toLowerCase()}/${venue?.venue_id}`;
   const photos = venue?.photos || [];
+
+  useEffect(() => {
+    if (!venue) {
+      navigate("/dashboard");
+    }
+  }, [venue, navigate]);
 
   useEffect(() => {
     const checkFavorite = async () => {
       if (!user || !venue?.venue_id) return;
       try {
         const res = await axiosInstance.get("/api/favorites/is-favorite", {
-          params: { venue_id: venue.venue_id }
+          params: { venue_id: venue.venue_id },
         });
         setIsFavorite(res.data.isFavorite);
       } catch (err) {
         console.error("Error checking favorite:", err);
       }
     };
-
     checkFavorite();
   }, [venue, user]);
 
@@ -62,17 +68,16 @@ const VenueDetailPage = () => {
       try {
         const res = await axiosInstance.get(`/api/recommendations/details/${venue.venue_id}`);
         setRating(res.data.rating || "No rating available");
-        setHours(res.data.hours?.display || null);
-        setOpenNow(res.data.hours?.open_now || null);
+        setHours(res.data.hours || null); // already an array
         setPopularity(res.data.popularity || null);
         setStats(res.data.stats || { total_ratings: 0, total_tips: 0, total_photos: 0 });
         setTips(res.data.tips || []);
+        setOpenNow(res.data.hours?.open_now || null);
       } catch (err) {
         console.error("Error fetching details:", err);
         setRating("N/A");
       }
     };
-
     if (venue?.venue_id) fetchDetails();
   }, [venue]);
 
@@ -87,18 +92,13 @@ const VenueDetailPage = () => {
         console.error("Error fetching previous feedback:", err);
       }
     };
-  
     fetchFeedback();
-  }, [venue, user]);  
+  }, [venue, user]);
 
   const handleToggleFavorite = async () => {
-    if (!user) return alert("Please log in");
-
-    const payload = {
-      venue_id: venue.venue_id
-    };
-
+    if (!user) return alert("Please log in first.");
     try {
+      const payload = { venue_id: venue.venue_id };
       if (isFavorite) {
         await axiosInstance.post("/api/favorites/remove", payload);
         setIsFavorite(false);
@@ -112,38 +112,36 @@ const VenueDetailPage = () => {
   };
 
   const handleLike = async () => {
-    if (!user) return alert("Please log in");
-  
-    const isActivating = !liked;
-    setLiked(isActivating);
-    if (disliked) setDisliked(false);
-  
+    if (!user) return alert("Please log in.");
     try {
+      const isActivating = !liked;
+      setLiked(isActivating);
+      if (disliked) setDisliked(false);
+
       await axiosInstance.post("/api/feedback", {
         venue_id: venue.venue_id,
-        feedback: isActivating ? "up" : "none" // treat unliking as neutral feedback
+        feedback: isActivating ? "up" : "none",
       });
     } catch (err) {
       console.error("Error sending like feedback:", err);
     }
   };
-  
+
   const handleDislike = async () => {
-    if (!user) return alert("Please log in");
-  
-    const isActivating = !disliked;
-    setDisliked(isActivating);
-    if (liked) setLiked(false);
-  
+    if (!user) return alert("Please log in.");
     try {
+      const isActivating = !disliked;
+      setDisliked(isActivating);
+      if (liked) setLiked(false);
+
       await axiosInstance.post("/api/feedback", {
         venue_id: venue.venue_id,
-        feedback: isActivating ? "down" : "none" // treat undisliking as neutral feedback
+        feedback: isActivating ? "down" : "none",
       });
     } catch (err) {
       console.error("Error sending dislike feedback:", err);
     }
-  };  
+  };
 
   if (!venue) return <p>Loading venue details...</p>;
 
@@ -162,25 +160,23 @@ const VenueDetailPage = () => {
         <div className="venue-info">
           <p><span className="label">Address:</span> {address}</p>
           <p><span className="label">Categories:</span> {venue.categories?.slice(0, 5).join(", ")}</p>
-          <p><span className="label">Distance:</span> {(distanceMiles).toFixed(1) || "?"} miles</p>
-          <p><span className="label">City:</span> {venue.location?.locality || "Unknown City"}</p>
-          <p>
-            <span className="label">Rating:</span>
-            <span className="rating-value">
-              <span className="star-icon">⭐</span>
-              {rating}
-            </span>
-          </p>
+          <p><span className="label">Distance:</span> {distanceMiles} mi</p>
           <p>
             <span className="label">Status:</span>
             <span className={openNow ? "open-status open" : "open-status closed"}>
               {openNow ? "✅ Open Now" : "❌ Closed"}
             </span>
           </p>
-          <p><span className="label">Popularity:</span> {popularity ? `${(popularity * 100).toFixed(0)}%` : "N/A"}</p>
+          <p><span className="label">City:</span> {venue.location?.locality || "Unknown City"}</p>
           <p>
-            <span className="label">Stats:</span>
-            {stats.total_ratings} ratings, {stats.total_tips} tips, {stats.total_photos} photos
+            <span className="label">Rating:</span>
+            <span className="rating-value">⭐ {rating}</span>
+          </p>
+          <p>
+            <span className="label">Popularity:</span> {popularity ? `${(popularity * 100).toFixed(0)}%` : "N/A"}
+          </p>
+          <p>
+            <span className="label">Stats:</span> {stats.total_ratings} ratings, {stats.total_tips} tips, {stats.total_photos} photos
           </p>
 
           <a href={fsqWebUrl} target="_blank" rel="noopener noreferrer" className="venue-external-link">
@@ -199,7 +195,6 @@ const VenueDetailPage = () => {
               title="Dislike"
             />
           </div>
-
         </div>
 
         <div className="section-title">More Photos</div>
@@ -224,11 +219,18 @@ const VenueDetailPage = () => {
         </div>
 
         <div className="section-title">Hours</div>
-        <div className="placeholder-box">{hours || "Hours not available."}</div>
+        <div className="placeholder-box">
+          {hours ? (
+            hours.map((line, idx) => (
+              <div key={idx}>{line}</div>
+            ))
+          ) : (
+            "Hours not available."
+          )}
+        </div>
 
         <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
         <BottomNav />
-        
       </div>
     </Container>
   );

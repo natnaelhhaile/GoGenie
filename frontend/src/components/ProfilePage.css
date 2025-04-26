@@ -156,18 +156,23 @@
 
 /* AI preference summary styling */
 .summary-box {
-  background: #1f1f1f;
+  background: #e4e4fc;
   border-radius: 10px;
   padding: 16px;
   margin: 20px 0;
-  color: #e0e0e0;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  color: #333;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.summary-box .robot {
+  color: #444;
 }
 
 .summary-title {
   font-size: 1.1rem;
+  margin-top: -.05rem;
   margin-bottom: 8px;
-  color: #a3d8ff;
+  color: #8a2be2;
 }
 
 .summary-text {

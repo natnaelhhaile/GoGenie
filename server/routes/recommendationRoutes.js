@@ -232,8 +232,109 @@ router.get("/categories", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// Route to look for venues that match user searches
+// Route to get the top 5 featured venues with the highest priority scores
+router.get("/featured", verifyFirebaseToken, async (req, res) => {
+  const uid = req.user.uid;
+  try {
+    // 1) grab this user's scores, sorted desc
+    const topScores = await UserVenueScore.find({ uid })
+      .sort({ priorityScore: -1 })
+      .limit(5);
+    const scoredIds = topScores.map(s => s.venue_id);
 
+    let featured;
+    if (scoredIds.length > 0) {
+      // 2a) if they have scores, show those venues
+      featured = await Recommendation.find({ venue_id: { $in: scoredIds } });
+    } else {
+      // 2b) otherwise fallback to overall popularity
+      featured = await Recommendation.find()
+        .sort({ popularity: -1 })
+        .limit(5);
+    }
+
+    res.status(200).json({ featured });
+  } catch (err) {
+    console.error("❌ Error fetching featured venues:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Route to fetch venues a user might like based on their like/thumbs-up history
+router.get("/because-you-liked", verifyFirebaseToken, async (req, res) => {
+  const uid = req.user.uid;
+  try {
+    // 1) Find user's top liked venue
+    const likes = await UserVenueScore.find({ uid, feedback: "up" })
+      .sort({ priorityScore: -1 })
+      .limit(1);
+
+    if (!likes.length) {
+      return res.status(204).json({ message: "No likes found" });
+    }
+
+    const topLikedVenueId = likes[0].venue_id;
+    const topLikedVenue = await Recommendation.findOne({ venue_id: topLikedVenueId });
+
+    if (!topLikedVenue) {
+      return res.status(204).json({ message: "Top liked venue not found" });
+    }
+
+    const relatedTags = topLikedVenue.tags || [];
+    const relatedCategories = topLikedVenue.categories || [];
+
+    // 2) Find similar venues
+    const relatedVenues = await Recommendation.find({
+      $or: [
+        { tags: { $in: relatedTags } },
+        { categories: { $in: relatedCategories } }
+      ],
+      venue_id: { $ne: topLikedVenueId } // exclude itself
+    }).limit(5);
+
+    if (!relatedVenues.length) {
+      return res.status(204).json({ message: "No similar venues found" });
+    }
+
+    res.status(200).json({ results: relatedVenues });
+
+  } catch (error) {
+    console.error("❌ Error fetching because-you-liked:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Route to fetch nearby venues
+router.get("/nearby", verifyFirebaseToken, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+
+    // 1) grab the user's saved coords
+    const prefs = await Preferences.findOne({ uid });
+    if (!prefs?.location?.coordinates) {
+      return res.status(400).json({ message: "No saved coordinates in your profile." });
+    }
+
+    // you said radius = 5km
+    const MAX_DIST = 10000; // meters
+
+    // 2) find all recommendations they've generated (users includes)
+    //    within MAX_DIST, sorted closest → farthest
+    const nearby = await Recommendation.find({
+      users: uid,
+      distance: { $lte: MAX_DIST }
+    })
+      .sort({ distance: 1 })
+      .limit(30);
+
+    return res.status(200).json({ results: nearby });
+  } catch (err) {
+    console.error("❌ Nearby error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Route to look for venues that match user searches
 router.get("/search", verifyFirebaseToken, async (req, res) => {
   const { query } = req.query;
   const uid = req.user.uid;
@@ -294,15 +395,43 @@ router.get("/search", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// endpoint to get venue details by fsq_id: popularity,stats,hours,rating
+// Fetch venue details straight from your MongoDB (Recommendation collection)
 router.get("/details/:venue_id", async (req, res) => {
   const { venue_id } = req.params;
+
   try {
-    const venue = await fetchVenueDetails(venue_id);
-    res.status(200).json(venue);
+    const venue = await Recommendation.findOne({ venue_id });
+
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found" });
+    }
+
+    const {
+      rating,
+      popularity,
+      stats,
+      hours,
+      tips
+    } = venue;
+
+    // Format the hours display if needed
+    let formattedHours = null;
+    if (hours?.display) {
+      formattedHours = hours.display.includes(";")
+        ? hours.display.split(";").map(line => line.trim())  // split into array
+        : [hours.display.trim()];                            // single line in array
+    }
+
+    return res.status(200).json({
+      rating: rating || null,
+      popularity: popularity || null,
+      stats: stats || { total_ratings: 0, total_tips: 0, total_photos: 0 },
+      hours: formattedHours,
+      tips: tips || []
+    });
   } catch (error) {
-    console.error("Error fetching venue details:", error);
-    res.status(500).json({ message: "Failed to fetch venue details" });
+    console.error("❌ Error fetching venue details:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

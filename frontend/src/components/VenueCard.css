@@ -39,21 +39,19 @@
   margin: 0.5rem 0;
 }
 
-.location-info {
+.venue-card span {
   display: flex;
-  justify-content: center;
   align-items: center;
-  color: #666;
-  font-size: 0.95rem;
-  gap: .25rem;
+  justify-content: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #8a2be2;
+  margin-top: .65rem;
 }
 
 .location-pin {
-  margin-top: .2rem;
-}
-
-.city-name {
-  font-size: 0.8rem;
+    font-size: 14px;
+    color: #666;
 }
 
 /* 🌟 Favorite Toggle Button */

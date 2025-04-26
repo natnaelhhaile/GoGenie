@@ -3,8 +3,8 @@ import { IoHeart, IoHeartOutline, IoLocationSharp } from "react-icons/io5";
 import "./VenueCard.css";
 
 const VenueCard = ({ venue, isFavorite, onToggleFavorite, onClick, showFavoriteIcon = true }) => {
-  const city = venue?.location?.locality || "Unknown City";
-  const venueImage = venue?.photos?.[0] || require("../assets/dum1.jpg");
+  const venueImage = venue?.photos?.[0] || require("../assets/no-image.jpg");
+  const distanceMiles = venue?.distance ? (venue.distance / 1609.344).toFixed(1) : null;
 
   return (
     <div className="venue-card" onClick={onClick}>
@@ -23,17 +23,18 @@ const VenueCard = ({ venue, isFavorite, onToggleFavorite, onClick, showFavoriteI
           )}
         </div>
       )}
+
       <picture>
         <source srcSet={venueImage} type="image/webp" />
-        <img src={venueImage} alt={venue.name} />
+        <img src={venueImage} alt={venue?.name || "Venue"} loading="lazy" />
       </picture>
-      <p>{venue.name}</p>
-      <div className="location-info">
-        <span className="location-pin">
-          <IoLocationSharp />
-        </span>
-        <span className="city-name">{city}</span>
-      </div>
+
+      <p>{venue?.name || "Unknown Venue"}</p>
+
+      <span>
+        <IoLocationSharp className="location-pin" />
+        {distanceMiles ? ` ${distanceMiles} mi` : ""}
+      </span>
     </div>
   );
 };
