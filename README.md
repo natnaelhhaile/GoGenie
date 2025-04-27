@@ -1,139 +1,180 @@
-**<h1 align="center">GoGenie | AI-Powered Venue Recommendation System</h1>**  
+⸻
 
-**<p align="center">🚀 Connect. Explore. Experience.</p>**  
-A personalized recommendation platform that suggests real-world venues based on user preferences using OpenAI + Foursquare API.
+GoGenie | AI-Powered Smart Venue Recommendation System
 
----
+🚀 Connect. Explore. Experience.
 
-## **📌 Project Overview**
-**GoGenie** is a **smart venue recommendation system** that enhances social and dining experiences. It analyzes user preferences and **leverages AI & real-time location data** to recommend places like cafes, restaurants, and event spaces.  
+GoGenie is an AI-powered venue recommendation platform that personalizes real-world experiences for users based on their tastes, moods, and location.
+Whether you’re searching for a cozy café, a trending restaurant, or fun weekend plans — GoGenie brings the best venues directly to your fingertips.
 
-✨ **Tech Stack:**  
-✅ React (Frontend)  
-✅ Node.js + Express (Backend)  
-✅ MongoDB (Database)  
-✅ Firebase (User Authentication)  
-✅ OpenAI API (AI-powered preference queries)  
-✅ Foursquare API (Real-world venue data)  
+⸻
 
-🎯 **Key Features:**  
-✅ **AI-Driven Recommendations:** Tailored suggestions based on hobbies, food choices & thematic preferences.  
-✅ **Foursquare API Integration:** Fetches real-world venues dynamically.  
-✅ **User-Friendly Dashboard:** Interactive UI to explore and save recommended places.  
-✅ **Location Intelligence:** Filters results based on user’s proximity.  
-✅ **Preference-Based Personalization:** Custom venue filtering using machine learning & caching.  
+📌 Project Overview
 
----
+GoGenie combines the power of OpenAI and Foursquare APIs to deliver smart, contextual, and location-aware recommendations.
+It understands your hobbies, food preferences, and lifestyle themes to suggest real venues near you — personalized like never before.
 
-## **🛠️ Installation & Setup**
-**1️⃣ Clone the Repository**  
-```sh
-git clone https://github.com/yourusername/GoGenie.git
+✨ Built With:
+	•	✅ React.js (Frontend)
+	•	✅ Node.js + Express (Backend)
+	•	✅ MongoDB Atlas (Database)
+	•	✅ Firebase (Authentication)
+	•	✅ OpenAI API (Smart Preference Interpretation)
+	•	✅ Foursquare API (Live Venue Data)
+
+⸻
+
+🎯 Key Features
+
+✅ AI-Powered Personalization
+
+Transforms your hobbies, food choices, and lifestyle interests into meaningful venue recommendations via AI-enhanced queries.
+
+✅ Smart Search with Priority Scoring
+
+Search by name, category, or tags — prioritized by your preferences, feedback, and proximity.
+
+✅ “Near Me” Discovery
+
+One-tap smart search for venues around your current location (within 5 km), sorted closest to farthest.
+
+✅ “Because You Liked” Personalized Suggestions
+
+Tailored venue picks based on your previous likes and preferences.
+
+✅ Dynamic Featured Venues
+
+A handpicked, rotating selection of trending venues from your area.
+
+✅ Favorites & Feedback
+
+Like, dislike, and save venues you love for easy access anytime.
+
+✅ Fully Mobile-Responsive Design
+
+Optimized for a fast, seamless, and beautiful mobile-first browsing experience.
+
+✅ Caching & Optimization
+
+Venues and preferences are intelligently cached in MongoDB to minimize redundant API calls and enhance performance.
+
+⸻
+
+🛠️ Installation & Setup
+
+1. Clone the Repository:
+
+git clone https://github.com/natnaelhhaile/GoGenie.git
 cd GoGenie
-```
 
-**2️⃣ Install Dependencies**  
-```sh
+2. Install Dependencies:
+
 npm install
-```
 
-**3️⃣ Set Up Environment Variables**  
-Create a **.env** file in both frontend and backend folders and add:  
-```
+3. Set Up Environment Variables:
+Create a .env file in both /frontend and /backend directories:
+
 REACT_APP_BACKEND_URL=http://localhost:5000
 FIREBASE_API_KEY=your_firebase_api_key
 FOURSQUARE_API_KEY=your_foursquare_api_key
 OPENAI_API_KEY=your_openai_api_key
 MONGO_URI=your_mongodb_connection_string
-```
 
-**4️⃣ Start the Backend**  
-```sh
+4. Start the Backend:
+
 cd backend
 npm start
-```
 
-**5️⃣ Start the Frontend**  
-```sh
+5. Start the Frontend:
+
 cd frontend
 npm start
-```
 
----
 
-## **📌 Features Breakdown**
-### **🔑 Authentication (Firebase)**
-- Secure **email/password login**.
-- Persistent user sessions with Firebase Auth.
-- Auto-fetch user preferences from **MongoDB** after login.
 
-### **🧠 AI-Powered Recommendations (OpenAI + Foursquare)**
-- Uses **OpenAI API** to transform user preferences into **Foursquare-compatible queries**.
-- Retrieves **real venue data** from **Foursquare API**.
-- **Caches recommendations** in **MongoDB** for efficient performance.
+⸻
 
-### **📍 Smart Venue Discovery**
-- **Real-time venue recommendations** from Foursquare.
-- Filters based on **location, distance, category & user interests**.
-- **Renders places with images, categories & estimated distance.**
+📌 Feature Breakdown
 
-### **🖥️ Interactive Dashboard**
-- **Displays user’s personalized places** in an elegant **grid layout**.
-- Users can **view, save & revisit venues**.
-- **Category-based filtering** for better discovery.
+🔐 Authentication (Firebase)
+	•	Secure user signup/login with email & password as well as social login with Google.
+	•	Persistent user sessions with auto-login support.
+	•	Token expiration after 3 hours of login.
+	•	User profile preferences auto-loaded after login.
 
-### **💾 Caching & Optimization**
-- Uses MongoDB to **store recommended places** (avoiding redundant API calls).
-- **Efficient data fetching** to enhance performance.
+🧠 AI-Powered Recommendations
+	•	Converts user preferences into smart, contextual queries.
+	•	Fetches real venue data through Foursquare.
+	•	Uses OpenAI for smarter matching beyond basic keywords.
+	•	AI-chatbot for personalized venue recommendation upon natural language requests.
 
----
+📍 Smart Venue Discovery
+	•	Explore real venues filtered by proximity, category, hobbies, and lifestyle preferences.
+	•	“Near Me” venues dynamically sorted by closest first.
+	•	Full category-based filtering system.
 
-## **🖥️ Project Structure**
-```
+❤️ Favorites & Feedback
+	•	Save your favorite places to your personal list.
+	•	Like or dislike venues to influence future recommendations.
+	•	“Because You Liked” section tailored to your taste.
+
+📦 Intelligent Caching
+	•	Saves recommended venues and preferences locally.
+	•	Reduces redundant API calls.
+	•	Boosts performance and reduces data load.
+
+⸻
+
+🧩 Project Structure
+
 GoGenie/
-│── frontend/                # React Frontend
+│── frontend/
 │   ├── src/
-│   │   ├── components/      # UI Components
-│   │   ├── pages/           # Routes (Dashboard, Profile Setup)
-│   │   ├── assets/          # Images & icons
-│   │   ├── firebase.js      # Firebase authentication
+│   │   ├── components/      # Reusable UI Components
+│   │   ├── pages/           # Main Screens (Dashboard, Search, Profile)
+│   │   ├── assets/          # Static Images & Icons
+│   │   ├── firebase.js      # Firebase Authentication Setup
 │   ├── .env                 # Frontend Environment Variables
-│   ├── package.json         # Frontend Dependencies
 │
-│── backend/                 # Express Backend
+│── backend/
 │   ├── models/              # Mongoose Schemas (Users, Preferences, Recommendations)
-│   ├── routes/              # API Endpoints
-│   ├── services/            # OpenAI & Foursquare API Calls
-│   ├── config/              # MongoDB Connection & Firebase Config
-│   ├── server.js            # Express App Entry
+│   ├── routes/              # Express Routes (Auth, Recommendations, Favorites)
+│   ├── services/            # OpenAI + Foursquare Integrations
+│   ├── config/              # Database & Middleware Setup
+│   ├── server.js            # Main Server Entry Point
 │   ├── .env                 # Backend Environment Variables
-│   ├── package.json         # Backend Dependencies
 │
-│── README.md                # Documentation
-│── .gitignore               # Git Ignore Rules
-│── .env.example             # Sample Environment Variables
-```
+│── README.md                # Project Documentation
+│── .gitignore               # Ignored Files & Folders
+│── .env.example             # Sample .env File
 
----
 
-## **🚀 Deployment Plan** -- In Process
-- **Frontend:** Vercel / Netlify
-- **Backend:** Google Cloud Run / AWS / Render
-- **Database:** MongoDB Atlas
 
----
+⸻
 
-## **📌 Future Enhancements**
-✅ **Venue Ratings & Reviews** – Let users rate and review recommendations.  
-✅ **Real-Time Location Filtering** – Suggest places based on user’s live location.  
-✅ **Social Features** – Allow users to share recommendations with friends.  
+🚀 Deployment Plan (In Progress)
+	•	Frontend: Vercel / Netlify
+	•	Backend: Google Cloud Run / AWS / Render
+	•	Database: MongoDB Atlas (Cloud Database)
 
----
+⸻
 
-## Authors
-- [Natnael Haile](https://github.com/natnaelhhaile)
-- [Siem Hagos](https://github.com/siezer-5997)
+📈 Future Enhancements
+	•	✅ Enable local users to contribute to Venue Ratings & Reviews (coming soon!)
+	•	✅ Real-Time Live Geolocation Filtering
+	•	✅ Social Sharing of Recommendations
+	•	✅ Dark Mode & Accessibility Improvements
 
----
+⸻
 
-### **🌟 If you like this project, give it a ⭐ on GitHub! 🚀**
+👤 Authors
+	•	Natnael Haile — Developer
+	•	Siem Hagos — Developer
+
+⸻
+
+🌟 Show Your Support!
+
+If you like GoGenie, consider giving it a ⭐️ star on GitHub — it really helps us grow!
+
+⸻
