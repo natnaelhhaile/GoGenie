@@ -9,8 +9,7 @@ const { generateFoursquareQueries } = require("../services/openAIService");
 const {   
   fetchFoursquareVenuesByCoords,
   fetchFoursquareVenuesByText, 
-  fetchVenuePhotos, 
-  fetchVenueDetails
+  fetchVenuePhotos
 } = require("../services/foursquareService");
 const tagsVocabulary = require("../utils/tagsVocabulary");
 const extractTagsFromFeatures = require("../utils/extractTagsFromFeatures");
@@ -309,28 +308,28 @@ router.get("/nearby", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
 
-    // 1) grab the user's saved coords
+    // 1) Load user's saved location (lat/lng) to see if the logic of nearby search applies
     const prefs = await Preferences.findOne({ uid });
-    if (!prefs?.location?.coordinates) {
-      return res.status(400).json({ message: "No saved coordinates in your profile." });
+    if (!prefs?.location?.lat || !prefs?.location?.lng) {
+      console.warn("⚠️ No latitude/longitude available in user preferences.");
+      return res.status(400).json({ message: "Location not set in your profile." });
     }
 
-    // you said radius = 5km
-    const MAX_DIST = 10000; // meters
+    const MAX_DIST_METERS = 10000; // 5km radius
 
-    // 2) find all recommendations they've generated (users includes)
-    //    within MAX_DIST, sorted closest → farthest
-    const nearby = await Recommendation.find({
+    // 2) Find venues linked to the user and within MAX_DIST
+    const nearbyVenues = await Recommendation.find({
       users: uid,
-      distance: { $lte: MAX_DIST }
+      distance: { $lte: MAX_DIST_METERS }
     })
-      .sort({ distance: 1 })
+      .sort({ distance: 1 }) // closest first
       .limit(30);
 
-    return res.status(200).json({ results: nearby });
+    return res.status(200).json({ results: nearbyVenues });
+
   } catch (err) {
-    console.error("❌ Nearby error:", err);
-    return res.status(500).json({ message: "Server error" });
+    console.error("❌ Error fetching nearby venues:", err);
+    return res.status(500).json({ message: "Server error." });
   }
 });
 

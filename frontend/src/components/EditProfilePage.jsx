@@ -4,14 +4,17 @@ import Select from "react-select";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
 import Container from "../components/Container";
+import { useToast } from "../context/ToastContext";
 import "./ProfileSetup.css";
 
 const EditProfilePage = () => {
   const navigate = useNavigate();
   const formRef = useRef(null);
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [initialFormData, setInitialFormData] = useState(null);
+  const [initialCoords, setInitialCoords] = useState(null);
   const [errorNotice, setErrorNotice] = useState("");
   const [geoCoords, setGeoCoords] = useState(null);
   const [geoError, setGeoError] = useState(null);
@@ -48,6 +51,7 @@ const EditProfilePage = () => {
 
         if (location?.lat && location?.lng) {
           setGeoCoords({ lat: location.lat, lng: location.lng });
+          setInitialCoords({ lat: location.lat, lng: location.lng });
         }
       } catch (err) {
         console.error("❌ Failed to load user details", err);
@@ -77,6 +81,7 @@ const EditProfilePage = () => {
 
   const handleCancel = () => {
     navigate("/profile");
+    return;
   };
 
   const handleChange = (e) => {
@@ -93,6 +98,17 @@ const EditProfilePage = () => {
       return;
     }
 
+    // Compare formData
+    const unchanged =
+      JSON.stringify(formData) === JSON.stringify(initialFormData) &&
+      JSON.stringify(geoCoords) === JSON.stringify(initialCoords);
+
+    if (unchanged) {
+      showToast("ℹ️ No changes made to profile.", "info");
+      navigate("/profile");
+      return;
+    }
+
     const payload = {
       ...formData,
       location: geoCoords
@@ -104,7 +120,7 @@ const EditProfilePage = () => {
 
     try {
       await axiosInstance.put("/api/users/details", payload);
-      alert("✅ Profile updated successfully!");
+      showToast("🎉 Profile updated successfully!", "success");
       navigate("/profile");
     } catch (err) {
       console.error("❌ Error updating profile", err);
@@ -205,7 +221,7 @@ const EditProfilePage = () => {
           </div>
 
           <div className="step-buttons">
-            <button className="btn secondary" onClick={handleCancel}>
+            <button className="btn secondary" type="button" onClick={handleCancel}>
               Cancel
             </button>
             <button type="submit" className="btn">

@@ -132,7 +132,7 @@ html, body {
 }
 
 .progress-step.active {
-  background: #20c997;
+  background: #8a2be2;
 }
 
 .step-content {
@@ -203,7 +203,7 @@ html, body {
 }
 
 .grid-item.selected {
-  background: #20c997;
+  background: #8a2be2;
   color: white;
   border: none;
 }

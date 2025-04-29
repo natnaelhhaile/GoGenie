@@ -3,15 +3,16 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
 import Container from "../components/Container";
-import "./FavoritesPage.css";
 import BottomNav from "../components/BottomNav";
 import VenueCard from "../components/VenueCard";
-
+import { useToast } from "../context/ToastContext";
+import "./FavoritesPage.css";
 
 const FavoritesPage = () => {
   const [favorites, setFavorites] = useState([]);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -20,18 +21,21 @@ const FavoritesPage = () => {
         setFavorites(res.data.favorites || []);
       } catch (err) {
         console.error("❌ Error fetching favorites:", err);
+        showToast("Couldn't load your favorites.", "error");
       }
     };
 
     if (user) fetchFavorites();
-  }, [user]);
+  }, [user, showToast]);
 
   const handleRemoveFavorite = async (venue_id) => {
     try {
       await axiosInstance.post("/api/favorites/remove", { venue_id });
       setFavorites((prev) => prev.filter((f) => f.venue_id !== venue_id));
+      showToast("💔 Removed from favorites", "success");
     } catch (err) {
       console.error("❌ Error removing favorite:", err);
+      showToast("Failed to remove favorite", "error");
     }
   };
 

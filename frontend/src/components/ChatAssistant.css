@@ -9,6 +9,8 @@
 }
 
 .chat-header {
+  position: sticky;
+  top: 0;
   padding: 12px 16px;
   background-color: #9951dd;
   color: white;

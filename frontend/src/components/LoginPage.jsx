@@ -3,27 +3,27 @@ import { useNavigate } from "react-router-dom";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import axiosInstance from "../api/axiosInstance";
 import Container from "./Container";
+import { useToast } from "../context/ToastContext";
 import "./LoginPage.css";
 import landingImage from "../assets/landing-image.jpg";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     const auth = getAuth();
 
     try {
-      // Firebase sign-in
       await signInWithEmailAndPassword(auth, email, password);
       localStorage.setItem("sessionStart", Date.now());
-      // Automatically handled by axiosInstance interceptor
-      const res = await axiosInstance.post("/api/users/check-new-user");
 
+      const res = await axiosInstance.post("/api/users/check-new-user");
       if (res.status === 200) {
+        showToast("🎉 Welcome back!", "success");
         const { hasPreferences } = res.data;
         navigate(hasPreferences ? "/dashboard" : "/profile-setup");
       } else {
@@ -31,7 +31,7 @@ const LoginPage = () => {
       }
     } catch (err) {
       console.error("Login Error:", err.message);
-      setError("Invalid login credentials or server error.");
+      showToast("💀 Invalid login credentials.", "error");
     }
   };
 
@@ -65,12 +65,11 @@ const LoginPage = () => {
             </div>
 
             <button className="btn">Sign In</button>
+
             <div className="forgot-password">
               <p onClick={() => navigate("/forgot-password")}>Forgot password?</p>
               <p onClick={() => navigate("/")}>Create an account</p>
             </div>
-
-            {error && <p className="error-text">{error}</p>}
           </form>
         </div>
       </Container>

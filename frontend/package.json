@@ -13,6 +13,7 @@
     "firebaseui": "^6.1.0",
     "framer-motion": "^12.5.0",
     "mongodb": "^6.16.0",
+    "nanoid": "^5.1.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",

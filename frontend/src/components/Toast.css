@@ -1,0 +1,89 @@
+.toast-stack {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 9999;
+    width: 85%;
+    max-width: 440px;
+    pointer-events: none;
+    /* Allow clicks to pass through background */
+}
+
+.toast {
+    position: relative;
+    color: white;
+    padding: 1rem 1rem;
+    border-radius: 1.75rem;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    font-size: 0.9rem;
+    animation: slideUpFade 0.4s ease-out, slideDownFade 0.5s ease-in 2.5s;
+    text-align: center;
+    /* Still clickable if needed */
+    pointer-events: auto;
+    /* subtle glassmorphism effect */
+    backdrop-filter: blur(5px);
+}
+
+.toast-close {
+    position: absolute;
+    top: 1rem;
+    right: .75rem;
+    background: transparent;
+    border: none;
+    font-size: 1.35rem;
+    color: white;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+}
+
+.toast-close:hover {
+    opacity: 0.7;
+}
+
+.toast-info {
+    background-color: #8a2be2;
+}
+
+.toast-success {
+    background-color: #22c55e;
+}
+
+.toast-error {
+    background-color: #ef4444;
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes slideDownFade {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+}
+
+@media (min-width: 768px) {
+    .toast-stack {
+        width: 30%;
+    }
+}

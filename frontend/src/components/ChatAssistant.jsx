@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../context/ToastContext";
 
 import "./ChatAssistant.css";
 
@@ -12,6 +13,8 @@ const ChatAssistant = ({ closeChat }) => {
   const [actualVenue, setActualVenue] = useState(null);
   const [fetchingVenue, setFetchingVenue] = useState(false);
 
+  const { showToast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedHistory = localStorage.getItem("chatHistory");
@@ -19,9 +22,6 @@ const ChatAssistant = ({ closeChat }) => {
       setChatHistory(JSON.parse(storedHistory));
     }
   }, []);
-
-
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (bottomRef.current) {
@@ -45,26 +45,37 @@ const ChatAssistant = ({ closeChat }) => {
 
       const reply = response.data.reply;
       let updatedHistoryWithReply;
-      // Push different content types to chatHistory
+
       if (reply.type === "text") {
-        updatedHistoryWithReply = [...updatedHistory, { role: "assistant", type: "text", content: reply.message }];
+        updatedHistoryWithReply = [
+          ...updatedHistory,
+          { role: "assistant", type: "text", content: reply.message },
+        ];
       } else if (reply.type === "recommendation") {
         const venueName = reply.venue.name;
         const fetchVenue = await axiosInstance.get("/api/chat/venue-name", {
-          params: { name: venueName }
+          params: { name: venueName },
         });
         setActualVenue(fetchVenue.data);
-        updatedHistoryWithReply = [...updatedHistory, { role: "assistant", type: "recommendation", venue: reply.venue }];
+        updatedHistoryWithReply = [
+          ...updatedHistory,
+          { role: "assistant", type: "recommendation", venue: reply.venue },
+        ];
       } else {
-        updatedHistoryWithReply = [...updatedHistory, { role: "assistant", content: "⚠️ Unexpected response format." }];
+        updatedHistoryWithReply = [
+          ...updatedHistory,
+          { role: "assistant", content: "⚠️ Unexpected response format." },
+        ];
       }
 
       setChatHistory(updatedHistoryWithReply);
       localStorage.setItem("chatHistory", JSON.stringify(updatedHistoryWithReply));
-
-
     } catch (err) {
-      const errorMessage = { role: "assistant", content: "⚠️ Failed to get a reply. Please try again later." };
+      showToast("Failed to get a reply. Please try again later.", "error");
+      const errorMessage = {
+        role: "assistant",
+        content: "⚠️ Failed to get a reply. Please try again later.",
+      };
       const errorHistory = [...chatHistory, errorMessage];
       setChatHistory(errorHistory);
       localStorage.setItem("chatHistory", JSON.stringify(errorHistory));
@@ -75,19 +86,20 @@ const ChatAssistant = ({ closeChat }) => {
   };
 
   const handleNavigateToVenue = async (venueName) => {
-    setFetchingVenue(true); // Start loading spinner
+    setFetchingVenue(true);
 
     try {
       const fetchVenue = await axiosInstance.get("/api/chat/venue-name", {
-        params: { name: venueName }
+        params: { name: venueName },
       });
       const actualVenue = fetchVenue.data;
+      handleCloseChat();
       navigate("/venue-detail", { state: { venue: actualVenue } });
     } catch (error) {
       console.error("❌ Failed to fetch venue details:", error);
-      alert("Failed to load venue details. Please try again!");
+      showToast("Failed to load venue details. Please try again.", "error");
     } finally {
-      setFetchingVenue(false); // Stop spinner after fetch
+      setFetchingVenue(false);
     }
   };
 
@@ -101,21 +113,20 @@ const ChatAssistant = ({ closeChat }) => {
 
   const handleCloseChat = async () => {
     await saveChatHistoryToDB();
-    closeChat(); // then close the chat window
+    closeChat();
   };
-  
-
-
 
   return (
     <div className="chat-container">
-      {/* Header with Close Button */}
+      {/* Header */}
       <div className="chat-header">
         <span>GoGenie Assistant</span>
-        <button className="close-btn" onClick={handleCloseChat}>×</button>
+        <button className="close-btn" onClick={handleCloseChat}>
+          ×
+        </button>
       </div>
 
-      {/* Chat Messages */}
+      {/* Chat Body */}
       <div className="chat-messages">
         {chatHistory.map((msg, i) => {
           if (msg.type === "recommendation") {
@@ -123,8 +134,12 @@ const ChatAssistant = ({ closeChat }) => {
               <div key={i} className="recommendation-card assistant">
                 <h4>{msg.venue.name}</h4>
                 <p>{msg.venue.description}</p>
-                <p><strong>Category:</strong> {msg.venue.category}</p>
-                <p><strong>Address:</strong> {msg.venue.address}</p>
+                <p>
+                  <strong>Category:</strong> {msg.venue.category}
+                </p>
+                <p>
+                  <strong>Address:</strong> {msg.venue.address}
+                </p>
                 <button
                   className="details-button"
                   onClick={() => handleNavigateToVenue(msg.venue.name)}
@@ -132,7 +147,6 @@ const ChatAssistant = ({ closeChat }) => {
                 >
                   {fetchingVenue ? "Loading..." : "View Details"}
                 </button>
-
               </div>
             );
           }
@@ -147,7 +161,7 @@ const ChatAssistant = ({ closeChat }) => {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input Field */}
+      {/* Input */}
       <div className="chat-input-group">
         <input
           type="text"
@@ -155,7 +169,11 @@ const ChatAssistant = ({ closeChat }) => {
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
         />
-        <button className="chat-button" onClick={handleSendMessage} disabled={loading}>
+        <button
+          className="chat-button"
+          onClick={handleSendMessage}
+          disabled={loading}
+        >
           Send
         </button>
       </div>

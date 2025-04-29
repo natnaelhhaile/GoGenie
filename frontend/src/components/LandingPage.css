@@ -140,7 +140,7 @@ h2 {
   background-color: black;
   color: white;
   padding: 16px !important;
-  border-radius: 25px;
+  border-radius: 25px !important;
   border: none;
   font-size: 1rem;
   font-weight: bold;

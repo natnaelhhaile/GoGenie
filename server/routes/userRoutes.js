@@ -103,8 +103,8 @@ router.post("/preferences", verifyFirebaseToken, async (req, res) => {
         lat: location.lat,
         lng: location.lng,
         text: typeof location.text === "string" ? location.text : undefined,
+        updatedAt: new Date(),
         coordinates: [location.lng, location.lat], // GeoJSON format
-        updatedAt: new Date()
       };
     } else if (typeof location?.text === "string") {
       locationPayload = {

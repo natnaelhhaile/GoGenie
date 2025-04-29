@@ -12,14 +12,18 @@ import {
   thematicList,
   lifestyleList,
 } from "../constants/preferencesData";
+import { useToast } from "../context/ToastContext";
 
 const ProfileSetup = () => {
   const navigate = useNavigate();
   const formRef = useRef(null);
+  const { showToast } = useToast();
+
   const [step, setStep] = useState(1);
   const [geoCoords, setGeoCoords] = useState(null);
   const [geoError, setGeoError] = useState(null);
   const [locationText, setLocationText] = useState("");
+  const [errorNotice, setErrorNotice] = useState("");
 
   const [profile, setProfile] = useState({
     fname: "",
@@ -33,8 +37,6 @@ const ProfileSetup = () => {
     thematicPreferences: [],
     lifestylePreferences: [],
   });
-
-  const [errorNotice, setErrorNotice] = useState("");
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -102,6 +104,7 @@ const ProfileSetup = () => {
   const handleCancel = () => {
     getAuth().signOut();
     localStorage.removeItem("sessionStart");
+    showToast("👋 Signed out successfully", "info");
     navigate("/login");
   };
 
@@ -124,16 +127,18 @@ const ProfileSetup = () => {
         location: {
           lat: geoCoords.lat,
           lng: geoCoords.lng,
-          text: locationText.trim()
-        }
+          text: locationText.trim(),
+        },
       };
 
-      const res = await axiosInstance.post("/api/users/preferences", payload);
-      console.log("✅ Preferences saved:", res.data);
+      await axiosInstance.post("/api/users/preferences", payload);
+
+      showToast("🎉 Profile created successfully!", "success");
       navigate("/dashboard");
     } catch (err) {
       console.error("❌ Error saving preferences:", err);
       setErrorNotice("Failed to save profile. Please try again.");
+      showToast("Failed to save profile. Please try again.", "error");
     }
   };
 
@@ -218,6 +223,7 @@ const ProfileSetup = () => {
                 * Select at least 2 options to proceed. Recommended: pick 3+ for better suggestions.
               </p>
             </div>
+
             <div className="scrollable-grid-wrapper">
               <div className="grid-container">
                 {(step === 2

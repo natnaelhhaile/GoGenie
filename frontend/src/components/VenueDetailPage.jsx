@@ -7,14 +7,15 @@ import axiosInstance from "../api/axiosInstance";
 import BottomNav from "../components/BottomNav";
 import Container from "../components/Container";
 import ChatLauncher from "../components/ChatLauncher";
+import { useToast } from "../context/ToastContext";
 import "./VenueDetailPage.css";
 
 const VenueDetailPage = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
   const venue = state?.venue;
-
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [isFavorite, setIsFavorite] = useState(false);
   const [rating, setRating] = useState("Loading...");
@@ -23,7 +24,6 @@ const VenueDetailPage = () => {
   const [popularity, setPopularity] = useState(null);
   const [stats, setStats] = useState({ total_ratings: 0, total_tips: 0, total_photos: 0 });
   const [tips, setTips] = useState([]);
-
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -68,7 +68,7 @@ const VenueDetailPage = () => {
       try {
         const res = await axiosInstance.get(`/api/recommendations/details/${venue.venue_id}`);
         setRating(res.data.rating || "No rating available");
-        setHours(res.data.hours || null); // already an array
+        setHours(res.data.hours || null);
         setPopularity(res.data.popularity || null);
         setStats(res.data.stats || { total_ratings: 0, total_tips: 0, total_photos: 0 });
         setTips(res.data.tips || []);
@@ -96,23 +96,26 @@ const VenueDetailPage = () => {
   }, [venue, user]);
 
   const handleToggleFavorite = async () => {
-    if (!user) return alert("Please log in first.");
+    if (!user) return showToast("⚠️ Please log in to manage favorites.", "info");
     try {
       const payload = { venue_id: venue.venue_id };
       if (isFavorite) {
         await axiosInstance.post("/api/favorites/remove", payload);
         setIsFavorite(false);
+        showToast("💔 Removed from favorites.", "success");
       } else {
         await axiosInstance.post("/api/favorites/add", payload);
         setIsFavorite(true);
+        showToast("❤️ Added to favorites!", "success");
       }
     } catch (err) {
       console.error("Error toggling favorite:", err);
+      showToast("❌ Failed to update favorite.", "error");
     }
   };
 
   const handleLike = async () => {
-    if (!user) return alert("Please log in.");
+    if (!user) return showToast("⚠️ Please log in to give feedback.", "info");
     try {
       const isActivating = !liked;
       setLiked(isActivating);
@@ -122,13 +125,15 @@ const VenueDetailPage = () => {
         venue_id: venue.venue_id,
         feedback: isActivating ? "up" : "none",
       });
+      showToast(isActivating ? "👍 Liked this venue!" : "👍 Like removed.", "success");
     } catch (err) {
       console.error("Error sending like feedback:", err);
+      showToast("❌ Could not send feedback.", "error");
     }
   };
 
   const handleDislike = async () => {
-    if (!user) return alert("Please log in.");
+    if (!user) return showToast("⚠️ Please log in to give feedback.", "info");
     try {
       const isActivating = !disliked;
       setDisliked(isActivating);
@@ -138,8 +143,10 @@ const VenueDetailPage = () => {
         venue_id: venue.venue_id,
         feedback: isActivating ? "down" : "none",
       });
+      showToast(isActivating ? "👎 Disliked this venue." : "👎 Dislike removed.", "success");
     } catch (err) {
       console.error("Error sending dislike feedback:", err);
+      showToast("❌ Could not send feedback.", "error");
     }
   };
 

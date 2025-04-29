@@ -3,18 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext"; // ✅ Correct import
 import Container from "../components/Container";
 import BottomNav from "../components/BottomNav";
 import VenueCard from "../components/VenueCard";
 import FeaturedCard from "../components/FeaturedCard";
 import ChatLauncher from "../components/ChatLauncher";
-import "./Dashboard.css";
+import "./Dashboard.css"; // (✅ already correct)
 
 const LIMIT = 10;
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast(); // ✅ Correct destructure
 
   const [userPreference, setUserPreferences] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
@@ -30,6 +32,7 @@ const Dashboard = () => {
   const loaderRef = useRef(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
+  // ---------------- Fetch Functions ----------------
   const fetchUserPreferences = useCallback(async () => {
     try {
       const res = await axiosInstance.get("/api/users/preferences");
@@ -41,8 +44,9 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error("Error fetching preferences:", err);
+      showToast("⚠️ Failed to load your profile.", "error");
     }
-  }, [navigate]);
+  }, [navigate, showToast]);
 
   const fetchFeatured = useCallback(async () => {
     try {
@@ -52,8 +56,9 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error("Error fetching featured:", err);
+      showToast("⚠️ Could not load featured venues.", "error");
     }
-  }, []);
+  }, [showToast]);
 
   const fetchBecauseYouLiked = useCallback(async () => {
     try {
@@ -62,13 +67,12 @@ const Dashboard = () => {
         setBecauseYouLiked(res.data.results);
       }
     } catch (err) {
-      if (err.response && err.response.status === 204) {
-        console.log("No liked venues yet");
-      } else {
+      if (err.response?.status !== 204) {
         console.error("Error fetching because-you-liked:", err);
+        showToast("⚠️ Could not load personalized picks.", "error");
       }
     }
-  }, []);
+  }, [showToast]);
 
   const fetchFavorites = useCallback(async () => {
     if (!user) return;
@@ -81,8 +85,9 @@ const Dashboard = () => {
       setFavoritesMap(favMap);
     } catch (err) {
       console.error("Error fetching favorites:", err);
+      showToast("⚠️ Could not load your favorites.", "error");
     }
-  }, [user]);
+  }, [user, showToast]);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -92,8 +97,9 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error("Error fetching categories:", err);
+      showToast("⚠️ Could not load categories.", "error");
     }
-  }, []);
+  }, [showToast]);
 
   const fetchAIRecommendations = useCallback(async () => {
     try {
@@ -101,7 +107,7 @@ const Dashboard = () => {
       if (res.status === 200 && Array.isArray(res.data.recommendations)) {
         setRecommendations(res.data.recommendations);
         setOffset(LIMIT);
-        if (res.data.recommendations.length === 0 || res.data.recommendations.length < LIMIT) {
+        if (res.data.recommendations.length < LIMIT) {
           setNoMoreData(true);
         }
       } else {
@@ -109,17 +115,15 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error("AI recommendations error:", err);
+      showToast("⚠️ Trouble generating suggestions.", "error");
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, showToast]);
 
   const fetchCachedRecommendations = useCallback(async () => {
     try {
-      const res = await axiosInstance.get(
-        `/api/recommendations/cached-recommendations?offset=${offset}&limit=${LIMIT}`
-      );
-
+      const res = await axiosInstance.get(`/api/recommendations/cached-recommendations?offset=${offset}&limit=${LIMIT}`);
       if (res.status === 204 || !Array.isArray(res.data.recommendations)) {
         if (offset === 0) {
           await fetchAIRecommendations();
@@ -128,22 +132,20 @@ const Dashboard = () => {
         }
         return;
       }
-
-      const newRecs = res.data.recommendations;
-      setRecommendations((prev) => [...prev, ...newRecs]);
+      setRecommendations((prev) => [...prev, ...res.data.recommendations]);
       setOffset((prev) => prev + LIMIT);
-      if (newRecs.length < LIMIT) setNoMoreData(true);
-
+      if (res.data.recommendations.length < LIMIT) setNoMoreData(true);
     } catch (err) {
       console.error("Cached recommendations error:", err);
+      showToast("⚠️ Error loading more recommendations.", "error");
     } finally {
       setLoading(false);
     }
-  }, [fetchAIRecommendations, offset]);
+  }, [fetchAIRecommendations, offset, showToast]);
 
+  // ---------------- useEffect ----------------
   useEffect(() => {
     if (!user) return;
-
     fetchUserPreferences();
     fetchCachedRecommendations();
     fetchFavorites();
@@ -153,29 +155,31 @@ const Dashboard = () => {
   }, [user, fetchUserPreferences, fetchCachedRecommendations, fetchFavorites, fetchCategories, fetchFeatured, fetchBecauseYouLiked]);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const target = entries[0];
-        if (target.isIntersecting && !noMoreData && !loading) {
-          fetchCachedRecommendations();
-        }
-      },
-      { threshold: 1 }
-    );
+    const observer = new IntersectionObserver((entries) => {
+      const target = entries[0];
+      if (target.isIntersecting && !noMoreData && !loading) {
+        fetchCachedRecommendations();
+      }
+    }, { threshold: 1 });
+
     const currentLoader = loaderRef.current;
     if (currentLoader) observer.observe(currentLoader);
+
     return () => currentLoader && observer.unobserve(currentLoader);
   }, [fetchCachedRecommendations, noMoreData, loading]);
 
+  // ---------------- Handlers ----------------
   const filteredRecommendations = recommendations.filter((rec) =>
-    activeCategory === "All" ||
-    (rec.venue?.categories || []).some((cat) =>
+    activeCategory === "All" || (rec.venue?.categories || []).some((cat) =>
       cat.toLowerCase().includes(activeCategory.toLowerCase())
     )
   );
 
   const handleToggleFavorite = async (venue_id) => {
-    if (!user) return alert("Please log in to manage favorites.");
+    if (!user) {
+      alert("Please log in to manage favorites.");
+      return;
+    }
     try {
       if (favoritesMap[venue_id]) {
         await axiosInstance.post("/api/favorites/remove", { venue_id });
@@ -184,52 +188,48 @@ const Dashboard = () => {
           delete copy[venue_id];
           return copy;
         });
+        showToast(`💔 Removed from favorites.`, "success");
       } else {
         await axiosInstance.post("/api/favorites/add", { venue_id });
         setFavoritesMap((prev) => ({ ...prev, [venue_id]: true }));
+        showToast("❤️ Added to favorites!", "success");
       }
     } catch (err) {
       console.error("Error toggling favorite:", err);
+      showToast("⚠️ Failed to update favorite.", "error");
     }
   };
 
+  // ---------------- JSX ----------------
   return (
     <Container>
       <header className="dashboard-header">
         <span>{message}</span>
       </header>
 
-      {/* 🔥 Featured Section */}
+      {/* Featured Section */}
       <section className="featured-section">
         <h3 className="dashboard-subtitle">Featured</h3>
         <div className="featured-list">
           {featured.map((venue) => (
-            <FeaturedCard
-              key={venue.venue_id}
-              venue={venue}
-              onClick={() => navigate("/venue-detail", { state: { venue } })}
-            />
+            <FeaturedCard key={venue.venue_id} venue={venue} onClick={() => navigate("/venue-detail", { state: { venue } })} />
           ))}
         </div>
       </section>
 
-      {/* 🔥 Because You Liked Section */}
+      {/* Because You Liked Section */}
       {becauseYouLiked.length > 0 && (
         <section className="because-liked-section">
           <h3 className="dashboard-subtitle">You might also love...</h3>
           <div className="featured-list">
             {becauseYouLiked.map((venue) => (
-              <FeaturedCard
-                key={venue.venue_id}
-                venue={venue}
-                onClick={() => navigate("/venue-detail", { state: { venue } })}
-              />
+              <FeaturedCard key={venue.venue_id} venue={venue} onClick={() => navigate("/venue-detail", { state: { venue } })} />
             ))}
           </div>
         </section>
       )}
 
-      {/* 🔥 Categories Section */}
+      {/* Categories Section */}
       <section className="categories-section">
         <h3 className="dashboard-subtitle">Categories</h3>
         <div className="category-list">
@@ -252,7 +252,7 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* 🔥 Main Recommendations Section */}
+      {/* Main Recommendations Section */}
       <section className="places-section">
         {loading && recommendations.length === 0 ? (
           <div className="loading-container">
@@ -281,14 +281,13 @@ const Dashboard = () => {
           </>
         ) : (
           <p className="no-results-text">
-            No recommendations found. Try{" "}
-            <span onClick={() => navigate("/profile-setup")}>updating your preferences</span>{" "}
-            or refreshing.
+            No recommendations found. Try <span onClick={() => navigate("/profile-setup")}>updating your preferences</span> or refreshing.
           </p>
         )}
       </section>
 
       <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
+
       <BottomNav />
     </Container>
   );

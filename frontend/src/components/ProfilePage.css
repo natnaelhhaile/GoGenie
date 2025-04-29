@@ -34,28 +34,28 @@
 }
 
 .profile-avatar {
-  font-size: 90px;
+  font-size: 4.5rem !important;
   color: #b369f7 !important;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.05rem !important;
 }
 
 .profile-section h2 {
   font-size: 1.5rem;
   font-weight: 600;
   color: #333;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.1rem !important;
 }
 
 .user-email {
   font-size: 0.95rem;
   color: #555;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1rem !important;
 }
 
 .profile-info::after {
   content: "";
   display: block;
-  margin: 1.5rem auto;
+  margin: 0.25rem auto !important;
   width: 60%;
   height: 1px;
   background: #ddd;
@@ -75,12 +75,6 @@
     transform: translateY(0);
   }
 }
-  
-.profile-avatar {
-  font-size: 80px;
-  color: #3F5A5B;
-  margin-bottom: 10px;
-}
 
 .user-email {
   font-size: 14px;
@@ -92,7 +86,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin: 1.5rem auto;
+  margin: .5rem auto;
   width: 75%;
 }
 
@@ -159,7 +153,7 @@
   background: #e4e4fc;
   border-radius: 10px;
   padding: 16px;
-  margin: 20px 0;
+  margin: 1rem 0;
   color: #333;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }

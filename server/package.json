@@ -18,6 +18,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.16.0",
     "mongoose": "^8.10.0",
+    "nanoid": "^5.1.5",
     "openai": "^4.87.3"
   },
   "devDependencies": {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoSearch, IoClose } from "react-icons/io5";
+import { useToast } from "../context/ToastContext"; // ✅ Correct import
 import axiosInstance from "../api/axiosInstance";
 import VenueCard from "../components/VenueCard";
 import Container from "../components/Container";
@@ -12,15 +13,14 @@ const Search = () => {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingNearby, setLoadingNearby] = useState(false);
-
   const [recentSearches, setRecentSearches] = useState(() => {
     const stored = localStorage.getItem("recentSearches");
     return stored ? JSON.parse(stored) : [];
   });
 
+  const { showToast } = useToast(); // ✅ Correct destructure
   const navigate = useNavigate();
 
-  // New: fetch "near me" results
   const handleNearby = useCallback(async () => {
     setLoadingNearby(true);
     try {
@@ -28,26 +28,29 @@ const Search = () => {
       const venues = res.data.results || [];
       setResults(venues);
 
-      // persist in sessionStorage
       sessionStorage.setItem(
         "lastSearch",
         JSON.stringify({ type: "nearby", results: venues })
       );
 
-      // bump “Near Me” to top of recents
       let updated = ["Near Me", ...recentSearches.filter((t) => t !== "Near Me")];
       if (updated.length > 5) updated = updated.slice(0, 5);
       setRecentSearches(updated);
       localStorage.setItem("recentSearches", JSON.stringify(updated));
+
+      showToast("📍 Showing places near you!", "success");
     } catch (err) {
       console.error("Nearby error:", err);
-      alert("Could not retrieve nearby venues.");
+      if (err?.response?.status === 400) {
+        showToast("⚠️ Please enable location access to use 'Near Me'.", "error");
+      } else {
+        showToast("❌ Could not fetch nearby venues.", "error");
+      }
     } finally {
       setLoadingNearby(false);
     }
-  }, [recentSearches]);
+  }, [recentSearches, showToast]);
 
-  // Restore last search on mount
   useEffect(() => {
     const last = sessionStorage.getItem("lastSearch");
     if (last) {
@@ -59,14 +62,19 @@ const Search = () => {
           setQuery(parsed.query);
           setResults(parsed.results);
         }
-      } catch {}
+      } catch {
+        console.warn("Failed to parse lastSearch from sessionStorage.");
+      }
     }
   }, []);
 
   const handleSearch = useCallback(
     async (termParam) => {
       const term = (termParam ?? query).trim();
-      if (!term) return;
+      if (!term) {
+        showToast("⚡ Please enter something to search.", "info");
+        return;
+      }
 
       setLoading(true);
       try {
@@ -75,6 +83,10 @@ const Search = () => {
         );
         const venues = res.data.results || [];
         setResults(venues);
+
+        if (venues.length === 0) {
+          showToast("😕 No venues found for your search.", "info");
+        }
 
         sessionStorage.setItem(
           "lastSearch",
@@ -87,11 +99,12 @@ const Search = () => {
         localStorage.setItem("recentSearches", JSON.stringify(updated));
       } catch (err) {
         console.error("Search error:", err);
+        showToast("❌ Error while searching.", "error");
       } finally {
         setLoading(false);
       }
     },
-    [query, recentSearches]
+    [query, recentSearches, showToast]
   );
 
   return (
@@ -122,12 +135,10 @@ const Search = () => {
       <div className="recent-searches">
         <span className="recent-title">Recent:</span>
 
-        {/* Always show Near Me */}
         <button className="recent-item" onClick={handleNearby}>
           📍 near me
         </button>
 
-        {/* Only list actual past queries */}
         {recentSearches.map((term, idx) =>
           term === "Near Me" ? null : (
             <button
@@ -143,13 +154,13 @@ const Search = () => {
           )
         )}
 
-        {/* Clear button only if there are real recents */}
         {recentSearches.filter((t) => t !== "Near Me").length > 0 && (
           <button
             className="clear-recent"
             onClick={() => {
               setRecentSearches([]);
               localStorage.removeItem("recentSearches");
+              showToast("🧹 Cleared recent searches!", "success");
             }}
           >
             Clear

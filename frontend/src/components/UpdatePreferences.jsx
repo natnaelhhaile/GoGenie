@@ -4,18 +4,15 @@ import { motion } from "framer-motion";
 import Container from "./Container";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
-import {
-  hobbiesList,
-  foodList,
-  thematicList,
-  lifestyleList
-} from "../constants/preferencesData";
+import { hobbiesList, foodList, thematicList, lifestyleList } from "../constants/preferencesData";
+import { useToast } from "../context/ToastContext";
 import "./ProfileSetup.css";
 
 const UpdatePreferences = () => {
   const navigate = useNavigate();
   const formRef = useRef(null);
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [step, setStep] = useState(1);
   const [errorNotice, setErrorNotice] = useState("");
 
@@ -23,8 +20,10 @@ const UpdatePreferences = () => {
     hobbies: [],
     foodPreferences: [],
     thematicPreferences: [],
-    lifestylePreferences: []
+    lifestylePreferences: [],
   });
+
+  const [originalProfile, setOriginalProfile] = useState(null);
 
   useEffect(() => {
     const fetchPreferences = async () => {
@@ -34,23 +33,27 @@ const UpdatePreferences = () => {
           hobbies = [],
           foodPreferences = [],
           thematicPreferences = [],
-          lifestylePreferences = []
+          lifestylePreferences = [],
         } = res.data;
-        setProfile({ hobbies, foodPreferences, thematicPreferences, lifestylePreferences });
+
+        const fetched = { hobbies, foodPreferences, thematicPreferences, lifestylePreferences };
+        setProfile(fetched);
+        setOriginalProfile(fetched);
       } catch (err) {
         console.error("❌ Error fetching preferences:", err);
+        showToast("⚠️ Could not load your preferences.", "error");
       }
     };
 
     if (user) fetchPreferences();
-  }, [user]);
+  }, [user, showToast]);
 
   const handleSelect = (type, value) => {
     setProfile((prev) => ({
       ...prev,
       [type]: prev[type].includes(value)
         ? prev[type].filter((item) => item !== value)
-        : [...prev[type], value]
+        : [...prev[type], value],
     }));
   };
 
@@ -63,7 +66,6 @@ const UpdatePreferences = () => {
       setErrorNotice("Please select at least 2 options to proceed. Recommended: pick 3 or more for better suggestions.");
       return;
     }
-
     setErrorNotice("");
     setStep((prev) => prev + 1);
   };
@@ -75,22 +77,27 @@ const UpdatePreferences = () => {
 
   const handleCancel = () => {
     navigate("/profile");
-    return;
-  }
+  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (profile.lifestylePreferences.length < 2) {
       setErrorNotice("Please select at least 2 options to proceed. Recommended: pick 3 or more for better suggestions.");
       return;
     }
 
+    if (!originalProfile || JSON.stringify(profile) === JSON.stringify(originalProfile)) {
+      showToast("ℹ️ No changes made to preferences.", "info");
+      navigate("/profile");
+      return;
+    }
+
     try {
       await axiosInstance.put("/api/users/preferences", profile);
-      console.log("✅ Preferences updated");
-      navigate("/dashboard");
+      showToast("🎉 Preferences saved successfully!", "success");
+      navigate("/profile");
     } catch (err) {
       console.error("❌ Error updating preferences:", err);
+      showToast("💀 Failed to update preferences. Try again later.", "error");
     }
   };
 
@@ -108,7 +115,7 @@ const UpdatePreferences = () => {
           ))}
         </div>
 
-        <form ref={formRef} onSubmit={handleSubmit} noValidate>
+        <form ref={formRef} noValidate>
           {step >= 1 && (
             <div className="step-content">
               <div className="sticky-header">
@@ -125,6 +132,7 @@ const UpdatePreferences = () => {
                   * Select at least 2 options to proceed. Recommended: pick 3+ for better suggestions.
                 </p>
               </div>
+
               <div className="scrollable-grid-wrapper">
                 <div className="grid-container">
                   {(step === 1
@@ -173,11 +181,11 @@ const UpdatePreferences = () => {
           )}
 
           <div className="step-buttons">
-          {step === 1 && (
-            <button type="button" className="btn secondary" onClick={handleCancel}>
-              Cancel
-            </button>
-          )}
+            {step === 1 && (
+              <button type="button" className="btn secondary" onClick={handleCancel}>
+                Cancel
+              </button>
+            )}
             {step > 1 && (
               <button type="button" className="btn secondary" onClick={handleBack}>
                 Back
@@ -188,7 +196,7 @@ const UpdatePreferences = () => {
                 Next
               </button>
             ) : (
-              <button type="submit" className="btn">
+              <button type="button" className="btn" onClick={handleSubmit}>
                 Save Preferences
               </button>
             )}

@@ -7,14 +7,16 @@ import { getAuth, EmailAuthProvider, GoogleAuthProvider } from "firebase/auth";
 import * as firebaseui from "firebaseui";
 import "firebaseui/dist/firebaseui.css";
 import axiosInstance from "../api/axiosInstance";
+import { useToast } from "../context/ToastContext";
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const uiRef = useRef(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const auth = getAuth();
-  
+
     // grab or create the AuthUI instance, then reset its DOM
     let ui = firebaseui.auth.AuthUI.getInstance();
     if (ui) {
@@ -23,11 +25,10 @@ const LandingPage = () => {
       ui = new firebaseui.auth.AuthUI(auth);
     }
     uiRef.current = ui;
-  
+
     ui.start("#firebaseui-auth-container", {
-      // force popup instead of redirect
       signInFlow: "popup",
-  
+
       signInOptions: [
         GoogleAuthProvider.PROVIDER_ID,
         {
@@ -36,35 +37,39 @@ const LandingPage = () => {
           fullLabel: "Sign up with Email",
         },
       ],
-  
+
       callbacks: {
-        // this fires on a successful sign-in
         signInSuccessWithAuthResult: async (authResult) => {
-          console.log("✅ FirebaseUI callback fired:", authResult.user.uid);
           localStorage.setItem("sessionStart", Date.now());
+          showToast("🎉 Welcome to GoGenie!", "success");
+
           try {
             const { data } = await axiosInstance.post("/api/users/check-new-user");
-            console.log("→ hasPreferences:", data.hasPreferences);
             navigate(data.hasPreferences ? "/dashboard" : "/profile-setup");
           } catch (err) {
             console.error("Error checking new user:", err);
+            showToast("⚠️ Something went wrong during login.", "error");
             navigate("/dashboard");
           }
-          // returning false prevents any default redirect
-          return false;
+
+          return false; // Prevent default redirect
         },
-        // this fires once the widget is fully rendered
-        uiShown: () => console.log("🔧 FirebaseUI is now visible"),
+
+        uiShown: () => {
+          console.log("🔧 FirebaseUI is now visible");
+        },
+
         signInFailure: (err) => {
           console.error("❌ Sign-in Error:", err);
+          showToast("💀 Login failed. Please try again.", "error");
         },
       },
     });
-  
+
     return () => {
       if (uiRef.current) uiRef.current.reset();
     };
-  }, [navigate]);  
+  }, [navigate, showToast]);
 
   return (
     <div className="fullscreen-wrapper">

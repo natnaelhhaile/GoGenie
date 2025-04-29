@@ -5,18 +5,21 @@ import {
   IoPersonCircleSharp,
   IoOptions,
   IoLogOut,
-  IoCreate
+  IoCreate,
+  IoKey
 } from "react-icons/io5";
 import { FaRobot } from "react-icons/fa";
 import Container from "../components/Container";
 import axiosInstance from "../api/axiosInstance";
 import "./ProfilePage.css";
 import BottomNav from "../components/BottomNav";
+import { useToast } from "../context/ToastContext";
 
 const ProfilePage = () => {
   const [profileName, setProfileName] = useState("User");
   const [summary, setSummary] = useState("");
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -47,6 +50,7 @@ const ProfilePage = () => {
     try {
       await auth.signOut();
       localStorage.removeItem("sessionStart");
+      showToast("👋 Signed out successfully", "success");
       navigate("/login");
     } catch (error) {
       console.error("❌ Error logging out:", error);
@@ -74,6 +78,9 @@ const ProfilePage = () => {
         </div>
 
         <div className="profile-settings">
+          <button className="edit-btn" onClick={() => navigate("/forgot-password")}>
+            <IoKey /> Change Password
+          </button>
           <button className="edit-btn" onClick={() => navigate("/edit-profile")}>
             <IoCreate /> Edit Profile
           </button>

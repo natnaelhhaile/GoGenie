@@ -13,42 +13,48 @@ import ProfilePage from "./components/ProfilePage";
 import EditProfilePage from "./components/EditProfilePage";
 import UpdatePreferences from "./components/UpdatePreferences";
 import ForgotPassword from "./components/ForgotPassword";
-import ChatAssistant from "./components/ChatAssistant";
 import Search from "./components/Search";
 import useSessionExpiration from "./hooks/useSessionExpiration";
+import { ToastProvider } from "./context/ToastContext";
+import Toast from "./components/Toast"; 
 
 function AppRoutes() {
-  useSessionExpiration(); // ✅ Now safely inside the <Router> context
+  useSessionExpiration();
 
   return (
-    <Routes>
-      <Route element={<PublicRoute />}>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
+    <>
+      <Routes>
         <Route path="/forgot-password" element={<ForgotPassword />} />
-      </Route>
+        <Route element={<PublicRoute />}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+        </Route>
 
-      <Route element={<ProtectedRoute />}>
-        <Route path="/profile-setup" element={<ProfileSetup />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/venue-detail" element={<VenueDetailPage />} />
-        <Route path="/favorites" element={<FavoritesPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/edit-profile" element={<EditProfilePage />} />
-        <Route path="/update-preferences" element={<UpdatePreferences />} />
-        <Route path="/search" element={<Search />} />
-      </Route>
-    </Routes>
+        <Route element={<ProtectedRoute />}>
+          <Route path="/profile-setup" element={<ProfileSetup />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/venue-detail" element={<VenueDetailPage />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/edit-profile" element={<EditProfilePage />} />
+          <Route path="/update-preferences" element={<UpdatePreferences />} />
+          <Route path="/search" element={<Search />} />
+        </Route>
+      </Routes>
+    </>
   );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <ToastProvider>
+          <AppRoutes />
+          <Toast />
+        </ToastProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 
