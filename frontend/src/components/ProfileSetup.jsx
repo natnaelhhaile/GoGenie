@@ -17,6 +17,7 @@ import {
   isValidName,
   isValidAge,
   isValidTextField,
+  isValidAddress,
 } from "../utils/validators";
 
 
@@ -55,7 +56,7 @@ const ProfileSetup = () => {
         },
         (err) => {
           console.warn("Geolocation error:", err);
-          setGeoError("Unable to retrieve precise location. You can still manually enter your city.");
+          setGeoError("Unable to retrieve precise location.");
         },
         { enableHighAccuracy: true, timeout: 5000 }
       );
@@ -100,8 +101,8 @@ const ProfileSetup = () => {
         return;
       }
 
-      if (!locationText.trim()) {
-        setErrorNotice("City/state location is required.");
+      if (!geoCoords && !isValidAddress(locationText)) {
+        setErrorNotice("Full address is required if location access is denied.");
         return;
       }
     }
@@ -139,32 +140,17 @@ const ProfileSetup = () => {
       return;
     }
 
-    if (!geoCoords || !locationText.trim()) {
-      setErrorNotice("Please provide both location access and city/state.");
-      return;
-    }
-
-    if (
-      !isValidName(profile.fname) ||
-      !isValidName(profile.lname) ||
-      !isValidAge(Number(profile.age)) ||
-      !isValidTextField(profile.nationality) ||
-      !isValidTextField(profile.industry) ||
-      !isValidTextField(locationText)
-    ) {
-      setErrorNotice("Some fields contain invalid input. Please check your entries.");
+    if (!geoCoords && !isValidAddress(locationText)) {
+      setErrorNotice("Please provide a valid full address.");
       return;
     }
 
     try {
       const payload = {
         ...profile,
-        age: Number(profile.age),
-        location: {
-          lat: geoCoords.lat,
-          lng: geoCoords.lng,
-          text: locationText.trim(),
-        },
+        location: geoCoords
+        ? { lat: geoCoords.lat, lng: geoCoords.lng }
+        : { text: locationText.trim() },
       };
 
       await axiosInstance.post("/api/users/preferences", payload);
@@ -225,13 +211,21 @@ const ProfileSetup = () => {
 
               <input type="text" name="nationality" placeholder="Nationality" value={profile.nationality} onChange={handleChange} required />
               <input type="text" name="industry" placeholder="Profession" value={profile.industry} onChange={handleChange} required />
-              <input type="text" name="locationText" placeholder="Location (city, state)" value={locationText} onChange={(e) => setLocationText(e.target.value)} required />
+              <input
+                type="text"
+                name="locationText"
+                placeholder="Full Address (e.g., 123 Main St, Sacramento, CA)"
+                value={locationText}
+                onChange={(e) => setLocationText(e.target.value)}
+                disabled={!!geoCoords}
+                required={!geoCoords}
+              />
 
               <div className="geo-status">
                 {geoCoords ? (
                   <p className="geo-success">📍 Location Detected: {geoCoords.lat.toFixed(4)}, {geoCoords.lng.toFixed(4)}</p>
                 ) : geoError ? (
-                  <p className="geo-fallback">⚠️ {geoError}<br />Please enter your city manually below.</p>
+                  <p className="geo-fallback">⚠️ {geoError}<br />Please enter your full address manually above.</p>
                 ) : (
                   <p className="geo-waiting">⏳ Attempting to detect your location...</p>
                 )}

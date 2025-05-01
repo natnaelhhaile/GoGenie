@@ -18,6 +18,13 @@ export const isValidSearchQuery = (query) =>
 export const isValidTextField = (text) =>
     typeof text === "string" && /^[\p{L}\p{N}\/&(),.'\-\s]{2,100}$/u.test(text.trim());
 
+// Address: letters, numbers, punctuation and spaces (e.g., "123 Main St, Apt 4B")
+export const isValidAddress = (text) =>
+    typeof text === "string" &&
+    text.trim().length >= 5 &&
+    text.trim().length <= 100 &&
+    /^[a-zA-Z0-9\s.,#\-\\/']+$/.test(text.trim());
+
 // Feedback type: must be "up", "down", or "none"
 export const isValidFeedbackType = (val) =>
     typeof val === "string" && ["up", "down", "none"].includes(val);
@@ -26,6 +33,7 @@ export const isValidFeedbackType = (val) =>
 export const isValidStringArray = (arr) => 
     Array.isArray(arr) && arr.every(item => typeof item === "string");
 
+// Function to escape/sanitize textual input that needs to be regex'd
 export function escapeRegex(text) {
-    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}

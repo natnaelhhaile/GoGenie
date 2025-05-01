@@ -8,8 +8,10 @@ import {
   isValidName,
   isValidAge,
   isValidTextField,
-  isValidStringArray
+  isValidStringArray,
+  isValidAddress,
 } from "../utils/validators.js";
+import geocodeAddress from "../utils/geocodeAddress.js";
 
 const router = express.Router();
 
@@ -67,65 +69,51 @@ router.post("/preferences", verifyFirebaseToken, async (req, res) => {
   try {
     const uid = req.user.uid;
     const {
-      fname,
-      lname,
-      age,
-      gender,
-      nationality,
-      industry,
-      location,
-      hobbies,
-      foodPreferences,
-      thematicPreferences,
-      lifestylePreferences,
+      fname, lname, age, gender, nationality, industry,
+      location, hobbies, foodPreferences, thematicPreferences, lifestylePreferences
     } = req.body;
 
-    // Basic field validation
     if (!isValidName(fname)) return res.status(400).json({ message: "Invalid first name." });
     if (!isValidName(lname)) return res.status(400).json({ message: "Invalid last name." });
     if (!isValidAge(Number(age))) return res.status(400).json({ message: "Invalid age." });
     if (!["male", "female", "nonBinary", "preferNot"].includes(gender))
       return res.status(400).json({ message: "Invalid gender option." });
     if (!isValidTextField(nationality)) return res.status(400).json({ message: "Invalid nationality." });
-    if (!isValidTextField(industry)) return res.status(400).json({ message: "Invalid profession/industry." });
+    if (!isValidTextField(industry)) return res.status(400).json({ message: "Invalid industry." });
 
-    // Validate required arrays
-    const requiredArrays = [
+    for (const field of [
       { name: "hobbies", value: hobbies },
       { name: "foodPreferences", value: foodPreferences },
       { name: "thematicPreferences", value: thematicPreferences },
-      { name: "lifestylePreferences", value: lifestylePreferences },
-    ];
-
-    for (const field of requiredArrays) {
-      if (!Array.isArray(field.value) || field.value.some(item => typeof item !== "string")) {
+      { name: "lifestylePreferences", value: lifestylePreferences }
+    ]) {
+      if (!isValidStringArray(field.value)) {
         return res.status(400).json({ message: `${field.name} must be an array of strings.` });
       }
     }
 
-    const user = await User.findOne({ uid });
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    // Build location object with support for lat/lng and optional text
     let locationPayload = undefined;
     if (location?.lat && location?.lng) {
       locationPayload = {
         lat: location.lat,
         lng: location.lng,
-        text: typeof location.text === "string" && isValidTextField(location.text)
-          ? location.text.trim()
-          : undefined,
+        text: isValidAddress(location.text) ? location.text.trim() : undefined,
         updatedAt: new Date(),
         coordinates: [location.lng, location.lat],
       };
-    } else if (typeof location?.text === "string") {
-      if (!isValidTextField(location.text)) {
-        return res.status(400).json({ message: "Invalid location text." });
+    } else if (typeof location?.text === "string" && isValidAddress(location.text)) {
+      const geocoded = await geocodeAddress(location.text);
+      if (geocoded) {
+        locationPayload = {
+          lat: geocoded.lat,
+          lng: geocoded.lng,
+          text: location.text.trim(),
+          updatedAt: new Date(),
+          coordinates: [geocoded.lng, geocoded.lat],
+        };
+      } else {
+        return res.status(400).json({ message: "Could not geocode the provided address." });
       }
-      locationPayload = {
-        text: location.text.trim(),
-        updatedAt: new Date()
-      };
     }
 
     const preferences = new Preferences({
@@ -136,31 +124,17 @@ router.post("/preferences", verifyFirebaseToken, async (req, res) => {
       gender,
       nationality: nationality.trim(),
       industry: industry.trim(),
-      hobbies,
-      foodPreferences,
-      thematicPreferences,
-      lifestylePreferences,
+      hobbies, foodPreferences, thematicPreferences, lifestylePreferences,
       location: locationPayload
     });
 
     await preferences.save();
-
-    const tagWeights = buildTagWeights({
-      hobbies,
-      foodPreferences,
-      thematicPreferences,
-      lifestylePreferences
-    });
-
+    const tagWeights = buildTagWeights({ hobbies, foodPreferences, thematicPreferences, lifestylePreferences });
     await User.findOneAndUpdate({ uid }, { tagWeights }, { upsert: true });
 
-    res.status(200).json({
-      message: "Preferences and tagWeights saved successfully.",
-      preferences
-    });
-
+    res.status(200).json({ message: "Preferences saved.", preferences });
   } catch (error) {
-    console.error("❌ Error saving preferences:", error);
+    console.error("POST /preferences error:", error);
     res.status(500).json({ message: "Server error", error });
   }
 });
@@ -211,78 +185,37 @@ router.put("/preferences", verifyFirebaseToken, async (req, res) => {
 // Update basic user details (fname, lname, age, gender, nationality, etc.)
 router.put("/details", verifyFirebaseToken, async (req, res) => {
   const uid = req.user.uid;
-  const {
-    fname,
-    lname,
-    age,
-    gender,
-    nationality,
-    industry,
-    location,
-  } = req.body;
-
+  const { fname, lname, age, gender, nationality, industry, location } = req.body;
   const updates = {};
 
-  // Validate and assign fields
-  if (fname) {
-    if (!isValidName(fname)) {
-      return res.status(400).json({ message: "Invalid first name." });
-    }
-    updates.fname = fname.trim();
-  }
+  if (fname && isValidName(fname)) updates.fname = fname.trim();
+  if (lname && isValidName(lname)) updates.lname = lname.trim();
+  if (age !== undefined && isValidAge(Number(age))) updates.age = Number(age);
+  if (gender && ["male", "female", "nonBinary", "preferNot"].includes(gender)) updates.gender = gender;
+  if (nationality && isValidTextField(nationality)) updates.nationality = nationality.trim();
+  if (industry && isValidTextField(industry)) updates.industry = industry.trim();
 
-  if (lname) {
-    if (!isValidName(lname)) {
-      return res.status(400).json({ message: "Invalid last name." });
-    }
-    updates.lname = lname.trim();
-  }
-
-  if (age !== undefined) {
-    const numericAge = parseInt(age, 10);
-    if (!isValidAge(numericAge)) {
-      return res.status(400).json({ message: "Invalid age. Must be 1–120." });
-    }
-    updates.age = numericAge;
-  }
-
-  if (gender) {
-    const validGenders = ["male", "female", "nonBinary", "preferNot"];
-    if (!validGenders.includes(gender)) {
-      return res.status(400).json({ message: "Invalid gender option." });
-    }
-    updates.gender = gender;
-  }
-
-  if (nationality) {
-    if (!isValidTextField(nationality)) {
-      return res.status(400).json({ message: "Invalid nationality." });
-    }
-    updates.nationality = nationality.trim();
-  }
-
-  if (industry) {
-    if (!isValidTextField(industry)) {
-      return res.status(400).json({ message: "Invalid profession or industry." });
-    }
-    updates.industry = industry.trim();
-  }
-
-  // Location validation: either lat/lng or text
   if (location?.lat && location?.lng) {
     updates.location = {
       lat: location.lat,
       lng: location.lng,
+      text: isValidAddress(location.text) ? location.text.trim() : undefined,
       updatedAt: new Date(),
+      coordinates: [location.lng, location.lat],
     };
-  } else if (typeof location?.text === "string") {
-    if (!isValidTextField(location.text)) {
-      return res.status(400).json({ message: "Invalid location text." });
+  } else if (typeof location?.text === "string" && isValidAddress(location.text)) {
+    const geocoded = await geocodeAddress(location.text);
+    if (geocoded) {
+      updates.location = {
+        lat: geocoded.lat,
+        lng: geocoded.lng,
+        text: location.text.trim(),
+        updatedAt: new Date(),
+        coordinates: [geocoded.lng, geocoded.lat],
+      };
+    } else {
+      return res.status(400).json({ message: "Could not geocode the provided address." });
     }
-    updates.location = {
-      text: location.text.trim(),
-      updatedAt: new Date(),
-    };
   }
 
   try {
@@ -292,17 +225,12 @@ router.put("/details", verifyFirebaseToken, async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!updated) {
-      return res.status(404).json({ message: "User not found." });
-    }
+    if (!updated) return res.status(404).json({ message: "User not found." });
 
-    res.status(200).json({
-      message: "User details updated successfully.",
-      preferences: updated,
-    });
+    res.status(200).json({ message: "User details updated successfully.", preferences: updated });
   } catch (error) {
-    console.error("❌ Error updating user details:", error);
-    res.status(500).json({ message: "Server error." });
+    console.error("PUT /details error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoSearch, IoClose } from "react-icons/io5";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../api/axiosInstance";
 import VenueCard from "../components/VenueCard";
 import Container from "../components/Container";
@@ -10,17 +11,23 @@ import { isValidSearchQuery } from "../utils/validators";
 import "./Search.css";
 
 const Search = () => {
+  const { user } = useAuth();
+  const uid = user?.uid || "guest";
+  const storageKey = `recentSearches_${uid}`;
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingNearby, setLoadingNearby] = useState(false);
-  const [recentSearches, setRecentSearches] = useState(() => {
-    const stored = localStorage.getItem("recentSearches");
-    return stored ? JSON.parse(stored) : [];
-  });
+  const [recentSearches, setRecentSearches] = useState([]);
 
   const { showToast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const stored = localStorage.getItem(storageKey);
+    setRecentSearches(stored ? JSON.parse(stored) : []);
+  }, [uid]);
 
   const handleNearby = useCallback(async () => {
     setLoadingNearby(true);
@@ -37,7 +44,7 @@ const Search = () => {
       let updated = ["Near Me", ...recentSearches.filter((t) => t !== "Near Me")];
       if (updated.length > 5) updated = updated.slice(0, 5);
       setRecentSearches(updated);
-      localStorage.setItem("recentSearches", JSON.stringify(updated));
+      localStorage.setItem(storageKey, JSON.stringify(updated));
 
       showToast("📍 Showing places near you!", "success");
     } catch (err) {
@@ -50,7 +57,7 @@ const Search = () => {
     } finally {
       setLoadingNearby(false);
     }
-  }, [recentSearches, showToast]);
+  }, [recentSearches, storageKey, showToast]);
 
   useEffect(() => {
     const last = sessionStorage.getItem("lastSearch");
@@ -98,7 +105,7 @@ const Search = () => {
         let updated = [term, ...recentSearches.filter((q) => q !== term)];
         if (updated.length > 5) updated = updated.slice(0, 5);
         setRecentSearches(updated);
-        localStorage.setItem("recentSearches", JSON.stringify(updated));
+        localStorage.setItem(storageKey, JSON.stringify(updated));
       } catch (err) {
         console.error("Search error:", err);
         showToast("Error while searching.", "error");
@@ -106,7 +113,7 @@ const Search = () => {
         setLoading(false);
       }
     },
-    [query, recentSearches, showToast]
+    [query, recentSearches, storageKey, showToast]
   );
 
   return (
@@ -161,7 +168,7 @@ const Search = () => {
             className="clear-recent"
             onClick={() => {
               setRecentSearches([]);
-              localStorage.removeItem("recentSearches");
+              localStorage.removeItem(storageKey);
               showToast("🧹 Cleared recent searches!", "success");
             }}
           >
@@ -173,7 +180,7 @@ const Search = () => {
       <div className="search-results">
         {(loading || loadingNearby) ? (
           <div className="loading-container">
-            <div className="loading-spinner"/>
+            <div className="loading-spinner" />
             <p>Searching...</p>
           </div>
         ) : results.length ? (

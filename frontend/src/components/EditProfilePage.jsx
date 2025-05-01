@@ -9,6 +9,7 @@ import {
   isValidName,
   isValidAge,
   isValidTextField,
+  isValidAddress,
 } from "../utils/validators";
 import "./ProfileSetup.css";
 
@@ -19,7 +20,6 @@ const EditProfilePage = () => {
   const { showToast } = useToast();
 
   const [initialFormData, setInitialFormData] = useState(null);
-  const [initialCoords, setInitialCoords] = useState(null);
   const [errorNotice, setErrorNotice] = useState("");
   const [geoCoords, setGeoCoords] = useState(null);
   const [geoError, setGeoError] = useState(null);
@@ -30,14 +30,14 @@ const EditProfilePage = () => {
     gender: "",
     nationality: "",
     industry: "",
-    locationText: "",
+    location: { text: "" },
   });
 
   const genderOptions = [
     { value: "male", label: "Male" },
     { value: "female", label: "Female" },
     { value: "nonBinary", label: "Non-Binary" },
-    { value: "preferNot", label: "Prefer Not To Say" }
+    { value: "preferNot", label: "Prefer Not To Say" },
   ];
 
   useEffect(() => {
@@ -47,8 +47,13 @@ const EditProfilePage = () => {
         const { fname, lname, age, gender, nationality, industry, location } = res.data;
 
         const updates = {
-          fname, lname, age, gender, nationality, industry,
-          locationText: location?.text || "",
+          fname,
+          lname,
+          age,
+          gender,
+          nationality,
+          industry,
+          location: location || { text: "" },
         };
 
         setFormData(updates);
@@ -56,7 +61,6 @@ const EditProfilePage = () => {
 
         if (location?.lat && location?.lng) {
           setGeoCoords({ lat: location.lat, lng: location.lng });
-          setInitialCoords({ lat: location.lat, lng: location.lng });
         }
       } catch (err) {
         console.error("❌ Failed to load user details", err);
@@ -72,7 +76,7 @@ const EditProfilePage = () => {
           },
           (err) => {
             console.warn("⚠️ Geolocation denied or failed:", err);
-            setGeoError("Location detection failed. You can enter your city manually.");
+            setGeoError("Location detection failed. Please enter your address manually.");
           },
           { enableHighAccuracy: true, timeout: 5000 }
         );
@@ -85,61 +89,52 @@ const EditProfilePage = () => {
     }
   }, [user]);
 
-  const handleCancel = () => {
-    navigate("/profile");
-  };
+  const handleCancel = () => navigate("/profile");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "location.text") {
+      setFormData((prev) => ({
+        ...prev,
+        location: { ...prev.location, text: value },
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorNotice("");
 
-    // Frontend validations
-    if (!isValidName(formData.fname)) {
-      setErrorNotice("First name contains invalid characters.");
-      return;
-    }
-    if (!isValidName(formData.lname)) {
-      setErrorNotice("Last name contains invalid characters.");
-      return;
-    }
-    if (!isValidAge(Number(formData.age))) {
-      setErrorNotice("Please enter a valid age between 1 and 120.");
-      return;
-    }
-    if (!isValidTextField(formData.nationality)) {
-      setErrorNotice("Please enter a valid nationality.");
-      return;
-    }
-    if (!isValidTextField(formData.industry)) {
-      setErrorNotice("Please enter a valid profession or industry.");
-      return;
-    }
-    if (!geoCoords && !isValidTextField(formData.locationText)) {
-      setErrorNotice("Please enter a valid city or region or allow location access.");
-      return;
+    const { fname, lname, age, gender, nationality, industry, location } = formData;
+
+    if (!isValidName(fname)) return setErrorNotice("Invalid first name.");
+    if (!isValidName(lname)) return setErrorNotice("Invalid last name.");
+    if (!isValidAge(Number(age))) return setErrorNotice("Invalid age.");
+    if (!isValidTextField(nationality)) return setErrorNotice("Invalid nationality.");
+    if (!isValidTextField(industry)) return setErrorNotice("Invalid profession/industry.");
+    if (!geoCoords && !isValidAddress(location?.text || "")) {
+      return setErrorNotice("Provide a full address or allow location access.");
     }
 
     const unchanged =
       JSON.stringify(formData) === JSON.stringify(initialFormData) &&
-      JSON.stringify(geoCoords) === JSON.stringify(initialCoords);
+      (!geoCoords ||
+        (geoCoords.lat === initialFormData?.location?.lat &&
+          geoCoords.lng === initialFormData?.location?.lng));
 
     if (unchanged) {
       showToast("ℹ️ No changes made to profile.", "info");
-      navigate("/profile");
-      return;
+      return navigate("/profile");
     }
 
     const payload = {
       ...formData,
       location: geoCoords
-        ? { lat: geoCoords.lat, lng: geoCoords.lng }
-        : formData.locationText
-        ? { text: formData.locationText }
+        ? { lat: geoCoords.lat, lng: geoCoords.lng, text: location?.text }
+        : location?.text
+        ? { text: location.text }
         : undefined,
     };
 
@@ -149,8 +144,8 @@ const EditProfilePage = () => {
       navigate("/profile");
     } catch (err) {
       console.error("❌ Error updating profile", err);
-      setErrorNotice(err.response?.data?.message || "Failed to update profile. Please try again.");
-      showToast(err.response?.data?.message || "Failed to update profile.", "error");
+      setErrorNotice("Failed to update profile. Please try again.");
+      showToast("Failed to update profile.", "error");
     }
   };
 
@@ -163,30 +158,9 @@ const EditProfilePage = () => {
             {errorNotice || "* All fields are required to save changes."}
           </p>
 
-          <input
-            type="text"
-            name="fname"
-            placeholder="First Name"
-            value={formData.fname}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="text"
-            name="lname"
-            placeholder="Last Name"
-            value={formData.lname}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="number"
-            name="age"
-            placeholder="Your Age"
-            value={formData.age}
-            onChange={handleChange}
-            required
-          />
+          <input type="text" name="fname" placeholder="First Name" value={formData.fname} onChange={handleChange} required />
+          <input type="text" name="lname" placeholder="Last Name" value={formData.lname} onChange={handleChange} required />
+          <input type="number" name="age" placeholder="Your Age" value={formData.age} onChange={handleChange} required />
 
           <Select
             options={genderOptions}
@@ -200,45 +174,31 @@ const EditProfilePage = () => {
                 ...base,
                 width: "85%",
                 textAlign: "left",
-                padding: "2px 6px"
+                padding: "2px 6px",
               }),
               singleValue: (base) => ({
                 ...base,
-                textAlign: "left"
-              })
+                textAlign: "left",
+              }),
             }}
           />
 
+          <input type="text" name="nationality" placeholder="Nationality" value={formData.nationality} onChange={handleChange} required />
+          <input type="text" name="industry" placeholder="Profession" value={formData.industry} onChange={handleChange} required />
           <input
             type="text"
-            name="nationality"
-            placeholder="Nationality"
-            value={formData.nationality}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="text"
-            name="industry"
-            placeholder="Profession"
-            value={formData.industry}
-            onChange={handleChange}
-            required
-          />
-
-          <input
-            type="text"
-            name="locationText"
-            placeholder="Location (e.g., San Jose, CA)"
-            value={formData.locationText}
+            name="location.text"
+            placeholder="Full Address (e.g., 123 Main St, Sacramento, CA)"
+            value={formData.location?.text || ""}
             onChange={handleChange}
             required={!geoCoords}
+            disabled={!!geoCoords}
           />
 
           <div className="geo-status">
             {geoCoords ? (
               <p className="geo-success">
-                📍 Location auto-detected: {geoCoords.lat.toFixed(4)}, {geoCoords.lng.toFixed(4)}
+                📍 Geocoded location: {geoCoords.lat.toFixed(4)}, {geoCoords.lng.toFixed(4)}
               </p>
             ) : geoError ? (
               <p className="geo-fallback">⚠️ {geoError}</p>
