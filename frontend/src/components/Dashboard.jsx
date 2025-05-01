@@ -3,20 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
-import { useToast } from "../context/ToastContext"; // ✅ Correct import
+import { useToast } from "../context/ToastContext";
 import Container from "../components/Container";
 import BottomNav from "../components/BottomNav";
 import VenueCard from "../components/VenueCard";
 import FeaturedCard from "../components/FeaturedCard";
 import ChatLauncher from "../components/ChatLauncher";
-import "./Dashboard.css"; // (✅ already correct)
+import { isValidVenueId } from "../utils/validators";
+import "./Dashboard.css";
 
 const LIMIT = 10;
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { showToast } = useToast(); // ✅ Correct destructure
+  const { showToast } = useToast();
 
   const [userPreference, setUserPreferences] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
@@ -62,7 +63,9 @@ const Dashboard = () => {
 
   const fetchBecauseYouLiked = useCallback(async () => {
     try {
-      const res = await axiosInstance.get("/api/recommendations/because-you-liked");
+      const res = await axiosInstance.get(
+        "/api/recommendations/because-you-liked"
+      );
       if (res.status === 200 && Array.isArray(res.data.results)) {
         setBecauseYouLiked(res.data.results);
       }
@@ -103,7 +106,9 @@ const Dashboard = () => {
 
   const fetchAIRecommendations = useCallback(async () => {
     try {
-      const res = await axiosInstance.get("/api/recommendations/generate-recommendations");
+      const res = await axiosInstance.get(
+        "/api/recommendations/generate-recommendations"
+      );
       if (res.status === 200 && Array.isArray(res.data.recommendations)) {
         setRecommendations(res.data.recommendations);
         setOffset(LIMIT);
@@ -123,7 +128,9 @@ const Dashboard = () => {
 
   const fetchCachedRecommendations = useCallback(async () => {
     try {
-      const res = await axiosInstance.get(`/api/recommendations/cached-recommendations?offset=${offset}&limit=${LIMIT}`);
+      const res = await axiosInstance.get(
+        `/api/recommendations/cached-recommendations?offset=${offset}&limit=${LIMIT}`
+      );
       if (res.status === 204 || !Array.isArray(res.data.recommendations)) {
         if (offset === 0) {
           await fetchAIRecommendations();
@@ -152,15 +159,26 @@ const Dashboard = () => {
     fetchCategories();
     fetchFeatured();
     fetchBecauseYouLiked();
-  }, [user, fetchUserPreferences, fetchCachedRecommendations, fetchFavorites, fetchCategories, fetchFeatured, fetchBecauseYouLiked]);
+  }, [
+    user,
+    fetchUserPreferences,
+    fetchCachedRecommendations,
+    fetchFavorites,
+    fetchCategories,
+    fetchFeatured,
+    fetchBecauseYouLiked,
+  ]);
 
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      const target = entries[0];
-      if (target.isIntersecting && !noMoreData && !loading) {
-        fetchCachedRecommendations();
-      }
-    }, { threshold: 1 });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0];
+        if (target.isIntersecting && !noMoreData && !loading) {
+          fetchCachedRecommendations();
+        }
+      },
+      { threshold: 1 }
+    );
 
     const currentLoader = loaderRef.current;
     if (currentLoader) observer.observe(currentLoader);
@@ -169,15 +187,21 @@ const Dashboard = () => {
   }, [fetchCachedRecommendations, noMoreData, loading]);
 
   // ---------------- Handlers ----------------
-  const filteredRecommendations = recommendations.filter((rec) =>
-    activeCategory === "All" || (rec.venue?.categories || []).some((cat) =>
-      cat.toLowerCase().includes(activeCategory.toLowerCase())
-    )
+  const filteredRecommendations = recommendations.filter(
+    (rec) =>
+      activeCategory === "All" ||
+      (rec.venue?.categories || []).some((cat) =>
+        cat.toLowerCase().includes(activeCategory.toLowerCase())
+      )
   );
 
   const handleToggleFavorite = async (venue_id) => {
     if (!user) {
-      alert("Please log in to manage favorites.");
+      showToast("Please log in to manage favorites.", "error");
+      return;
+    }
+    if (!isValidVenueId(venue_id)) {
+      showToast("Invalid venue ID format.", "error");
       return;
     }
     try {
@@ -207,23 +231,52 @@ const Dashboard = () => {
         <span>{message}</span>
       </header>
 
+      {!userPreference && !loading && (
+        <div className="no-results-text">
+          <p>
+            We couldn't load your profile. Please{" "}
+            <span onClick={() => navigate("/profile-setup")}>
+              complete your setup
+            </span>
+            .
+          </p>
+        </div>
+      )}
+
+      {recommendations.length === 0 && !loading && (
+        <div className="no-results-text">
+          <p>
+            We couldn't load personalized recommendations. Try updating your{" "}
+            <span onClick={() => navigate("/profile-setup")}>preferences</span>.
+          </p>
+        </div>
+      )}
+
       {/* Featured Section */}
       <section className="featured-section">
         <h3 className="dashboard-subtitle">Featured</h3>
         <div className="featured-list">
           {featured.map((venue) => (
-            <FeaturedCard key={venue.venue_id} venue={venue} onClick={() => navigate("/venue-detail", { state: { venue } })} />
+            <FeaturedCard
+              key={venue.venue_id}
+              venue={venue}
+              onClick={() => navigate("/venue-detail", { state: { venue } })}
+            />
           ))}
         </div>
       </section>
 
-      {/* Because You Liked Section */}
+      {/* You might also love section */}
       {becauseYouLiked.length > 0 && (
         <section className="because-liked-section">
           <h3 className="dashboard-subtitle">You might also love...</h3>
           <div className="featured-list">
             {becauseYouLiked.map((venue) => (
-              <FeaturedCard key={venue.venue_id} venue={venue} onClick={() => navigate("/venue-detail", { state: { venue } })} />
+              <FeaturedCard
+                key={venue.venue_id}
+                venue={venue}
+                onClick={() => navigate("/venue-detail", { state: { venue } })}
+              />
             ))}
           </div>
         </section>
@@ -281,7 +334,11 @@ const Dashboard = () => {
           </>
         ) : (
           <p className="no-results-text">
-            No recommendations found. Try <span onClick={() => navigate("/profile-setup")}>updating your preferences</span> or refreshing.
+            No recommendations found. Try{" "}
+            <span onClick={() => navigate("/profile-setup")}>
+              updating your preferences
+            </span>{" "}
+            or refreshing.
           </p>
         )}
       </section>

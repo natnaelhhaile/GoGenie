@@ -63,7 +63,7 @@ const ForgotPasswordPage = () => {
         {error && <p className="status-message error">{error}</p>}
 
         <button
-          onClick={() => navigate("/login")}
+          onClick={() => navigate("/profile")}
           className="btn secondary back-to-login"
         >
           Cancel

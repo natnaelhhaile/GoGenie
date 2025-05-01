@@ -8,6 +8,10 @@ import BottomNav from "../components/BottomNav";
 import Container from "../components/Container";
 import ChatLauncher from "../components/ChatLauncher";
 import { useToast } from "../context/ToastContext";
+import {
+  isValidVenueId,
+  isValidFeedbackType
+} from "../utils/validators";
 import "./VenueDetailPage.css";
 
 const VenueDetailPage = () => {
@@ -43,14 +47,14 @@ const VenueDetailPage = () => {
   const photos = venue?.photos || [];
 
   useEffect(() => {
-    if (!venue) {
+    if (!venue || !isValidVenueId(venue.venue_id)) {
       navigate("/dashboard");
     }
   }, [venue, navigate]);
 
   useEffect(() => {
     const checkFavorite = async () => {
-      if (!user || !venue?.venue_id) return;
+      if (!user || !isValidVenueId(venue?.venue_id)) return;
       try {
         const res = await axiosInstance.get("/api/favorites/is-favorite", {
           params: { venue_id: venue.venue_id },
@@ -78,12 +82,12 @@ const VenueDetailPage = () => {
         setRating("N/A");
       }
     };
-    if (venue?.venue_id) fetchDetails();
+    if (isValidVenueId(venue?.venue_id)) fetchDetails();
   }, [venue]);
 
   useEffect(() => {
     const fetchFeedback = async () => {
-      if (!user || !venue?.venue_id) return;
+      if (!user || !isValidVenueId(venue?.venue_id)) return;
       try {
         const res = await axiosInstance.get(`/api/feedback/${venue.venue_id}`);
         if (res.data.feedback === "up") setLiked(true);
@@ -97,56 +101,35 @@ const VenueDetailPage = () => {
 
   const handleToggleFavorite = async () => {
     if (!user) return showToast("⚠️ Please log in to manage favorites.", "info");
+    if (!isValidVenueId(venue?.venue_id)) return showToast("Invalid venue ID.", "error");
     try {
       const payload = { venue_id: venue.venue_id };
-      if (isFavorite) {
-        await axiosInstance.post("/api/favorites/remove", payload);
-        setIsFavorite(false);
-        showToast("💔 Removed from favorites.", "success");
-      } else {
-        await axiosInstance.post("/api/favorites/add", payload);
-        setIsFavorite(true);
-        showToast("❤️ Added to favorites!", "success");
-      }
+      const endpoint = isFavorite ? "/api/favorites/remove" : "/api/favorites/add";
+      await axiosInstance.post(endpoint, payload);
+      setIsFavorite(!isFavorite);
+      showToast(isFavorite ? "💔 Removed from favorites." : "❤️ Added to favorites!", "success");
     } catch (err) {
       console.error("Error toggling favorite:", err);
-      showToast("❌ Failed to update favorite.", "error");
+      showToast("Failed to update favorite.", "error");
     }
   };
 
-  const handleLike = async () => {
+  const handleFeedback = async (type) => {
     if (!user) return showToast("⚠️ Please log in to give feedback.", "info");
-    try {
-      const isActivating = !liked;
-      setLiked(isActivating);
-      if (disliked) setDisliked(false);
-
-      await axiosInstance.post("/api/feedback", {
-        venue_id: venue.venue_id,
-        feedback: isActivating ? "up" : "none",
-      });
-      showToast(isActivating ? "👍 Liked this venue!" : "👍 Like removed.", "success");
-    } catch (err) {
-      console.error("Error sending like feedback:", err);
-      showToast("❌ Could not send feedback.", "error");
+    if (!isValidVenueId(venue?.venue_id) || !isValidFeedbackType(type)) {
+      return showToast("Invalid feedback request.", "error");
     }
-  };
-
-  const handleDislike = async () => {
-    if (!user) return showToast("⚠️ Please log in to give feedback.", "info");
     try {
-      const isActivating = !disliked;
-      setDisliked(isActivating);
-      if (liked) setLiked(false);
-
-      await axiosInstance.post("/api/feedback", {
-        venue_id: venue.venue_id,
-        feedback: isActivating ? "down" : "none",
-      });
-      showToast(isActivating ? "👎 Disliked this venue." : "👎 Dislike removed.", "success");
+      await axiosInstance.post("/api/feedback", { venue_id: venue.venue_id, feedback: type });
+      setLiked(type === "up");
+      setDisliked(type === "down");
+      showToast(
+        type === "up" ? "👍 Liked this venue!" : type === "down" ? "👎 Disliked this venue." : "Feedback removed.",
+        "success"
+      );
     } catch (err) {
-      console.error("Error sending dislike feedback:", err);
-      showToast("❌ Could not send feedback.", "error");
+      console.error("Error sending feedback:", err);
+      showToast("Could not send feedback.", "error");
     }
   };
 
@@ -175,16 +158,9 @@ const VenueDetailPage = () => {
             </span>
           </p>
           <p><span className="label">City:</span> {venue.location?.locality || "Unknown City"}</p>
-          <p>
-            <span className="label">Rating:</span>
-            <span className="rating-value">⭐ {rating}</span>
-          </p>
-          <p>
-            <span className="label">Popularity:</span> {popularity ? `${(popularity * 100).toFixed(0)}%` : "N/A"}
-          </p>
-          <p>
-            <span className="label">Stats:</span> {stats.total_ratings} ratings, {stats.total_tips} tips, {stats.total_photos} photos
-          </p>
+          <p><span className="label">Rating:</span><span className="rating-value">⭐ {rating}</span></p>
+          <p><span className="label">Popularity:</span> {popularity ? `${(popularity * 100).toFixed(0)}%` : "N/A"}</p>
+          <p><span className="label">Stats:</span> {stats.total_ratings} ratings, {stats.total_tips} tips, {stats.total_photos} photos</p>
 
           <a href={fsqWebUrl} target="_blank" rel="noopener noreferrer" className="venue-external-link">
             🔗 View on Foursquare
@@ -193,12 +169,12 @@ const VenueDetailPage = () => {
           <div className="icons-row">
             <FaThumbsUp
               className={`thumb-icon ${liked ? "active" : ""}`}
-              onClick={handleLike}
+              onClick={() => handleFeedback(liked ? "none" : "up")}
               title="Like"
             />
             <FaThumbsDown
               className={`thumb-icon ${disliked ? "active" : ""}`}
-              onClick={handleDislike}
+              onClick={() => handleFeedback(disliked ? "none" : "down")}
               title="Dislike"
             />
           </div>
@@ -227,13 +203,7 @@ const VenueDetailPage = () => {
 
         <div className="section-title">Hours</div>
         <div className="placeholder-box">
-          {hours ? (
-            hours.map((line, idx) => (
-              <div key={idx}>{line}</div>
-            ))
-          ) : (
-            "Hours not available."
-          )}
+          {hours ? hours.map((line, idx) => <div key={idx}>{line}</div>) : "Hours not available."}
         </div>
 
         <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />

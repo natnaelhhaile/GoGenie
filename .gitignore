@@ -4,6 +4,9 @@ npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Firebase service account (converted to JS)
+config/serviceAccountKey.js
+
 # Logs
 logs
 *.log

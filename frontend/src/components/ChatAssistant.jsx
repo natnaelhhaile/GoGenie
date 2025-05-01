@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
+import { isValidSearchQuery, isValidTextField } from "../utils/validators";
 
 import "./ChatAssistant.css";
 
@@ -10,7 +11,6 @@ const ChatAssistant = ({ closeChat }) => {
   const [chatHistory, setChatHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
-  const [actualVenue, setActualVenue] = useState(null);
   const [fetchingVenue, setFetchingVenue] = useState(false);
 
   const { showToast } = useToast();
@@ -30,9 +30,12 @@ const ChatAssistant = ({ closeChat }) => {
   }, [chatHistory, loading]);
 
   const handleSendMessage = async () => {
-    if (!userInput.trim()) return;
+    if (!isValidSearchQuery(userInput)) {
+      showToast("⚠️ Please enter a valid message (2–100 characters).", "warning");
+      return;
+    }
 
-    const newMessage = { role: "user", content: userInput };
+    const newMessage = { role: "user", content: userInput.trim() };
     const updatedHistory = [...chatHistory, newMessage];
     setChatHistory(updatedHistory);
     localStorage.setItem("chatHistory", JSON.stringify(updatedHistory));
@@ -40,7 +43,7 @@ const ChatAssistant = ({ closeChat }) => {
 
     try {
       const response = await axiosInstance.post("/api/chat/venue-assistant", {
-        message: userInput,
+        message: userInput.trim(),
       });
 
       const reply = response.data.reply;
@@ -53,10 +56,16 @@ const ChatAssistant = ({ closeChat }) => {
         ];
       } else if (reply.type === "recommendation") {
         const venueName = reply.venue.name;
+
+        if (!isValidTextField(venueName)) {
+          showToast("⚠️ Invalid venue name returned by AI.", "error");
+          return;
+        }
+
         const fetchVenue = await axiosInstance.get("/api/chat/venue-name", {
           params: { name: venueName },
         });
-        setActualVenue(fetchVenue.data);
+
         updatedHistoryWithReply = [
           ...updatedHistory,
           { role: "assistant", type: "recommendation", venue: reply.venue },
@@ -71,7 +80,7 @@ const ChatAssistant = ({ closeChat }) => {
       setChatHistory(updatedHistoryWithReply);
       localStorage.setItem("chatHistory", JSON.stringify(updatedHistoryWithReply));
     } catch (err) {
-      showToast("Failed to get a reply. Please try again later.", "error");
+      showToast("❌ Failed to get a reply. Please try again later.", "error");
       const errorMessage = {
         role: "assistant",
         content: "⚠️ Failed to get a reply. Please try again later.",
@@ -86,6 +95,11 @@ const ChatAssistant = ({ closeChat }) => {
   };
 
   const handleNavigateToVenue = async (venueName) => {
+    if (!isValidTextField(venueName)) {
+      showToast("⚠️ Invalid venue name. Please try again.", "error");
+      return;
+    }
+
     setFetchingVenue(true);
 
     try {
@@ -93,7 +107,8 @@ const ChatAssistant = ({ closeChat }) => {
         params: { name: venueName },
       });
       const actualVenue = fetchVenue.data;
-      handleCloseChat();
+      await saveChatHistoryToDB(); // Save before navigating
+      closeChat();
       navigate("/venue-detail", { state: { venue: actualVenue } });
     } catch (error) {
       console.error("❌ Failed to fetch venue details:", error);
@@ -134,12 +149,8 @@ const ChatAssistant = ({ closeChat }) => {
               <div key={i} className="recommendation-card assistant">
                 <h4>{msg.venue.name}</h4>
                 <p>{msg.venue.description}</p>
-                <p>
-                  <strong>Category:</strong> {msg.venue.category}
-                </p>
-                <p>
-                  <strong>Address:</strong> {msg.venue.address}
-                </p>
+                <p><strong>Category:</strong> {msg.venue.category}</p>
+                <p><strong>Address:</strong> {msg.venue.address}</p>
                 <button
                   className="details-button"
                   onClick={() => handleNavigateToVenue(msg.venue.name)}
@@ -168,6 +179,11 @@ const ChatAssistant = ({ closeChat }) => {
           placeholder="Ask me anything..."
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !loading) {
+              handleSendMessage();
+            }
+          }}
         />
         <button
           className="chat-button"

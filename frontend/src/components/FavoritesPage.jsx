@@ -7,9 +7,12 @@ import BottomNav from "../components/BottomNav";
 import VenueCard from "../components/VenueCard";
 import { useToast } from "../context/ToastContext";
 import "./FavoritesPage.css";
+import { isValidVenueId } from "../utils/validators";
 
 const FavoritesPage = () => {
   const [favorites, setFavorites] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -17,11 +20,16 @@ const FavoritesPage = () => {
   useEffect(() => {
     const fetchFavorites = async () => {
       try {
+        setIsLoading(true);
         const res = await axiosInstance.get("/api/favorites/list");
         setFavorites(res.data.favorites || []);
+        setFetchError(false);
       } catch (err) {
         console.error("❌ Error fetching favorites:", err);
+        setFetchError(true);
         showToast("Couldn't load your favorites.", "error");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -29,6 +37,11 @@ const FavoritesPage = () => {
   }, [user, showToast]);
 
   const handleRemoveFavorite = async (venue_id) => {
+    if (!isValidVenueId(venue_id)) {
+      showToast("Invalid venue ID", "error");
+      return;
+    }
+
     try {
       await axiosInstance.post("/api/favorites/remove", { venue_id });
       setFavorites((prev) => prev.filter((f) => f.venue_id !== venue_id));
@@ -45,11 +58,20 @@ const FavoritesPage = () => {
         <span>Your Favorite Places</span>
       </header>
 
-      {favorites.length > 0 ? (
+      {isLoading ? (
+        <div className="loading-container">
+          <div className="loading-spinner"/>
+          <p>Loading your favorites...</p>
+        </div>
+      ) : fetchError ? (
+        <p className="error-text">
+          Something went wrong while fetching your favorites. Please try again later.
+        </p>
+      ) : favorites.length > 0 ? (
         <section className="favorites-section">
           {favorites.map((fav, index) => {
             const venue = fav.venueData;
-            if (!venue) return null;
+            if (!venue || !venue.venue_id) return null;
 
             return (
               <VenueCard
@@ -67,7 +89,10 @@ const FavoritesPage = () => {
         <p className="no-results-text">
           You haven't added any favorites yet.
           <br />
-          Go explore and <span onClick={() => navigate("/dashboard")}>add some!</span>
+          Go explore and{" "}
+          <span onClick={() => navigate("/dashboard")} style={{ cursor: "pointer", color: "#3b82f6" }}>
+            add some!
+          </span>
         </p>
       )}
       <BottomNav />

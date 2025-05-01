@@ -5,6 +5,11 @@ import axiosInstance from "../api/axiosInstance";
 import { useAuth } from "../context/AuthContext";
 import Container from "../components/Container";
 import { useToast } from "../context/ToastContext";
+import {
+  isValidName,
+  isValidAge,
+  isValidTextField,
+} from "../utils/validators";
 import "./ProfileSetup.css";
 
 const EditProfilePage = () => {
@@ -55,6 +60,7 @@ const EditProfilePage = () => {
         }
       } catch (err) {
         console.error("❌ Failed to load user details", err);
+        setErrorNotice("Failed to load your profile. Please try again later.");
       }
     };
 
@@ -81,7 +87,6 @@ const EditProfilePage = () => {
 
   const handleCancel = () => {
     navigate("/profile");
-    return;
   };
 
   const handleChange = (e) => {
@@ -91,14 +96,34 @@ const EditProfilePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorNotice("");
 
-    if (formRef.current && !formRef.current.checkValidity()) {
-      formRef.current.reportValidity();
-      setErrorNotice("Please fill out all required fields correctly.");
+    // Frontend validations
+    if (!isValidName(formData.fname)) {
+      setErrorNotice("First name contains invalid characters.");
+      return;
+    }
+    if (!isValidName(formData.lname)) {
+      setErrorNotice("Last name contains invalid characters.");
+      return;
+    }
+    if (!isValidAge(Number(formData.age))) {
+      setErrorNotice("Please enter a valid age between 1 and 120.");
+      return;
+    }
+    if (!isValidTextField(formData.nationality)) {
+      setErrorNotice("Please enter a valid nationality.");
+      return;
+    }
+    if (!isValidTextField(formData.industry)) {
+      setErrorNotice("Please enter a valid profession or industry.");
+      return;
+    }
+    if (!geoCoords && !isValidTextField(formData.locationText)) {
+      setErrorNotice("Please enter a valid city or region or allow location access.");
       return;
     }
 
-    // Compare formData
     const unchanged =
       JSON.stringify(formData) === JSON.stringify(initialFormData) &&
       JSON.stringify(geoCoords) === JSON.stringify(initialCoords);
@@ -124,7 +149,8 @@ const EditProfilePage = () => {
       navigate("/profile");
     } catch (err) {
       console.error("❌ Error updating profile", err);
-      setErrorNotice("Failed to update profile. Please try again.");
+      setErrorNotice(err.response?.data?.message || "Failed to update profile. Please try again.");
+      showToast(err.response?.data?.message || "Failed to update profile.", "error");
     }
   };
 
@@ -134,7 +160,7 @@ const EditProfilePage = () => {
         <form ref={formRef} className="step-content" onSubmit={handleSubmit} noValidate>
           <h2>Edit Your Basic Info</h2>
           <p className={errorNotice ? "error-text" : "notice-text"}>
-            * All fields are required to save changes.
+            {errorNotice || "* All fields are required to save changes."}
           </p>
 
           <input
@@ -208,6 +234,7 @@ const EditProfilePage = () => {
             onChange={handleChange}
             required={!geoCoords}
           />
+
           <div className="geo-status">
             {geoCoords ? (
               <p className="geo-success">

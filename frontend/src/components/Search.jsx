@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoSearch, IoClose } from "react-icons/io5";
-import { useToast } from "../context/ToastContext"; // ✅ Correct import
+import { useToast } from "../context/ToastContext";
 import axiosInstance from "../api/axiosInstance";
 import VenueCard from "../components/VenueCard";
 import Container from "../components/Container";
 import BottomNav from "../components/BottomNav";
+import { isValidSearchQuery } from "../utils/validators";
 import "./Search.css";
 
 const Search = () => {
@@ -18,7 +19,7 @@ const Search = () => {
     return stored ? JSON.parse(stored) : [];
   });
 
-  const { showToast } = useToast(); // ✅ Correct destructure
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const handleNearby = useCallback(async () => {
@@ -44,7 +45,7 @@ const Search = () => {
       if (err?.response?.status === 400) {
         showToast("⚠️ Please enable location access to use 'Near Me'.", "error");
       } else {
-        showToast("❌ Could not fetch nearby venues.", "error");
+        showToast("Could not fetch nearby venues.", "error");
       }
     } finally {
       setLoadingNearby(false);
@@ -71,8 +72,9 @@ const Search = () => {
   const handleSearch = useCallback(
     async (termParam) => {
       const term = (termParam ?? query).trim();
-      if (!term) {
-        showToast("⚡ Please enter something to search.", "info");
+
+      if (!term || !isValidSearchQuery(term)) {
+        showToast("⚡ Search must be between 2 and 100 characters.", "info");
         return;
       }
 
@@ -99,7 +101,7 @@ const Search = () => {
         localStorage.setItem("recentSearches", JSON.stringify(updated));
       } catch (err) {
         console.error("Search error:", err);
-        showToast("❌ Error while searching.", "error");
+        showToast("Error while searching.", "error");
       } finally {
         setLoading(false);
       }
@@ -170,7 +172,10 @@ const Search = () => {
 
       <div className="search-results">
         {(loading || loadingNearby) ? (
-          <p>Searching...</p>
+          <div className="loading-container">
+            <div className="loading-spinner"/>
+            <p>Searching...</p>
+          </div>
         ) : results.length ? (
           results.map((venue) => (
             <VenueCard

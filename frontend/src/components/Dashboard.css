@@ -1,12 +1,6 @@
-Container {
-  max-width: 1024px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
 /* styling for subtitles such as featured, categories... */
 .dashboard-subtitle {
-  margin: 20px 0 15px;
+  margin: 1.25rem 0 1rem;
   padding: .75rem 5rem .75rem .75rem !important;
   font-family: 'Poppins', sans-serif;
   font-size: 1.3rem;
@@ -43,11 +37,11 @@ Container {
   width: 100%;
   padding: 1.5rem 1rem;
   border-radius: 12px;
-  margin: 1rem;
+  margin: 0 1rem 1rem;
 }
 
 .featured-section .dashboard-subtitle {
-  margin: 1.3rem auto 1rem;
+  margin: 0 auto 1rem;
 }
 
 .featured-section .featured-list {
@@ -161,8 +155,7 @@ Container {
 .places-section {
   display: grid;
   gap: 1rem;
-  padding: 0 1rem;
-  margin-bottom: 2rem;
+  margin: 0 auto 2rem;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   width: 95%;
 }
@@ -170,6 +163,12 @@ Container {
 @media (min-width: 768px) {
   .places-section {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  .spinner {
+    margin: 2rem auto !important;
+    width: auto;
+    text-align: center !important;
   }
 }
 
@@ -189,18 +188,23 @@ Container {
 .loading-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: center !important;
   padding: 2rem;
+  margin: auto !important;
+  font-size: 1.25rem;
+  color: #777;
+  font-weight: bold;
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 6px solid #e0e0e0;
-  border-top: 6px solid #8a2be2;
+  border: .35rem solid #e0e0e0;
+  border-top: .5rem solid #8a2be2;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin: 1rem auto;
+  margin: 2rem auto !important;
+  text-align: center !important;
 }
 
 @keyframes spin {
@@ -272,12 +276,12 @@ Container {
   width: 100%;
   padding: 1.5rem 1rem;
   border-radius: 12px;
-  margin: 1rem;
+  margin: 0 1rem 1rem;
 }
 
 .because-liked-section .dashboard-subtitle {
   color: #6b21a8; /* subtle purple tone for the section title */
-  margin: 1.3rem auto 1rem;
+  margin: 0 auto 1rem;
 }
 
 .because-liked-section .featured-list {

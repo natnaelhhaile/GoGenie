@@ -13,6 +13,12 @@ import {
   lifestyleList,
 } from "../constants/preferencesData";
 import { useToast } from "../context/ToastContext";
+import {
+  isValidName,
+  isValidAge,
+  isValidTextField,
+} from "../utils/validators";
+
 
 const ProfileSetup = () => {
   const navigate = useNavigate();
@@ -77,10 +83,27 @@ const ProfileSetup = () => {
   };
 
   const handleNext = () => {
-    if (step === 1 && formRef.current && !formRef.current.checkValidity()) {
-      formRef.current.reportValidity();
-      setErrorNotice("All fields are required to proceed.");
-      return;
+    setErrorNotice("");
+
+    if (step === 1) {
+      const { fname, lname, age, nationality, industry, gender } = profile;
+
+      if (
+        !isValidName(fname) ||
+        !isValidName(lname) ||
+        !isValidAge(Number(age)) ||
+        !isValidTextField(nationality) ||
+        !isValidTextField(industry) ||
+        !["male", "female", "nonBinary", "preferNot"].includes(gender)
+      ) {
+        setErrorNotice("Please fill out all fields correctly before proceeding.");
+        return;
+      }
+
+      if (!locationText.trim()) {
+        setErrorNotice("City/state location is required.");
+        return;
+      }
     }
 
     if (
@@ -88,11 +111,10 @@ const ProfileSetup = () => {
       (step === 3 && profile.foodPreferences.length < 2) ||
       (step === 4 && profile.thematicPreferences.length < 2)
     ) {
-      setErrorNotice("Please select at least 2 options to proceed. Recommended: pick 3 or more for better suggestions.");
+      setErrorNotice("Please select at least 2 options. Recommended: 3+ for better suggestions.");
       return;
     }
 
-    setErrorNotice("");
     setStep((prev) => prev + 1);
   };
 
@@ -110,20 +132,34 @@ const ProfileSetup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorNotice("");
 
     if (profile.lifestylePreferences.length < 2) {
-      setErrorNotice("Please select at least 2 options to proceed. Recommended: pick 3 or more for better suggestions.");
+      setErrorNotice("Select at least 2 lifestyle preferences.");
       return;
     }
 
     if (!geoCoords || !locationText.trim()) {
-      setErrorNotice("Please provide both city/state and allow location access.");
+      setErrorNotice("Please provide both location access and city/state.");
+      return;
+    }
+
+    if (
+      !isValidName(profile.fname) ||
+      !isValidName(profile.lname) ||
+      !isValidAge(Number(profile.age)) ||
+      !isValidTextField(profile.nationality) ||
+      !isValidTextField(profile.industry) ||
+      !isValidTextField(locationText)
+    ) {
+      setErrorNotice("Some fields contain invalid input. Please check your entries.");
       return;
     }
 
     try {
       const payload = {
         ...profile,
+        age: Number(profile.age),
         location: {
           lat: geoCoords.lat,
           lng: geoCoords.lng,
@@ -132,7 +168,6 @@ const ProfileSetup = () => {
       };
 
       await axiosInstance.post("/api/users/preferences", payload);
-
       showToast("🎉 Profile created successfully!", "success");
       navigate("/dashboard");
     } catch (err) {
@@ -160,12 +195,13 @@ const ProfileSetup = () => {
           <form ref={formRef} noValidate>
             <div className="step-content">
               <h2>Basic Information</h2>
-              <p className={errorNotice ? "error-text" : "notice-text"}>* All fields are required to proceed.</p>
+              <p className={errorNotice ? "error-text" : "notice-text"}>
+                {errorNotice || "* All fields are required to proceed."}
+              </p>
 
               <input type="text" name="fname" placeholder="First Name" value={profile.fname} onChange={handleChange} required />
               <input type="text" name="lname" placeholder="Last Name" value={profile.lname} onChange={handleChange} required />
               <input type="number" name="age" placeholder="Your Age" value={profile.age} onChange={handleChange} required />
-
               <Select
                 options={genderOptions}
                 value={genderOptions.find((opt) => opt.value === profile.gender)}
@@ -195,10 +231,7 @@ const ProfileSetup = () => {
                 {geoCoords ? (
                   <p className="geo-success">📍 Location Detected: {geoCoords.lat.toFixed(4)}, {geoCoords.lng.toFixed(4)}</p>
                 ) : geoError ? (
-                  <p className="geo-fallback">
-                    ⚠️ {geoError} <br />
-                    Please enter your city manually below.
-                  </p>
+                  <p className="geo-fallback">⚠️ {geoError}<br />Please enter your city manually below.</p>
                 ) : (
                   <p className="geo-waiting">⏳ Attempting to detect your location...</p>
                 )}
@@ -220,7 +253,7 @@ const ProfileSetup = () => {
                   : "Lifestyle Preferences"}
               </h2>
               <p className={errorNotice ? "error-text" : "notice-text"}>
-                * Select at least 2 options to proceed. Recommended: pick 3+ for better suggestions.
+                {errorNotice || "* Select at least 2 options. Recommended: 3+."}
               </p>
             </div>
 
