@@ -49,6 +49,13 @@ const ForgotPasswordPage = () => {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
+          <button
+            onClick={() => navigate("/profile")}
+            className="btn secondary back-to-login"
+          >
+            Cancel
+          </button>
+          
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
@@ -62,12 +69,6 @@ const ForgotPasswordPage = () => {
         {status && <p className="status-message success">{status}</p>}
         {error && <p className="status-message error">{error}</p>}
 
-        <button
-          onClick={() => navigate("/profile")}
-          className="btn secondary back-to-login"
-        >
-          Cancel
-        </button>
       </motion.section>
     </Container>
   );

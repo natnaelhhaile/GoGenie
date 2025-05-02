@@ -12,12 +12,12 @@ const Toast = () => {
       {toasts.map((toast) => (
         <div key={toast.id} className={`toast toast-${toast.type}`}>
           <span>{toast.message}</span>
-          <button
+          {/* <button
             className="toast-close"
             onClick={() => removeToast(toast.id)}
           >
             &times;
-          </button>
+          </button> */}
         </div>
       ))}
     </div>

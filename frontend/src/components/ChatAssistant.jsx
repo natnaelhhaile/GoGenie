@@ -31,7 +31,7 @@ const ChatAssistant = ({ closeChat }) => {
 
   const handleSendMessage = async () => {
     if (!isValidSearchQuery(userInput)) {
-      showToast("⚠️ Please enter a valid message (2–100 characters).", "warning");
+      showToast("⚠️ Please enter a valid message (2–100 characters).", "error");
       return;
     }
 
@@ -80,7 +80,7 @@ const ChatAssistant = ({ closeChat }) => {
       setChatHistory(updatedHistoryWithReply);
       localStorage.setItem("chatHistory", JSON.stringify(updatedHistoryWithReply));
     } catch (err) {
-      showToast("❌ Failed to get a reply. Please try again later.", "error");
+      showToast("Failed to get a reply. Please try again later.", "error");
       const errorMessage = {
         role: "assistant",
         content: "⚠️ Failed to get a reply. Please try again later.",

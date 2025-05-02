@@ -29,9 +29,13 @@ html, body {
     padding: 14px;
   }
 
+  .step-buttons {
+    max-width: 100% !important;
+    padding: 1rem 6rem !important;
+  }
+  
   .btn {
-    font-size: 1.05rem;
-    padding: 14px 28px;
+    font-size: 1.05rem !important;
   }
 
   .grid-item {
@@ -52,7 +56,7 @@ html, body {
   }
 
   .step-buttons {
-    padding: 20px 40px;
+    padding: 1rem 16rem !important;
   }
 
   .btn {
@@ -73,6 +77,10 @@ html, body {
   .react-select__control {
     font-size: 1.15rem;
     padding: 16px;
+  }
+
+  .step-buttons {
+    padding: 1rem 26rem !important;
   }
 
   .btn {
@@ -245,6 +253,7 @@ html, body {
 .btn.secondary {
   background: #ccc;
   color: black;
+  margin: 0 auto !important;
 }
 
 .scrollable-grid-wrapper {
@@ -266,10 +275,6 @@ html, body {
   .step-buttons {
     flex-direction: column;
     align-items: center;
-  }
-
-  .btn {
-    width: 90%;
   }
 }
 

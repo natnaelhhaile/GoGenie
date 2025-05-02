@@ -22,7 +22,6 @@ function AppRoutes() {
   useSessionExpiration();
 
   return (
-    <>
       <Routes>
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route element={<PublicRoute />}>
@@ -41,7 +40,6 @@ function AppRoutes() {
           <Route path="/search" element={<Search />} />
         </Route>
       </Routes>
-    </>
   );
 }
 
