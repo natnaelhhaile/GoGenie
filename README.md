@@ -49,6 +49,112 @@ GoGenie is a full-stack web application designed to deliver personalized venue r
 
 ---
 
+## 🧠 Recommendation Engine
+
+The GoGenie recommendation engine curates personalized venue suggestions based on user preferences, geolocation, and interactive feedback. It combines semantic tagging, cosine similarity, and real-time API queries to generate and refine recommendations.
+
+---
+
+### 🛠 Components
+
+#### 1. User & Preferences
+- `POST /check-new-user`: Initializes new user profile if needed.
+- `GET /preferences`: Retrieves stored user preferences.
+- `POST /preferences`: Creates preferences and builds tag weights.
+- `PUT /preferences`: Updates interest-based preferences.
+- `PUT /details`: Updates demographic and location fields.
+- `GET /summary`: Uses AI to generate a summary from preferences.
+
+---
+
+#### 2. Recommendation Engine
+- `GET /generate-recommendations`
+  - Generates search queries using `tagWeights` and OpenAI.
+  - Fetches venues from Foursquare API.
+  - Calculates `priorityScore` using:
+    - Cosine similarity (60%)
+    - Proximity (20%)
+    - Rating (20%)
+  - Saves venues in `Recommendation`, user-venue scores in `UserVenueScore`.
+
+- `GET /cached-recommendations`
+  - Returns sorted venues by `priorityScore`.
+  - Paginates with `offset` and `limit`.
+  - Aggregates top categories.
+
+- `GET /categories`
+  - Analyzes venue history to rank categories.
+
+- `GET /featured`
+  - Returns top 5 venues based on user score or fallback to popularity.
+
+- `GET /because-you-liked`
+  - Recommends venues similar to a user’s top liked one by tags/categories.
+
+- `GET /nearby`
+  - Filters user-linked venues within 10km of user’s coordinates.
+
+- `GET /search`
+  - Regex-based search across multiple venue fields.
+  - Ranks results by `priorityScore` or fallback.
+
+- `GET /details/:venue_id`
+  - Fetches rating, hours, stats, and tips of a venue from DB.
+
+---
+
+#### 3. Feedback System
+- `POST /feedback`
+  - Adjusts `tagWeights` using feedback (`up`/`down`) with decay factor.
+  - Updates `priorityScore` for the venue.
+  - Adds user-supported tags to venue if >= 2 users upvote.
+
+- `GET /feedback/:venue_id`
+  - Returns the current feedback status for a venue.
+
+---
+
+### ⚙️ Scoring Formula
+
+```js
+priorityScore = (
+  cosineSimilarity(user, venue) * 0.6 +
+  proximityScore(distance) * 0.2 +
+  ratingScore(venue.rating) * 0.2
+).toFixed(3);
+```
+
+---
+
+## 📦 Storage Schema
+
+| Collection           | Purpose                                |
+|----------------------|----------------------------------------|
+| `User`               | Stores user tagWeights                 |
+| `Preferences`        | Profile preferences, geolocation       |
+| `Recommendation`     | Unique venues pulled from Foursquare   |
+| `UserVenueScore`     | User-specific venue score + feedback   |
+| `VenueTagVote`       | Tracks collective tag suggestions      |
+
+---
+
+## 🔁 Feedback Loop
+
+1. User provides feedback (`up` or `down`)
+2. Tag weights adjusted with decay + polarity
+3. Score recalculated → better future recommendations
+4. Shared tags voted into venue metadata over time
+
+---
+
+## 🧠 Powered By
+- [Firebase Auth](https://firebase.google.com/)
+- [MongoDB + Mongoose](https://mongoosejs.com/)
+- [Foursquare Places API](https://developer.foursquare.com/)
+- [OpenAI](https://platform.openai.com/)
+
+---
+
 ## 🚀 Installation & Setup
 
 1. **Clone the Repository**
