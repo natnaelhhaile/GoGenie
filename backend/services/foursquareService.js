@@ -1,33 +1,8 @@
+import dotenv from "dotenv";
+dotenv.config();
 import axios from "axios";
 
 const API_KEY = process.env.FOURSQUARE_API_KEY;
-
-const fetchFoursquareVenuesByText = async (queries, location) => {
-  const fields = 'fsq_id,name,location,categories,distance,link,rating,photos,features,popularity,stats,hours,tips';
-  let allVenues = [];
-
-  for (const query of queries) {
-    try {
-      const response = await axios.get("https://api.foursquare.com/v3/places/search", {
-        headers: { Authorization: API_KEY, Accept: "application/json" },
-        params: {
-          query: query,
-          fields: fields,
-          near: location,
-          limit: 20
-        }
-      });
-
-      if (response.data.results) {
-        allVenues = [...allVenues, ...response.data.results];
-      }
-    } catch (error) {
-      console.error(`❌ Error fetching venues for query: ${query}`, error.message);
-    }
-  }
-
-  return allVenues;
-};
 
 const fetchFoursquareVenuesByCoords = async (queries, { lat, lng, radius = 40000 }) => {
   const fields = 'fsq_id,name,location,categories,distance,link,rating,photos,features,popularity,stats,hours,tips';
@@ -80,7 +55,6 @@ const fetchVenuePhotos = async (fsq_id) => {
 };
 
 export {
-  fetchFoursquareVenuesByText,
   fetchFoursquareVenuesByCoords,
   fetchVenuePhotos
 };

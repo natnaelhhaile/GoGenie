@@ -13,6 +13,7 @@ import {
   isValidFeedbackType
 } from "../utils/validators";
 import "./VenueDetailPage.css";
+import fallbackImage from "../assets/no-image.jpg";
 
 const VenueDetailPage = () => {
   const navigate = useNavigate();
@@ -31,8 +32,9 @@ const VenueDetailPage = () => {
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [priorityScore, setPriorityScore] = useState(null);
+  const [scoreBreakdown, setScoreBreakdown] = useState(null);
 
-  const fallbackImage = require("../assets/dum1.jpg");
 
   const address =
     venue?.location?.formattedAddress ||
@@ -77,13 +79,15 @@ const VenueDetailPage = () => {
         setStats(res.data.stats || { total_ratings: 0, total_tips: 0, total_photos: 0 });
         setTips(res.data.tips || []);
         setOpenNow(res.data.hours?.open_now || null);
+        setPriorityScore(res.data.priorityScore || "N/A");
+        setScoreBreakdown(res.data.scoreBreakdown || null);
       } catch (err) {
         console.error("Error fetching details:", err);
         setRating("N/A");
       }
     };
     if (isValidVenueId(venue?.venue_id)) fetchDetails();
-  }, [venue]);
+  }, [venue, priorityScore, scoreBreakdown]);
 
   useEffect(() => {
     const fetchFeedback = async () => {
@@ -205,6 +209,30 @@ const VenueDetailPage = () => {
         <div className="placeholder-box">
           {hours ? hours.map((line, idx) => <div key={idx}>{line}</div>) : "Hours not available."}
         </div>
+
+        {scoreBreakdown && (
+          <div className="score-breakdown-container">
+            <div className="section-title">Why This Venue?</div>
+            <div className="score-box">
+              <div className="score-row">
+                <span className="score-label">&nbsp; 📊&nbsp; Overall Score:</span>
+                <span className="score-value highlight">{(priorityScore * 100).toFixed(0)}%</span>
+              </div>
+              <div className="score-row">
+                <span className="score-label">&nbsp;🎯&nbsp; Match Score:</span>
+                <span className="score-value">{scoreBreakdown.similarity ? `${(scoreBreakdown.similarity * 100).toFixed(0)}%` : "N/A"}</span>
+              </div>
+              <div className="score-row">
+                <span className="score-label">&nbsp;&nbsp;📍&nbsp; Distance Score:</span>
+                <span className="score-value">{(scoreBreakdown.proximity * 100).toFixed(0)}%</span>
+              </div>
+              <div className="score-row">
+                <span className="score-label">⭐&nbsp; Rating Score:</span>
+                <span className="score-value">{(scoreBreakdown.rating * 100).toFixed(0)}%</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
         <BottomNav />

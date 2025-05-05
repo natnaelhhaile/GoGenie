@@ -112,6 +112,7 @@ const EditProfilePage = () => {
     if (!isValidName(fname)) return setErrorNotice("Invalid first name.");
     if (!isValidName(lname)) return setErrorNotice("Invalid last name.");
     if (!isValidAge(Number(age))) return setErrorNotice("Invalid age.");
+    if (!isValidTextField(gender)) return setErrorNotice("Invalid gender value.");
     if (!isValidTextField(nationality)) return setErrorNotice("Invalid nationality.");
     if (!isValidTextField(industry)) return setErrorNotice("Invalid profession/industry.");
     if (!geoCoords && !isValidAddress(location?.text || "")) {
@@ -141,6 +142,20 @@ const EditProfilePage = () => {
     try {
       await axiosInstance.put("/api/users/details", payload);
       showToast("🎉 Profile updated successfully!", "success");
+
+      // Check if location has changed and regenerate recommendations
+      if (geoCoords) {
+        const newLocation = { lat: geoCoords.lat, lng: geoCoords.lng };
+        const initialLocation = initialFormData.location
+          ? { lat: initialFormData.location.lat, lng: initialFormData.location.lng }
+          : null;
+
+        if (!initialLocation || newLocation.lat !== initialLocation.lat || newLocation.lng !== initialLocation.lng) {
+          // Trigger recommendation generation only if location has changed
+          await axiosInstance.get("/api/recommendations/generate-recommendations");
+        }
+      }
+
       navigate("/profile");
     } catch (err) {
       console.error("❌ Error updating profile", err);

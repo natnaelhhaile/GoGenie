@@ -94,6 +94,10 @@ const UpdatePreferences = () => {
     try {
       await axiosInstance.put("/api/users/preferences", profile);
       showToast("🎉 Preferences saved successfully!", "success");
+
+      // Trigger recommendation generation after saving preferences
+      await axiosInstance.get("/api/recommendations/generate-recommendations");
+
       navigate("/profile");
     } catch (err) {
       console.error("❌ Error updating preferences:", err);

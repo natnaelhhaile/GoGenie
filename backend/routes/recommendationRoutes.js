@@ -8,12 +8,15 @@ import { calculateCosineSimilarity } from "../utils/similarity.js";
 import { generateFoursquareQueries } from "../services/openAIService.js";
 import {
   fetchFoursquareVenuesByCoords,
-  fetchFoursquareVenuesByText,
   fetchVenuePhotos
 } from "../services/foursquareService.js";
-import tagsVocabulary from "../utils/tagsVocabulary.js";
+import { addToVocabulary } from "../utils/vocabularyManager.js";
+import { getCachedVocabulary } from "../utils/vocabularyCache.js";
 import extractTagsFromFeatures from "../utils/extractTagsFromFeatures.js";
-import { isValidSearchQuery } from "../utils/validators.js";
+import { 
+  isValidSearchQuery, 
+  isValidVenueId 
+} from "../utils/validators.js";
 
 const router = express.Router();
 const MAX_DISTANCE = 40000;
@@ -48,9 +51,6 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
         lng: location.lng,
         radius: MAX_DISTANCE
       });
-    } else if (typeof location?.text === "string" && location.text.trim() !== "") {
-      console.log("📍 Using fallback location text:", location.text);
-      venues = await fetchFoursquareVenuesByText(queries, location.text);
     } else {
       console.warn("⚠️ No valid location found.");
       return res.status(400).json({ message: "Location required to generate recommendations." });
@@ -64,13 +64,15 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
 
     for (const venue of venues) {
       const existingVenue = await Recommendation.findOne({ venue_id: venue.fsq_id });
+      const venueTags = extractTagsFromFeatures(venue.features || {}, venue.categories || []);
+      await addToVocabulary(venueTags || []);
 
       const tagWeights = user.tagWeights || {};
-      const userVector = tagsVocabulary.map(tag => tagWeights[tag] || 0);
-      const venueTags = extractTagsFromFeatures(venue.features || {});
-      const venueVector = tagsVocabulary.map(tag =>
+      const vocab = await getCachedVocabulary();
+      const userVector = vocab.map(tag => tagWeights[tag] || 0);
+      const venueVector = vocab.map(tag =>
         venueTags.includes(tag.toLowerCase()) ? 1 : 0
-      );
+      );      
 
       const similarity = calculateCosineSimilarity(userVector, venueVector);
       const distance = venue.distance || MAX_DISTANCE;
@@ -83,7 +85,7 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
         ratingScore * 0.2
       ).toFixed(3);
 
-      // ✅ Photo handling logic
+      // Photo handling logic
       let photoURLs = [];
       if (venue.photos && Array.isArray(venue.photos) && venue.photos.length > 0) {
         photoURLs = venue.photos
@@ -129,11 +131,24 @@ router.get("/generate-recommendations", verifyFirebaseToken, async (req, res) =>
         finalVenue = existingVenue;
       }
 
-      await UserVenueScore.findOneAndUpdate(
-        { uid: uid, venue_id: venue.fsq_id },
-        { priorityScore: parseFloat(priorityScore) },
-        { upsert: true, new: true }
-      );
+      // Check if the user has provided feedback (like/dislike) for the venue or if the venue has a score
+      const userVenueScore = await UserVenueScore.findOne({ uid, venue_id: venue.fsq_id });
+
+      // Update the priority score only if the feedback is "none"
+      if (!userVenueScore || userVenueScore.feedback === "none") {
+        await UserVenueScore.findOneAndUpdate(
+          { uid: uid, venue_id: venue.fsq_id },
+          { 
+            priorityScore: parseFloat(priorityScore),
+            scoreBreakdown: {
+              similarity: parseFloat(similarity.toFixed(3)),
+              proximity: parseFloat(proximityScore.toFixed(3)),
+              rating: parseFloat(ratingScore.toFixed(3))
+            }
+          },
+          { upsert: true, new: true }
+        );
+      }
 
       savedVenues.push({ venue: finalVenue, priorityScore });
     }
@@ -172,27 +187,13 @@ router.get("/cached-recommendations", verifyFirebaseToken, async (req, res) => {
       const venue = venueMap.get(scoreEntry.venue_id);
       return venue ? {
         venue,
-        priorityScore: scoreEntry.priorityScore
+        priorityScore: scoreEntry.priorityScore,
+        scoreBreakdown: scoreEntry.scoreBreakdown
       } : null;
     }).filter(Boolean);
 
-    // 🔥 NEW: Extract and count categories
-    const categoryCounts = {};
-    scoredVenues.forEach(({ venue }) => {
-      if (venue.categories && Array.isArray(venue.categories)) {
-        venue.categories.forEach(cat => {
-          categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-        });
-      }
-    });
-
-    const sortedCategories = Object.entries(categoryCounts)
-      .sort((a, b) => b[1] - a[1]) // sort by count desc
-      .map(([cat]) => cat);        // get only the names
-
     res.status(200).json({
-      recommendations: scoredVenues,
-      categories: sortedCategories
+      recommendations: scoredVenues
     });
   } catch (err) {
     console.error("Error fetching paginated recommendations:", err);
@@ -288,7 +289,8 @@ router.get("/because-you-liked", verifyFirebaseToken, async (req, res) => {
         { tags: { $in: relatedTags } },
         { categories: { $in: relatedCategories } }
       ],
-      venue_id: { $ne: topLikedVenueId } // exclude itself
+      venue_id: { $ne: topLikedVenueId }, // exclude itself
+      users: {$nin: [uid] } // exclude venues already associated with this user
     }).limit(5);
 
     if (!relatedVenues.length) {
@@ -396,10 +398,13 @@ router.get("/search", verifyFirebaseToken, async (req, res) => {
 });
 
 // Fetch venue details straight from your MongoDB (Recommendation collection)
-router.get("/details/:venue_id", async (req, res) => {
+router.get("/details/:venue_id", verifyFirebaseToken, async (req, res) => {
+  const uid = req.user?.uid;
   const { venue_id } = req.params;
-
   try {
+    if (!isValidVenueId(venue_id)) {
+      return res.status(400).json({ message: "Invalid vanue/user Id" });
+    }
     const venue = await Recommendation.findOne({ venue_id });
 
     if (!venue) {
@@ -422,13 +427,20 @@ router.get("/details/:venue_id", async (req, res) => {
         : [hours.display.trim()];                            // single line in array
     }
 
+    let userScore = null;
+    if (uid) {
+      userScore = await UserVenueScore.findOne({ uid, venue_id });
+    }
+    
     return res.status(200).json({
       rating: rating || null,
       popularity: popularity || null,
       stats: stats || { total_ratings: 0, total_tips: 0, total_photos: 0 },
       hours: formattedHours,
-      tips: tips || []
-    });
+      tips: tips || [],
+      priorityScore: userScore?.priorityScore || null,
+      scoreBreakdown: userScore?.scoreBreakdown || null
+    });    
   } catch (error) {
     console.error("❌ Error fetching venue details:", error);
     res.status(500).json({ message: "Server error" });

@@ -134,34 +134,39 @@ const ProfileSetup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorNotice("");
-
+  
     if (profile.lifestylePreferences.length < 2) {
       setErrorNotice("Select at least 2 lifestyle preferences.");
       return;
     }
-
+  
     if (!geoCoords && !isValidAddress(locationText)) {
       setErrorNotice("Please provide a valid full address.");
       return;
     }
-
+  
     try {
       const payload = {
         ...profile,
         location: geoCoords
-        ? { lat: geoCoords.lat, lng: geoCoords.lng }
-        : { text: locationText.trim() },
+          ? { lat: geoCoords.lat, lng: geoCoords.lng }
+          : { text: locationText.trim() },
       };
-
+  
+      // Save preferences
       await axiosInstance.post("/api/users/preferences", payload);
       showToast("🎉 Profile created successfully!", "success");
+  
+      // Trigger recommendation generation after saving preferences
+      await axiosInstance.get("/api/recommendations/generate-recommendations");
+  
       navigate("/dashboard");
     } catch (err) {
       console.error("❌ Error saving preferences:", err);
       setErrorNotice("Failed to save profile. Please try again.");
       showToast("Failed to save profile. Please try again.", "error");
     }
-  };
+  };  
 
   return (
     <Container>
