@@ -8,7 +8,12 @@ const UserVenueScoreSchema = new mongoose.Schema({
     type: String,
     enum: ["up", "down", "none"],
     default: "none"
-  }
+  },
+  scoreBreakdown: {
+    similarity: { type: Number, default: 0 },
+    proximity: { type: Number, default: 0 },
+    rating: { type: Number, default: 0 }
+  },  
 });
 
 const UserVenueScore = mongoose.model("UserVenueScore", UserVenueScoreSchema);

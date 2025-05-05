@@ -17,7 +17,12 @@ const UserSchema = new mongoose.Schema({
     type: Map, 
     of: Number, 
     default: {} // Initialize with empty object
-  }
+  },
+  tagFeedbackCount: { 
+    type: Map, 
+    of: Number, 
+    default: {} 
+  },
 }, { timestamps: true });
 
 const User = mongoose.model("User", UserSchema);

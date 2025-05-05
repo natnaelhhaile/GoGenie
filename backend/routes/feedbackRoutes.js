@@ -4,7 +4,7 @@ import User from "../models/User.js";
 import Recommendation from "../models/Recommendation.js";
 import UserVenueScore from "../models/UserVenueScore.js";
 import VenueTagVote from "../models/VenueTagVote.js";
-import tagsVocabulary from "../utils/tagsVocabulary.js";
+import { getCachedVocabulary } from "../utils/vocabularyCache.js";
 import { calculateCosineSimilarity } from "../utils/similarity.js";
 import { isValidVenueId, isValidFeedbackType } from "../utils/validators.js";
 
@@ -27,26 +27,37 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
     if (!user || !venue) return res.status(404).json({ message: "User or venue not found." });
 
     const weights = user.tagWeights || {};
+    const feedbackCounts = user.tagFeedbackCount || {};
     const venueTags = venue.tags || [];
+    const vocab = await getCachedVocabulary();
 
-    tagsVocabulary.forEach((tag) => {
-      const current = weights[tag] || 0;
-      const relevant = venueTags.includes(tag);
+    vocab.forEach((tag) => {
+      const currentWeight = weights[tag] || 0;
+      const isRelevant = venueTags.includes(tag);
+      const count = feedbackCounts[tag] || 1;
 
-      let newWeight = current * DECAY_FACTOR;
-      if (relevant) {
-        newWeight += feedback === "up" ? 0.2 : feedback === "down" ? -0.2 : 0;
+      // Adjust the weight dynamically based on feedback frequency
+      let adjustment = 0;
+      if (isRelevant) {
+        adjustment = feedback === "up" ? (0.2 / Math.sqrt(count)) : feedback === "down" ? (-0.2 / Math.sqrt(count)) : 0;
       }
-      weights[tag] = Math.max(-1, Math.min(1, newWeight));
+
+      // Decayed + weighted update
+      const newWeight = Math.max(-1, Math.min(1, (currentWeight * DECAY_FACTOR) + adjustment));
+
+      weights[tag] = newWeight;
+      feedbackCounts[tag] = count + (isRelevant ? 1 : 0); // count if tag is relevant
     });
 
     user.tagWeights = weights;
+    user.tagFeedbackCount = feedbackCounts;
     await user.save();
 
-    const userVector = tagsVocabulary.map((tag) => weights[tag] || 0);
-    const venueVector = tagsVocabulary.map((tag) =>
-      venueTags.includes(tag) ? 1 : 0
+    const userVector = vocab.map(tag => weights[tag] || 0);
+    const venueVector = vocab.map(tag =>
+      venueTags.includes(tag.toLowerCase()) ? 1 : 0
     );
+    
     const similarity = calculateCosineSimilarity(userVector, venueVector);
     const proximityScore = Math.max(0, 1 - (venue.distance || MAX_DISTANCE) / MAX_DISTANCE);
     const ratingScore = typeof venue.rating === "number" ? venue.rating / 10 : 0.5;
@@ -59,10 +70,19 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
 
     await UserVenueScore.findOneAndUpdate(
       { uid, venue_id },
-      { priorityScore: parseFloat(priorityScore), feedback },
+      { 
+        priorityScore: parseFloat(priorityScore), 
+        feedback,
+        scoreBreakdown: {
+          similarity: parseFloat(similarity.toFixed(3)),
+          proximity: parseFloat(proximityScore.toFixed(3)),
+          rating: parseFloat(ratingScore.toFixed(3))
+        }
+      },
       { upsert: true, new: true }
     );
 
+    // Handle venue tag votes when feedback is "up"
     if (feedback === "up") {
       const topTags = Object.entries(weights)
         .filter(([tag, weight]) => weight > 0.4)
