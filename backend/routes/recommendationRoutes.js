@@ -4,6 +4,8 @@ import Preferences from "../models/Preferences.js";
 import User from "../models/User.js";
 import Recommendation from "../models/Recommendation.js";
 import UserVenueScore from "../models/UserVenueScore.js";
+import Sharing from "../models/Sharing.js";
+import RSVP from "../models/RSVP.js";
 import { calculateCosineSimilarity } from "../utils/similarity.js";
 import { generateFoursquareQueries } from "../services/openAIService.js";
 import {
@@ -15,7 +17,7 @@ import { getCachedVocabulary } from "../utils/vocabularyCache.js";
 import extractTagsFromFeatures from "../utils/extractTagsFromFeatures.js";
 import { 
   isValidSearchQuery, 
-  isValidVenueId 
+  isValidVenueId,
 } from "../utils/validators.js";
 
 const router = express.Router();
@@ -397,52 +399,65 @@ router.get("/search", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// Fetch venue details straight from your MongoDB (Recommendation collection)
+// GET route for venue details
 router.get("/details/:venue_id", verifyFirebaseToken, async (req, res) => {
-  const uid = req.user?.uid;
+  const uid = req.user?.uid; // Get logged-in user's UID
   const { venue_id } = req.params;
+  const { share } = req.query; // Retrieve the share token if present
+
   try {
+    // Validate the venue_id
     if (!isValidVenueId(venue_id)) {
-      return res.status(400).json({ message: "Invalid vanue/user Id" });
-    }
-    const venue = await Recommendation.findOne({ venue_id });
-
-    if (!venue) {
-      return res.status(404).json({ message: "Venue not found" });
+      return res.status(400).json({ message: "Invalid venue ID" });
     }
 
-    const {
-      rating,
-      popularity,
-      stats,
-      hours,
-      tips
-    } = venue;
+    // Check if it's a shared link
+    if (share) {
+      // If the request is coming from a shared link (guest user)
+      const sharingRecord = await Sharing.findOne({ share_link: share });
 
-    // Format the hours display if needed
-    let formattedHours = null;
-    if (hours?.display) {
-      formattedHours = hours.display.includes(";")
-        ? hours.display.split(";").map(line => line.trim())  // split into array
-        : [hours.display.trim()];                            // single line in array
-    }
+      if (!sharingRecord) {
+        return res.status(404).json({ message: "Shared link not found" });
+      }
 
-    let userScore = null;
-    if (uid) {
-      userScore = await UserVenueScore.findOne({ uid, venue_id });
+      // Fetch venue details from the venue ID associated with the shared link
+      const venue = await Recommendation.findOne({ venue_id: sharingRecord.venue_id });
+
+      if (!venue) {
+        return res.status(404).json({ message: "Venue not found" });
+      }
+
+      // Fetch RSVP responses for the shared venue
+      const rsvpStatus = await RSVP.find({ venue_id: venue.venue_id });
+
+      return res.status(200).json({
+        venue,
+        rsvpStatus,  // Return RSVP responses
+      });
+
+    } else {
+      // If the request is coming from a logged-in user
+      const venue = await Recommendation.findOne({ venue_id });
+
+      if (!venue) {
+        return res.status(404).json({ message: "Venue not found" });
+      }
+
+      // Fetch the logged-in user's personal feedback and priority score
+      const userScore = await UserVenueScore.findOne({ uid, venue_id });
+
+      return res.status(200).json({
+        rating: venue.rating || "No rating available",
+        popularity: venue.popularity || "N/A",
+        stats: venue.stats || { total_ratings: 0, total_tips: 0, total_photos: 0 },
+        hours: venue.hours || "Hours not available",
+        tips: venue.tips || [],
+        priorityScore: userScore?.priorityScore || "N/A",  // User-specific score
+        scoreBreakdown: userScore?.scoreBreakdown || null  // User-specific breakdown
+      });
     }
-    
-    return res.status(200).json({
-      rating: rating || null,
-      popularity: popularity || null,
-      stats: stats || { total_ratings: 0, total_tips: 0, total_photos: 0 },
-      hours: formattedHours,
-      tips: tips || [],
-      priorityScore: userScore?.priorityScore || null,
-      scoreBreakdown: userScore?.scoreBreakdown || null
-    });    
   } catch (error) {
-    console.error("❌ Error fetching venue details:", error);
+    console.error("Error fetching venue details:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

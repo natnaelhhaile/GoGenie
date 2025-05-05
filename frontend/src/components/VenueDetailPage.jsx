@@ -34,6 +34,9 @@ const VenueDetailPage = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [priorityScore, setPriorityScore] = useState(null);
   const [scoreBreakdown, setScoreBreakdown] = useState(null);
+  const [rsvpStatus, setRsvpStatus] = useState(null);
+  const [rsvpCounts, setRsvpCounts] = useState({ yes: 0, no: 0, maybe: 0 });
+  const [loading, setLoading] = useState(false);
 
 
   const address =
@@ -53,6 +56,21 @@ const VenueDetailPage = () => {
       navigate("/dashboard");
     }
   }, [venue, navigate]);
+
+  // Check user's current RSVP status for the venue
+  useEffect(() => {
+    const fetchRsvpStatus = async () => {
+      if (user && isValidVenueId(venue?.venue_id)) {
+        try {
+          const res = await axiosInstance.get(`/api/rsvp-counts/${venue.venue_id}`);
+          setRsvpCounts(res.data.rsvpCounts);
+        } catch (err) {
+          console.error("Error fetching RSVP counts:", err);
+        }
+      }
+    };
+    fetchRsvpStatus();
+  }, [venue, user]);
 
   useEffect(() => {
     const checkFavorite = async () => {
@@ -137,7 +155,55 @@ const VenueDetailPage = () => {
     }
   };
 
-  if (!venue) return <p>Loading venue details...</p>;
+  const handleRSVP = async (response) => {
+
+    if (!isValidVenueId(venue?.venue_id)) return showToast("Invalid venue ID.", "error");
+
+    // If logged in user, proceed normally
+    if (user) {
+      setLoading(true);
+      try {
+        await axiosInstance.post("/api/users/rsvp", {
+          venue_id: venue.venue_id,
+          response,
+          uid: user.uid, // Use logged-in user's UID
+        });
+        setRsvpStatus(response);
+        showToast("RSVP saved", "success");
+      } catch (err) {
+        console.error("Error submitting RSVP:", err);
+        showToast("Error submitting RSVP", "error");
+      } finally {
+        setLoading(false);
+      }  
+    } else {
+      // For unlogged-in users, handle as guests
+      const guestId = localStorage.getItem("guestId") || crypto.randomBytes(16).toString("hex");
+      localStorage.setItem("guestId", guestId); // Save the guest ID in localStorage
+  
+      setLoading(true);
+      try {
+        await axiosInstance.post("/api/users/rsvp/guest", {
+          venue_id: venue.venue_id,
+          response,
+          guestId, // Use guest ID for unlogged-in user
+        });
+        setRsvpStatus(response);
+        showToast("Guest RSVP saved", "success");
+      } catch (err) {
+        console.error("Error submitting RSVP for guest:", err);
+        showToast("Error submitting guest RSVP", "error");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  if (!venue) {
+    showToast("Couldn't load venue details", "error");
+    navigate("/dashboard");
+    return;
+  }
 
   return (
     <Container>
@@ -148,6 +214,9 @@ const VenueDetailPage = () => {
           <h2 className="venue-name">{venue.name}</h2>
           <button onClick={handleToggleFavorite} className="favorite-button">
             {isFavorite ? <IoHeart className="favorite-icon active" /> : <IoHeartOutline className="favorite-icon" />}
+          </button>
+          <button onClick={() => window.open( /* generateShareLink(), */"_blank")} className="share-button">
+            Share
           </button>
         </div>
 
@@ -233,6 +302,41 @@ const VenueDetailPage = () => {
             </div>
           </div>
         )}
+
+        <div className="rsvp-section">
+          <h3>RSVP</h3>
+          {/* Disable buttons if user has already RSVPed */}
+          {!rsvpStatus && (
+            <>
+              <button
+                onClick={() => handleRSVP("yes")}
+                disabled={loading}
+              >
+                RSVP Yes
+              </button>
+              <button
+                onClick={() => handleRSVP("no")}
+                disabled={loading}
+              >
+                RSVP No
+              </button>
+              <button
+                onClick={() => handleRSVP("maybe")}
+                disabled={loading}
+              >
+                RSVP Maybe
+              </button>
+            </>
+          )}
+          <div className="rsvp-status">
+            {rsvpStatus && <p>Your RSVP: {rsvpStatus}</p>}
+          </div>
+          {loading && 
+            <div className="loading-container">
+              <div className="loading-spinner"/>
+              <p>Submitting your RSVP...</p>
+            </div>}
+        </div>
 
         <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
         <BottomNav />

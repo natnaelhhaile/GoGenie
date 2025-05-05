@@ -2,6 +2,9 @@ import express from "express";
 import verifyFirebaseToken from "../middleware/firebaseAuth.js";
 import User from "../models/User.js";
 import Preferences from "../models/Preferences.js";
+import RSVP from '../models/RSVP.js';
+import Sharing from "../models/Sharing.js";
+import { generateShareLink } from "../utils/shareUtils.js"; // Utility to generate unique share links
 import buildTagWeights from "../utils/tagWeightBuilder.js";
 import generatePreferenceSummary from "../utils/aiPreferenceSummary.js";
 import {
@@ -10,6 +13,7 @@ import {
   isValidTextField,
   isValidStringArray,
   isValidAddress,
+  isValidVenueId,
 } from "../utils/validators.js";
 import geocodeAddress from "../utils/geocodeAddress.js";
 
@@ -267,6 +271,114 @@ router.get("/summary", verifyFirebaseToken, async (req, res) => {
   } catch (error) {
     console.error("❌ Error in /summary route:", error);
     return res.status(500).json({ message: "Server error" });
+  }
+});
+
+// POST route to submit an RSVP response
+router.post("/rsvp", verifyFirebaseToken, async (req, res) => {
+  const uid = req.user.uid;
+  const { venue_id, response } = req.body;
+
+  if (!isValidVenueId(venue_id) || !["yes", "no", "maybe"].includes(response)) {
+    return res.status(400).json({ message: "Invalid RSVP response." });
+  }
+
+  try {
+    // Create or update the RSVP for the user and venue
+    const rsvp = await RSVP.findOneAndUpdate(
+      { uid, venue_id },
+      { response },
+      { upsert: true, new: true } // Insert if it doesn't exist, else update
+    );
+    
+    res.status(200).json({ message: "RSVP saved successfully.", rsvp });
+  } catch (err) {
+    console.error("Error saving RSVP:", err);
+    res.status(500).json({ message: "Error saving RSVP." });
+  }
+});
+
+// Backend route for handling guest RSVPs
+router.post("/rsvp/guest", async (req, res) => {
+  const { venue_id, response, guestId } = req.body;
+
+  if (!isValidVenueId(venue_id)) {
+    return res.status(400).json({ message: "Invalid venue ID." });
+  }
+
+  try {
+    // Save RSVP under guest ID
+    const newRSVP = new RSVP({
+      venue_id,
+      response,
+      guestId,
+      timestamp: Date.now(),
+    });
+
+    await newRSVP.save();
+    res.status(200).json({ message: "RSVP saved for guest." });
+  } catch (err) {
+    console.error("Error saving guest RSVP:", err);
+    res.status(500).json({ message: "Error saving guest RSVP." });
+  }
+});
+
+// GET Route to Fetch RSVP Counts
+router.get("/rsvp-counts/:venue_id", async (req, res) => {
+  const { venue_id } = req.params;
+
+  if (!isValidVenueId(venue_id)) {
+    return res.status(400).json({ message: "Invalid venue_id format." });
+  }
+
+  try {
+    // Get counts of Yes, No, and Maybe RSVPs for the venue
+    const rsvpCounts = await RSVP.aggregate([
+      { $match: { venue_id: venue_id } },
+      {
+        $group: {
+          _id: "$response",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const counts = rsvpCounts.reduce((acc, { _id, count }) => {
+      acc[_id] = count;
+      return acc;
+    }, { yes: 0, no: 0, maybe: 0 });
+
+    res.status(200).json({ rsvpCounts: counts });
+  } catch (err) {
+    console.error("Error fetching RSVP counts:", err);
+    res.status(500).json({ message: "Error fetching RSVP counts." });
+  }
+});
+
+// POST route to share a venue with other users
+router.post("/share", verifyFirebaseToken, async (req, res) => {
+  const uid = req.user.uid;
+  const { venue_id, shared_with_users } = req.body; // Planner shares with a list of user IDs
+
+  try {
+    const venue = await Venue.findOne({ venue_id });
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found." });
+    }
+
+    const shareLink = generateShareLink(venue_id);  // Generates a unique share link for the venue
+    const newShare = new Sharing({
+      planner_id: uid,
+      venue_id: venue_id,
+      shared_with: shared_with_users,
+      share_link: shareLink
+    });
+
+    await newShare.save();
+    res.status(201).json({ message: "Venue shared successfully!", shareLink });
+  } catch (err) {
+    console.error("Error sharing venue:", err);
+    res.status(500).json({ message: "Error sharing venue." });
   }
 });
 
