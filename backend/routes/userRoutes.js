@@ -1,10 +1,8 @@
 import express from "express";
-import verifyFirebaseToken from "../middleware/firebaseAuth.js";
+import { verifyFirebaseToken, optionalVerifyFirebase } from "../middleware/firebaseAuth.js";
 import User from "../models/User.js";
 import Preferences from "../models/Preferences.js";
 import RSVP from '../models/RSVP.js';
-import Sharing from "../models/Sharing.js";
-import { generateShareLink } from "../utils/shareUtils.js"; // Utility to generate unique share links
 import buildTagWeights from "../utils/tagWeightBuilder.js";
 import generatePreferenceSummary from "../utils/aiPreferenceSummary.js";
 import {
@@ -274,67 +272,60 @@ router.get("/summary", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// POST route to submit an RSVP response
+// POST route to submit RSVP for logged-in user - /api/users/...
 router.post("/rsvp", verifyFirebaseToken, async (req, res) => {
-  const uid = req.user.uid;
   const { venue_id, response } = req.body;
+  const uid = req.user.uid;
 
   if (!isValidVenueId(venue_id) || !["yes", "no", "maybe"].includes(response)) {
-    return res.status(400).json({ message: "Invalid RSVP response." });
+    return res.status(400).json({ message: "Invalid RSVP data." });
   }
 
   try {
-    // Create or update the RSVP for the user and venue
     const rsvp = await RSVP.findOneAndUpdate(
       { uid, venue_id },
       { response },
-      { upsert: true, new: true } // Insert if it doesn't exist, else update
+      { upsert: true, new: true }
     );
-    
-    res.status(200).json({ message: "RSVP saved successfully.", rsvp });
+    return res.status(200).json({ message: "RSVP saved.", rsvp });
   } catch (err) {
     console.error("Error saving RSVP:", err);
-    res.status(500).json({ message: "Error saving RSVP." });
+    return res.status(500).json({ message: "Server error saving RSVP." });
   }
 });
 
-// Backend route for handling guest RSVPs
-router.post("/rsvp/guest", async (req, res) => {
+// POST route to handle guest RSVP
+router.post("/rsvp/guest", optionalVerifyFirebase, async (req, res) => {
   const { venue_id, response, guestId } = req.body;
+
+  if (!isValidVenueId(venue_id) || !["yes", "no", "maybe"].includes(response)) {
+    return res.status(400).json({ message: "Invalid RSVP data." });
+  }
+
+  try {
+    const rsvp = await RSVP.findOneAndUpdate(
+      { guestId, venue_id },
+      { response },
+      { upsert: true, new: true }
+    );
+    return res.status(200).json({ message: "Guest RSVP saved.", rsvp });
+  } catch (err) {
+    console.error("Error saving guest RSVP:", err);
+    return res.status(500).json({ message: "Server error saving guest RSVP." });
+  }
+});
+
+// GET route to fetch RSVP counts
+router.get("/rsvp-counts/:venue_id", async (req, res) => {
+  const { venue_id } = req.params;
 
   if (!isValidVenueId(venue_id)) {
     return res.status(400).json({ message: "Invalid venue ID." });
   }
 
   try {
-    // Save RSVP under guest ID
-    const newRSVP = new RSVP({
-      venue_id,
-      response,
-      guestId,
-      timestamp: Date.now(),
-    });
-
-    await newRSVP.save();
-    res.status(200).json({ message: "RSVP saved for guest." });
-  } catch (err) {
-    console.error("Error saving guest RSVP:", err);
-    res.status(500).json({ message: "Error saving guest RSVP." });
-  }
-});
-
-// GET Route to Fetch RSVP Counts
-router.get("/rsvp-counts/:venue_id", async (req, res) => {
-  const { venue_id } = req.params;
-
-  if (!isValidVenueId(venue_id)) {
-    return res.status(400).json({ message: "Invalid venue_id format." });
-  }
-
-  try {
-    // Get counts of Yes, No, and Maybe RSVPs for the venue
     const rsvpCounts = await RSVP.aggregate([
-      { $match: { venue_id: venue_id } },
+      { $match: { venue_id } },
       {
         $group: {
           _id: "$response",
@@ -343,42 +334,49 @@ router.get("/rsvp-counts/:venue_id", async (req, res) => {
       }
     ]);
 
-    const counts = rsvpCounts.reduce((acc, { _id, count }) => {
-      acc[_id] = count;
-      return acc;
-    }, { yes: 0, no: 0, maybe: 0 });
+    const counts = { yes: 0, no: 0, maybe: 0 };
+    rsvpCounts.forEach(({ _id, count }) => {
+      counts[_id] = count;
+    });
 
-    res.status(200).json({ rsvpCounts: counts });
+    return res.status(200).json({ rsvpCounts: counts });
   } catch (err) {
     console.error("Error fetching RSVP counts:", err);
-    res.status(500).json({ message: "Error fetching RSVP counts." });
+    return res.status(500).json({ message: "Server error fetching RSVP counts." });
   }
 });
 
-// POST route to share a venue with other users
-router.post("/share", verifyFirebaseToken, async (req, res) => {
-  const uid = req.user.uid;
-  const { venue_id, shared_with_users } = req.body; // Planner shares with a list of user IDs
+
+/**
+ * GET /api/rsvp/status
+ * Get the current RSVP status for a user or guest
+ * Pass venue_id + uid (auto from auth) OR guestId via query
+ */
+router.get("/rsvp/status", async (req, res) => {
+  const { venue_id, guestId } = req.query;
+
+  if (!isValidVenueId(venue_id)) {
+    return res.status(400).json({ message: "Invalid venue ID." });
+  }
 
   try {
-    const venue = await Venue.findOne({ venue_id });
-    if (!venue) {
-      return res.status(404).json({ message: "Venue not found." });
+    let rsvp;
+
+    if (req.headers.authorization?.startsWith("Bearer ")) {
+      // Logged-in user
+      const token = req.headers.authorization.split(" ")[1];
+      req.user = await verifyFirebaseToken(token, true); // silent verify
+      if (req.user?.uid) {
+        rsvp = await RSVP.findOne({ uid: req.user.uid, venue_id });
+      }
+    } else if (guestId) {
+      rsvp = await RSVP.findOne({ guestId, venue_id });
     }
 
-    const shareLink = generateShareLink(venue_id);  // Generates a unique share link for the venue
-    const newShare = new Sharing({
-      planner_id: uid,
-      venue_id: venue_id,
-      shared_with: shared_with_users,
-      share_link: shareLink
-    });
-
-    await newShare.save();
-    res.status(201).json({ message: "Venue shared successfully!", shareLink });
+    return res.status(200).json({ rsvpStatus: rsvp?.response || null });
   } catch (err) {
-    console.error("Error sharing venue:", err);
-    res.status(500).json({ message: "Error sharing venue." });
+    console.error("Error fetching RSVP status:", err);
+    return res.status(500).json({ message: "Error fetching RSVP status." });
   }
 });
 

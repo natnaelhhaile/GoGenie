@@ -4,6 +4,7 @@ import { getAuth } from "firebase/auth";
 
 const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_BACKEND_URL,
+  headers: { "Content-Type": "application/json" }
 });
 
 axiosInstance.interceptors.request.use(async (config) => {

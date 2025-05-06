@@ -1,33 +1,51 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+  useLocation,
+} from "react-router-dom";
 import { FaThumbsUp, FaThumbsDown } from "react-icons/fa6";
-import { IoHeartOutline, IoHeart } from "react-icons/io5";
+import { IoHeartOutline, IoHeart, IoShareOutline } from "react-icons/io5";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../api/axiosInstance";
 import BottomNav from "../components/BottomNav";
 import Container from "../components/Container";
 import ChatLauncher from "../components/ChatLauncher";
 import { useToast } from "../context/ToastContext";
-import {
-  isValidVenueId,
-  isValidFeedbackType
-} from "../utils/validators";
-import "./VenueDetailPage.css";
+import { isValidVenueId, isValidFeedbackType } from "../utils/validators";
 import fallbackImage from "../assets/no-image.jpg";
+import "./VenueDetailPage.css";
 
 const VenueDetailPage = () => {
   const navigate = useNavigate();
-  const { state } = useLocation();
-  const venue = state?.venue;
-  const { user } = useAuth();
-  const { showToast } = useToast();
+  const { venue_id: paramVenueId } = useParams();
+  const [searchParams] = useSearchParams();
+  const shareToken = searchParams.get("share");
+  const isSharedView = !!shareToken;
 
+  const { user } = useAuth();
+  const isGuest = !user;
+  const { showToast } = useToast();
+  const { state } = useLocation();
+  const passedVenueId = state?.venue_id;
+  const effectiveVenueId = passedVenueId || paramVenueId;
+
+  const guestId =
+    localStorage.getItem("guestId") ||
+    (() => {
+      const id = crypto.randomUUID();
+      localStorage.setItem("guestId", id);
+      return id;
+    })();
+
+  const [venue, setVenue] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [rating, setRating] = useState("Loading...");
-  const [hours, setHours] = useState(null);
+  const [hours, setHours] = useState("");
   const [openNow, setOpenNow] = useState(null);
   const [popularity, setPopularity] = useState(null);
-  const [stats, setStats] = useState({ total_ratings: 0, total_tips: 0, total_photos: 0 });
+  const [stats, setStats] = useState({});
   const [tips, setTips] = useState([]);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
@@ -37,220 +55,252 @@ const VenueDetailPage = () => {
   const [rsvpStatus, setRsvpStatus] = useState(null);
   const [rsvpCounts, setRsvpCounts] = useState({ yes: 0, no: 0, maybe: 0 });
   const [loading, setLoading] = useState(false);
+  const [shareLink, setShareLink] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [isPlanner, setIsPlanner] = useState(false);
+  const [shared, setIsShared] = useState(false);
 
+  useEffect(() => {
+    if (!isValidVenueId(effectiveVenueId)) {
+      showToast("Invalid venue ID", "error");
+      navigate("/dashboard");
+      return;
+    }
+
+    const fetchVenueDetails = async () => {
+      try {
+        const res = await axiosInstance.get(
+          `/api/recommendations/details/${effectiveVenueId}`,
+          {
+            params: {
+              ...(shareToken && { share: shareToken }),
+              ...(guestId && !user && { guestId }),
+            },
+          }
+        );
+
+        const v = res.data.venue || res.data;
+        setVenue(v);
+        setRating(v.rating || "N/A");
+        setHours(v.hours?.display || v.hours || "Hours not available.");
+        setOpenNow(v.hours?.open_now || null);
+        setPopularity(v.popularity || null);
+        setStats(v.stats || {});
+        setTips(v.tips || []);
+        setPriorityScore(res.data.priorityScore || null);
+        setScoreBreakdown(res.data.scoreBreakdown || null);
+        setRsvpStatus(res.data.rsvpStatus || null);
+        setRsvpCounts(res.data.rsvpCounts || { yes: 0, no: 0, maybe: 0 });
+        setIsPlanner(res.data.isPlanner || false);
+        setIsShared(res.data.shared || false);
+      } catch (err) {
+        console.error("Error fetching venue:", err);
+        showToast("Failed to load venue", "error");
+        navigate("/dashboard");
+      }
+    };
+
+    fetchVenueDetails();
+  }, [effectiveVenueId, shareToken, user, guestId, navigate, showToast]);
+
+  useEffect(() => {
+    if (!user || !venue) return;
+    axiosInstance
+      .get("/api/favorites/is-favorite", {
+        params: { venue_id: venue.venue_id },
+      })
+      .then((res) => setIsFavorite(res.data.isFavorite))
+      .catch((err) => console.error("Favorite error:", err));
+  }, [venue, user]);
+
+  useEffect(() => {
+    if (!user || !venue) return;
+    axiosInstance
+      .get(`/api/feedback/${venue.venue_id}`)
+      .then((res) => {
+        if (res.data.feedback === "up") setLiked(true);
+        if (res.data.feedback === "down") setDisliked(true);
+      })
+      .catch((err) => console.error("Feedback error:", err));
+  }, [venue, user]);
+
+  const handleToggleFavorite = async () => {
+    if (!user)
+      return showToast("⚠️ Please log in to manage favorites.", "info");
+    try {
+      const endpoint = isFavorite
+        ? "/api/favorites/remove"
+        : "/api/favorites/add";
+      await axiosInstance.post(endpoint, { venue_id: venue.venue_id });
+      setIsFavorite(!isFavorite);
+      showToast(isFavorite ? "💔 Removed" : "❤️ Added", "success");
+    } catch (err) {
+      console.error("Favorite toggle error:", err);
+      showToast("Failed to update favorite", "error");
+    }
+  };
+
+  const handleFeedback = async (type) => {
+    if (!user) return showToast("⚠️ Please log in to give feedback.", "info");
+    if (!isValidFeedbackType(type))
+      return showToast("Invalid feedback", "error");
+    try {
+      await axiosInstance.post("/api/feedback", {
+        venue_id: venue.venue_id,
+        feedback: type,
+      });
+      setLiked(type === "up");
+      setDisliked(type === "down");
+      showToast(type === "up" ? "👍 Liked" : "👎 Disliked", "success");
+    } catch (err) {
+      console.error("Feedback error:", err);
+      showToast("Error submitting feedback", "error");
+    }
+  };
+
+  const handleRSVP = async (response) => {
+    if (!isValidVenueId(venue?.venue_id))
+      return showToast("Invalid venue ID.", "error");
+    setLoading(true);
+    try {
+      const url = user ? "/api/users/rsvp" : "/api/users/rsvp/guest";
+      const payload = {
+        venue_id: venue.venue_id,
+        response,
+        ...(user ? { uid: user.uid } : { guestId }),
+      };
+      await axiosInstance.post(url, payload);
+      setRsvpStatus(response);
+      showToast("RSVP saved", "success");
+    } catch (err) {
+      console.error("RSVP error:", err);
+      showToast("RSVP failed", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!user) return showToast("Log in to share", "info");
+    try {
+      const res = await axiosInstance.post("/api/recommendations/share", {
+        venue_id: venue.venue_id,
+        shared_with_users: [],
+      });
+      setShareLink(res.data.shareLink);
+      setCopied(false);
+      showToast("Link ready to copy", "success");
+    } catch (err) {
+      console.error("Share error:", err);
+      showToast("Could not create share link", "error");
+    }
+  };
+
+  if (!venue) return null;
 
   const address =
     venue?.location?.formattedAddress ||
     `${venue?.location?.address}, ${venue?.location?.locality}, ${venue?.location?.region} ${venue?.location?.postcode}` ||
     "Unknown Address";
 
-  const distanceMiles = venue?.distance
-    ? (venue.distance * 0.000621371).toFixed(1)
-    : "?";
-
-  const fsqWebUrl = `https://foursquare.com/v/${venue?.name.replace(/\s+/g, "-").toLowerCase()}/${venue?.venue_id}`;
+  const fsqWebUrl = `https://foursquare.com/v/${venue?.name
+    .replace(/\s+/g, "-")
+    .toLowerCase()}/${venue?.venue_id}`;
   const photos = venue?.photos || [];
-
-  useEffect(() => {
-    if (!venue || !isValidVenueId(venue.venue_id)) {
-      navigate("/dashboard");
-    }
-  }, [venue, navigate]);
-
-  // Check user's current RSVP status for the venue
-  useEffect(() => {
-    const fetchRsvpStatus = async () => {
-      if (user && isValidVenueId(venue?.venue_id)) {
-        try {
-          const res = await axiosInstance.get(`/api/rsvp-counts/${venue.venue_id}`);
-          setRsvpCounts(res.data.rsvpCounts);
-        } catch (err) {
-          console.error("Error fetching RSVP counts:", err);
-        }
-      }
-    };
-    fetchRsvpStatus();
-  }, [venue, user]);
-
-  useEffect(() => {
-    const checkFavorite = async () => {
-      if (!user || !isValidVenueId(venue?.venue_id)) return;
-      try {
-        const res = await axiosInstance.get("/api/favorites/is-favorite", {
-          params: { venue_id: venue.venue_id },
-        });
-        setIsFavorite(res.data.isFavorite);
-      } catch (err) {
-        console.error("Error checking favorite:", err);
-      }
-    };
-    checkFavorite();
-  }, [venue, user]);
-
-  useEffect(() => {
-    const fetchDetails = async () => {
-      try {
-        const res = await axiosInstance.get(`/api/recommendations/details/${venue.venue_id}`);
-        setRating(res.data.rating || "No rating available");
-        setHours(res.data.hours || null);
-        setPopularity(res.data.popularity || null);
-        setStats(res.data.stats || { total_ratings: 0, total_tips: 0, total_photos: 0 });
-        setTips(res.data.tips || []);
-        setOpenNow(res.data.hours?.open_now || null);
-        setPriorityScore(res.data.priorityScore || "N/A");
-        setScoreBreakdown(res.data.scoreBreakdown || null);
-      } catch (err) {
-        console.error("Error fetching details:", err);
-        setRating("N/A");
-      }
-    };
-    if (isValidVenueId(venue?.venue_id)) fetchDetails();
-  }, [venue, priorityScore, scoreBreakdown]);
-
-  useEffect(() => {
-    const fetchFeedback = async () => {
-      if (!user || !isValidVenueId(venue?.venue_id)) return;
-      try {
-        const res = await axiosInstance.get(`/api/feedback/${venue.venue_id}`);
-        if (res.data.feedback === "up") setLiked(true);
-        else if (res.data.feedback === "down") setDisliked(true);
-      } catch (err) {
-        console.error("Error fetching previous feedback:", err);
-      }
-    };
-    fetchFeedback();
-  }, [venue, user]);
-
-  const handleToggleFavorite = async () => {
-    if (!user) return showToast("⚠️ Please log in to manage favorites.", "info");
-    if (!isValidVenueId(venue?.venue_id)) return showToast("Invalid venue ID.", "error");
-    try {
-      const payload = { venue_id: venue.venue_id };
-      const endpoint = isFavorite ? "/api/favorites/remove" : "/api/favorites/add";
-      await axiosInstance.post(endpoint, payload);
-      setIsFavorite(!isFavorite);
-      showToast(isFavorite ? "💔 Removed from favorites." : "❤️ Added to favorites!", "success");
-    } catch (err) {
-      console.error("Error toggling favorite:", err);
-      showToast("Failed to update favorite.", "error");
-    }
-  };
-
-  const handleFeedback = async (type) => {
-    if (!user) return showToast("⚠️ Please log in to give feedback.", "info");
-    if (!isValidVenueId(venue?.venue_id) || !isValidFeedbackType(type)) {
-      return showToast("Invalid feedback request.", "error");
-    }
-    try {
-      await axiosInstance.post("/api/feedback", { venue_id: venue.venue_id, feedback: type });
-      setLiked(type === "up");
-      setDisliked(type === "down");
-      showToast(
-        type === "up" ? "👍 Liked this venue!" : type === "down" ? "👎 Disliked this venue." : "Feedback removed.",
-        "success"
-      );
-    } catch (err) {
-      console.error("Error sending feedback:", err);
-      showToast("Could not send feedback.", "error");
-    }
-  };
-
-  const handleRSVP = async (response) => {
-
-    if (!isValidVenueId(venue?.venue_id)) return showToast("Invalid venue ID.", "error");
-
-    // If logged in user, proceed normally
-    if (user) {
-      setLoading(true);
-      try {
-        await axiosInstance.post("/api/users/rsvp", {
-          venue_id: venue.venue_id,
-          response,
-          uid: user.uid, // Use logged-in user's UID
-        });
-        setRsvpStatus(response);
-        showToast("RSVP saved", "success");
-      } catch (err) {
-        console.error("Error submitting RSVP:", err);
-        showToast("Error submitting RSVP", "error");
-      } finally {
-        setLoading(false);
-      }  
-    } else {
-      // For unlogged-in users, handle as guests
-      const guestId = localStorage.getItem("guestId") || crypto.randomBytes(16).toString("hex");
-      localStorage.setItem("guestId", guestId); // Save the guest ID in localStorage
-  
-      setLoading(true);
-      try {
-        await axiosInstance.post("/api/users/rsvp/guest", {
-          venue_id: venue.venue_id,
-          response,
-          guestId, // Use guest ID for unlogged-in user
-        });
-        setRsvpStatus(response);
-        showToast("Guest RSVP saved", "success");
-      } catch (err) {
-        console.error("Error submitting RSVP for guest:", err);
-        showToast("Error submitting guest RSVP", "error");
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  if (!venue) {
-    showToast("Couldn't load venue details", "error");
-    navigate("/dashboard");
-    return;
-  }
 
   return (
     <Container>
       <div className="venue-detail-container">
-        <img src={photos[0] || fallbackImage} alt={venue.name} className="hero-image" />
-
+        <img
+          src={photos[0] || fallbackImage}
+          alt={venue.name}
+          className="hero-image"
+        />
         <div className="venue-header">
           <h2 className="venue-name">{venue.name}</h2>
-          <button onClick={handleToggleFavorite} className="favorite-button">
-            {isFavorite ? <IoHeart className="favorite-icon active" /> : <IoHeartOutline className="favorite-icon" />}
-          </button>
-          <button onClick={() => window.open( /* generateShareLink(), */"_blank")} className="share-button">
-            Share
-          </button>
+          {!isGuest && (
+            <div className="venue-actions">
+              <button onClick={handleToggleFavorite} className="favorite-button">
+                {isFavorite ? (
+                  <IoHeart className="favorite-icon active" />
+                ) : (
+                  <IoHeartOutline className="favorite-icon" />
+                )}
+              </button>
+              <button onClick={handleShare} className="favorite-button">
+                <IoShareOutline className="favorite-icon" />
+              </button>
+            </div>
+          )}
         </div>
+        {shareLink && (
+          <div className="share-link-container">
+            <input readOnly value={shareLink} className="share-link-input" />
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(shareLink);
+                setCopied(true);
+              }}
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+        )}
 
         <div className="venue-info">
-          <p><span className="label">Address:</span> {address}</p>
-          <p><span className="label">Categories:</span> {venue.categories?.slice(0, 5).join(", ")}</p>
-          <p><span className="label">Distance:</span> {distanceMiles} mi</p>
           <p>
-            <span className="label">Status:</span>
-            <span className={openNow ? "open-status open" : "open-status closed"}>
+            <span className="label">Address:</span> {address}
+          </p>
+          <p>
+            <span className="label">Categories:</span>{" "}
+            {venue.categories?.slice(0, 5).join(", ")}
+          </p>
+          <p>
+            <span className="label">City:</span>{" "}
+            {venue.location?.locality || "Unknown"}
+          </p>
+          <p>
+            <span className="label">Status:</span>{" "}
+            <span
+              className={openNow ? "open-status open" : "open-status closed"}
+            >
               {openNow ? "✅ Open Now" : "❌ Closed"}
             </span>
           </p>
-          <p><span className="label">City:</span> {venue.location?.locality || "Unknown City"}</p>
-          <p><span className="label">Rating:</span><span className="rating-value">⭐ {rating}</span></p>
-          <p><span className="label">Popularity:</span> {popularity ? `${(popularity * 100).toFixed(0)}%` : "N/A"}</p>
-          <p><span className="label">Stats:</span> {stats.total_ratings} ratings, {stats.total_tips} tips, {stats.total_photos} photos</p>
-
-          <a href={fsqWebUrl} target="_blank" rel="noopener noreferrer" className="venue-external-link">
+          <p>
+            <span className="label">Rating:</span>
+            <span className="rating-value">⭐ {rating}</span>
+          </p>
+          <p>
+            <span className="label">Popularity:</span>{" "}
+            {popularity ? `${(popularity * 100).toFixed(0)}%` : "N/A"}
+          </p>
+          <p>
+            <span className="label">Stats:</span> {stats.total_ratings} ratings,{" "}
+            {stats.total_tips} tips, {stats.total_photos} photos
+          </p>
+          <a
+            href={fsqWebUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="venue-external-link"
+          >
             🔗 View on Foursquare
           </a>
-
-          <div className="icons-row">
-            <FaThumbsUp
-              className={`thumb-icon ${liked ? "active" : ""}`}
-              onClick={() => handleFeedback(liked ? "none" : "up")}
-              title="Like"
-            />
-            <FaThumbsDown
-              className={`thumb-icon ${disliked ? "active" : ""}`}
-              onClick={() => handleFeedback(disliked ? "none" : "down")}
-              title="Dislike"
-            />
-          </div>
+          {!isGuest && (
+            <div className="icons-row">
+              <FaThumbsUp
+                className={`thumb-icon ${liked ? "active" : ""}`}
+                onClick={() => handleFeedback(liked ? "none" : "up")}
+                title="Like"
+              />
+              <FaThumbsDown
+                className={`thumb-icon ${disliked ? "active" : ""}`}
+                onClick={() => handleFeedback(disliked ? "none" : "down")}
+                title="Dislike"
+              />
+            </div>
+          )}
         </div>
 
         <div className="section-title">More Photos</div>
@@ -276,7 +326,11 @@ const VenueDetailPage = () => {
 
         <div className="section-title">Hours</div>
         <div className="placeholder-box">
-          {hours ? hours.map((line, idx) => <div key={idx}>{line}</div>) : "Hours not available."}
+          {typeof hours === "string"
+            ? hours
+                .split(";")
+                .map((line, idx) => <div key={idx}>{line.trim()}</div>)
+            : "Hours not available."}
         </div>
 
         {scoreBreakdown && (
@@ -284,62 +338,79 @@ const VenueDetailPage = () => {
             <div className="section-title">Why This Venue?</div>
             <div className="score-box">
               <div className="score-row">
-                <span className="score-label">&nbsp; 📊&nbsp; Overall Score:</span>
-                <span className="score-value highlight">{(priorityScore * 100).toFixed(0)}%</span>
+                <span className="score-label">📊&nbsp; Overall:</span>
+                <span className="score-value highlight">
+                  {(priorityScore * 100).toFixed(0)}%
+                </span>
               </div>
               <div className="score-row">
-                <span className="score-label">&nbsp;🎯&nbsp; Match Score:</span>
-                <span className="score-value">{scoreBreakdown.similarity ? `${(scoreBreakdown.similarity * 100).toFixed(0)}%` : "N/A"}</span>
+                <span className="score-label">🎯&nbsp; Match:</span>
+                <span className="score-value">
+                  {(scoreBreakdown.similarity * 100).toFixed(0)}%
+                </span>
               </div>
               <div className="score-row">
-                <span className="score-label">&nbsp;&nbsp;📍&nbsp; Distance Score:</span>
-                <span className="score-value">{(scoreBreakdown.proximity * 100).toFixed(0)}%</span>
+                <span className="score-label">📍&nbsp; Distance:</span>
+                <span className="score-value distance">
+                  {(scoreBreakdown.proximity * 100).toFixed(0)}%
+                </span>
               </div>
               <div className="score-row">
-                <span className="score-label">⭐&nbsp; Rating Score:</span>
-                <span className="score-value">{(scoreBreakdown.rating * 100).toFixed(0)}%</span>
+                <span className="score-label">⭐&nbsp; Rating:</span>
+                <span className="score-value">
+                  {(scoreBreakdown.rating * 100).toFixed(0)}%
+                </span>
               </div>
             </div>
           </div>
         )}
 
-        <div className="rsvp-section">
-          <h3>RSVP</h3>
-          {/* Disable buttons if user has already RSVPed */}
-          {!rsvpStatus && (
-            <>
-              <button
-                onClick={() => handleRSVP("yes")}
-                disabled={loading}
-              >
-                RSVP Yes
-              </button>
-              <button
-                onClick={() => handleRSVP("no")}
-                disabled={loading}
-              >
-                RSVP No
-              </button>
-              <button
-                onClick={() => handleRSVP("maybe")}
-                disabled={loading}
-              >
-                RSVP Maybe
-              </button>
-            </>
-          )}
-          <div className="rsvp-status">
-            {rsvpStatus && <p>Your RSVP: {rsvpStatus}</p>}
-          </div>
-          {loading && 
-            <div className="loading-container">
-              <div className="loading-spinner"/>
-              <p>Submitting your RSVP...</p>
-            </div>}
-        </div>
+        <div className="section-title">RSVP</div>
+        {(isSharedView || isPlanner) && (
+          <div className="rsvp-section">
 
-        <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
-        <BottomNav />
+            {isSharedView && (
+              <>
+                {!rsvpStatus ? (
+                  <>
+                    <button onClick={() => handleRSVP("yes")} disabled={loading}>
+                      RSVP Yes
+                    </button>
+                    <button onClick={() => handleRSVP("no")} disabled={loading}>
+                      RSVP No
+                    </button>
+                    <button onClick={() => handleRSVP("maybe")} disabled={loading}>
+                      RSVP Maybe
+                    </button>
+                  </>
+                ) : (
+                  <p>
+                    Your Responded:{"  "}
+                    {rsvpStatus === "yes"
+                      ? " 👍 Yes"
+                      : rsvpStatus === "no"
+                      ? " ❌ No"
+                      : " 🤔 Maybe"}
+                  </p>
+                )}
+                {loading && 
+                  <div className="loading-container">
+                  <div className="loading-spinner"/>
+                  <p>Submitting you RSVP request...</p>
+                </div>}
+              </>
+            )}
+
+            {isPlanner && (
+              <p>
+                &nbsp;&nbsp; 👍 {rsvpCounts.yes}&nbsp;&nbsp; |&nbsp;&nbsp; ❌ {rsvpCounts.no}&nbsp;&nbsp; |&nbsp;&nbsp; 🤔 {rsvpCounts.maybe}
+              </p>
+            )}
+          </div>
+        )}
+
+        {!isGuest && <ChatLauncher isOpen={isChatOpen} setIsOpen={setIsChatOpen} />}
+        {!isGuest && <BottomNav />}
       </div>
     </Container>
   );

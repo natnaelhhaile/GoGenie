@@ -1,11 +1,12 @@
 import express from "express";
-import verifyFirebaseToken from "../middleware/firebaseAuth.js";
+import { verifyFirebaseToken, optionalVerifyFirebase } from "../middleware/firebaseAuth.js";
 import Preferences from "../models/Preferences.js";
 import User from "../models/User.js";
 import Recommendation from "../models/Recommendation.js";
 import UserVenueScore from "../models/UserVenueScore.js";
 import Sharing from "../models/Sharing.js";
 import RSVP from "../models/RSVP.js";
+import { generateShareToken, generateShareLink } from "../utils/shareUtils.js";
 import { calculateCosineSimilarity } from "../utils/similarity.js";
 import { generateFoursquareQueries } from "../services/openAIService.js";
 import {
@@ -399,66 +400,137 @@ router.get("/search", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// GET route for venue details
-router.get("/details/:venue_id", verifyFirebaseToken, async (req, res) => {
-  const uid = req.user?.uid; // Get logged-in user's UID
+// GET route for venue details - /api/recommendations/...
+router.get("/details/:venue_id", optionalVerifyFirebase, async (req, res) => {
+  const uid = req.user?.uid;
   const { venue_id } = req.params;
-  const { share } = req.query; // Retrieve the share token if present
+  const { share, guestId } = req.query;
+  if (!isValidVenueId(venue_id)) {
+    return res.status(400).json({ message: "Invalid venue ID." });
+  }
+  let isPlanner = false;
 
   try {
-    // Validate the venue_id
-    if (!isValidVenueId(venue_id)) {
-      return res.status(400).json({ message: "Invalid venue ID" });
+    const venue = await Recommendation.findOne({ venue_id });
+    if (!venue) return res.status(404).json({ message: "Venue not found." });
+    
+    // Fetch RSVP counts
+    const rsvpCountsAgg = await RSVP.aggregate([
+      { $match: { venue_id } },
+      { $group: { _id: "$response", count: { $sum: 1 } } }
+    ]);
+    const rsvpCounts = { yes: 0, no: 0, maybe: 0 };
+    rsvpCountsAgg.forEach(({ _id, count }) => { rsvpCounts[_id] = count; });
+    
+    // Determine current user or guest RSVP status
+    let rsvpStatus = null;
+    if (uid) {
+      const rsvp = await RSVP.findOne({ uid, venue_id });
+      rsvpStatus = rsvp?.response || null;
+      const sharingRecord = await Sharing.findOne({ planner_id: uid });
+      if (sharingRecord) {
+        isPlanner = true;
+      }
+    } else if (guestId) {
+      const rsvp = await RSVP.findOne({ guestId, venue_id });
+      rsvpStatus = rsvp?.response || null;
     }
-
-    // Check if it's a shared link
+    // If shared link present, validate it
     if (share) {
-      // If the request is coming from a shared link (guest user)
-      const sharingRecord = await Sharing.findOne({ share_link: share });
+      const sharingRecord = await Sharing.findOne({ token: { $regex: share } });
 
       if (!sharingRecord) {
-        return res.status(404).json({ message: "Shared link not found" });
+        return res.status(404).json({ message: "Invalid or expired share token." });
       }
-
-      // Fetch venue details from the venue ID associated with the shared link
-      const venue = await Recommendation.findOne({ venue_id: sharingRecord.venue_id });
-
-      if (!venue) {
-        return res.status(404).json({ message: "Venue not found" });
-      }
-
-      // Fetch RSVP responses for the shared venue
-      const rsvpStatus = await RSVP.find({ venue_id: venue.venue_id });
 
       return res.status(200).json({
         venue,
-        rsvpStatus,  // Return RSVP responses
-      });
-
-    } else {
-      // If the request is coming from a logged-in user
-      const venue = await Recommendation.findOne({ venue_id });
-
-      if (!venue) {
-        return res.status(404).json({ message: "Venue not found" });
-      }
-
-      // Fetch the logged-in user's personal feedback and priority score
-      const userScore = await UserVenueScore.findOne({ uid, venue_id });
-
-      return res.status(200).json({
-        rating: venue.rating || "No rating available",
-        popularity: venue.popularity || "N/A",
-        stats: venue.stats || { total_ratings: 0, total_tips: 0, total_photos: 0 },
-        hours: venue.hours || "Hours not available",
-        tips: venue.tips || [],
-        priorityScore: userScore?.priorityScore || "N/A",  // User-specific score
-        scoreBreakdown: userScore?.scoreBreakdown || null  // User-specific breakdown
+        rsvpStatus,
+        shared: true,
+        isPlanner
       });
     }
-  } catch (error) {
-    console.error("Error fetching venue details:", error);
-    res.status(500).json({ message: "Server error" });
+
+    // If user is logged in (not via share), fetch personalized score
+    const userScore = uid ? await UserVenueScore.findOne({ uid, venue_id }) : null;
+
+    return res.status(200).json({
+      venue,
+      priorityScore: userScore?.priorityScore || "N/A",
+      scoreBreakdown: userScore?.scoreBreakdown || null,
+      rsvpCounts,
+      rsvpStatus,
+      shared: false,
+      isPlanner
+    });
+    
+
+  } catch (err) {
+    console.error("Error in venue details route:", err);
+    return res.status(500).json({ message: "Server error loading venue details." });
+  }
+});
+
+// Route to handle shared links with token
+router.get("/share/:token", async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const record = await Sharing.findOne({ token });
+
+    if (!record) return res.status(404).send("Invalid or expired link");
+
+    if (new Date() > new Date(record.expiresAt)) {
+      return res.status(403).send("This link has expired.");
+    }
+
+    const redirectUrl = `${process.env.FRONTEND_URL}/venue/${record.venue_id}?share=${token}`;
+    return res.redirect(302, redirectUrl);
+
+  } catch (err) {
+    console.error("Error resolving shared link:", err);
+    return res.status(500).send("Server error");
+  }
+});
+
+// POST route to share a venue with other users
+router.post("/share", verifyFirebaseToken, async (req, res) => {
+  const uid = req.user.uid;
+  const { venue_id, shared_with_users = [] } = req.body;
+
+  try {
+    const venue = await Recommendation.findOne({ venue_id });
+    if (!venue) {
+      return res.status(404).json({ message: "Venue not found." });
+    }
+
+    const token = generateShareToken();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // expires in 24h
+    const shareLink = generateShareLink(venue_id, token);
+
+    const newShare = new Sharing({
+      planner_id: uid,
+      venue_id,
+      shared_with: shared_with_users,
+      share_link: shareLink,
+      token,
+      expiresAt,
+    });
+
+    console.log(shareLink)
+
+    await newShare.save();
+
+    return res.status(201).json({
+      message: "Venue shared successfully!",
+      shareLink,
+      token,
+      expiresAt,
+    });
+
+  } catch (err) {
+    console.error("Error sharing venue:", err);
+    return res.status(500).json({ message: "Error sharing venue." });
   }
 });
 

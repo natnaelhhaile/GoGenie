@@ -260,7 +260,7 @@ const Dashboard = () => {
             <FeaturedCard
               key={venue.venue_id}
               venue={venue}
-              onClick={() => navigate("/venue-detail", { state: { venue } })}
+              onClick={() => navigate("/venue-detail", { state: { venue_id: venue.venue_id } })}
             />
           ))}
         </div>
@@ -275,7 +275,7 @@ const Dashboard = () => {
               <FeaturedCard
                 key={venue.venue_id}
                 venue={venue}
-                onClick={() => navigate("/venue-detail", { state: { venue } })}
+                onClick={() => navigate("/venue-detail", { state: { venue_id: venue.venue_id } })}
               />
             ))}
           </div>
@@ -320,7 +320,7 @@ const Dashboard = () => {
                 venue={venue}
                 isFavorite={favoritesMap[venue.venue_id]}
                 onToggleFavorite={() => handleToggleFavorite(venue.venue_id)}
-                onClick={() => navigate("/venue-detail", { state: { venue } })}
+                onClick={() => navigate("/venue-detail", { state: { venue_id: venue.venue_id } })}
                 showFavoriteIcon
               />
             ))}
