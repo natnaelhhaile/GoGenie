@@ -60,7 +60,9 @@ router.post("/venue-assistant", verifyFirebaseToken, async (req, res) => {
     const uid = req.user.uid;
     const { message } = req.body;
 
+    console.log("Received message from frontend:", message);
     if (!isValidTextField(message)) {
+      console.error("❌ Invalid message format:", message);
       return res.status(400).json({ error: "Invalid message format." });
     }
 
@@ -72,6 +74,7 @@ router.post("/venue-assistant", verifyFirebaseToken, async (req, res) => {
     }
 
     const prompt = buildPrompt(message, userPreferences, recommendedVenues);
+    // console.log("Prompt sent to OpenAI:", prompt);
 
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
@@ -121,7 +124,7 @@ router.get("/venue-name", verifyFirebaseToken, async (req, res) => {
       return res.status(404).json({ error: "Venue not found" });
     }
 
-    console.log("Venue found:", venue);
+    // console.log("Venue found:", venue);
     return res.status(200).json(venue);
   } catch (error) {
     console.error("❌ Error fetching venue by name:", error.message);
@@ -148,6 +151,22 @@ router.post("/save-chat-history", verifyFirebaseToken, async (req, res) => {
   } catch (error) {
     console.error("❌ Error saving chat history backend:", error.message);
     res.status(500).json({ error: "Server error saving chat." });
+  }
+});
+
+router.get("/get-chat-history", verifyFirebaseToken, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    const chatHistory = await ChatHistory.findOne({ uid });
+
+    if (!chatHistory) {
+      return res.status(404).json({ error: "Chat history not found." });
+    }
+
+    res.status(200).json(chatHistory.history);
+  } catch (error) {
+    console.error("❌ Error fetching chat history:", error.message);
+    res.status(500).json({ error: "Server error fetching chat history." });
   }
 });
 

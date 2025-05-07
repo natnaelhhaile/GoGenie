@@ -17,11 +17,23 @@ const ChatAssistant = ({ closeChat }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedHistory = localStorage.getItem("chatHistory");
-    if (storedHistory) {
-      setChatHistory(JSON.parse(storedHistory));
-    }
+    const fetchChatHistory = async () => {
+      try {
+        const res = await axiosInstance.get("/api/chat/get-chat-history");
+        if (Array.isArray(res.data)) {
+          setChatHistory(res.data);
+          localStorage.setItem("chatHistory", JSON.stringify(res.data)); // fallback cache
+        }
+      } catch (err) {
+        console.warn("⚠️ Could not load chat history from DB. Falling back to localStorage.");
+        const stored = localStorage.getItem("chatHistory");
+        if (stored) setChatHistory(JSON.parse(stored));
+      }
+    };
+  
+    fetchChatHistory();
   }, []);
+  
 
   useEffect(() => {
     if (bottomRef.current) {
@@ -42,6 +54,7 @@ const ChatAssistant = ({ closeChat }) => {
     setLoading(true);
 
     try {
+      console.log("Sending message to AI:", userInput.trim());
       const response = await axiosInstance.post("/api/chat/venue-assistant", {
         message: userInput.trim(),
       });
