@@ -1,7 +1,9 @@
 import express from "express";
-import verifyFirebaseToken from "../middleware/firebaseAuth.js";
+import { verifyFirebaseToken, optionalVerifyFirebase } from "../middleware/firebaseAuth.js";
 import User from "../models/User.js";
 import Preferences from "../models/Preferences.js";
+import RSVP from '../models/RSVP.js';
+import Sharing from '../models/Sharing.js';
 import buildTagWeights from "../utils/tagWeightBuilder.js";
 import generatePreferenceSummary from "../utils/aiPreferenceSummary.js";
 import {
@@ -10,6 +12,7 @@ import {
   isValidTextField,
   isValidStringArray,
   isValidAddress,
+  isValidVenueId,
 } from "../utils/validators.js";
 import geocodeAddress from "../utils/geocodeAddress.js";
 
@@ -267,6 +270,126 @@ router.get("/summary", verifyFirebaseToken, async (req, res) => {
   } catch (error) {
     console.error("❌ Error in /summary route:", error);
     return res.status(500).json({ message: "Server error" });
+  }
+});
+
+// POST route to submit RSVP for logged-in user - /api/users/...
+router.post("/rsvp", verifyFirebaseToken, async (req, res) => {
+  const { response, shareToken } = req.body;
+  const uid = req.user.uid;
+
+  if (!["yes", "no", "maybe"].includes(response) || !uid || !shareToken) {
+    return res.status(400).json({ message: "Invalid RSVP data." });
+  }
+
+  try {
+    const sharingRecord = await Sharing.findOne({ token: shareToken });
+    if (!sharingRecord || new Date() > new Date(sharingRecord.expiresAt)) {
+      return res.status(403).json({ message: "Invalid or expired share token." });
+    }
+
+    const sharing_id = sharingRecord._id;
+
+    const rsvp = await RSVP.findOneAndUpdate(
+      { sharing_id, uid },
+      { sharing_id, uid, response },
+      { upsert: true, new: true }
+    );
+
+    // Push RSVP ID into Sharing (if not already present)
+    await Sharing.updateOne(
+      { _id: sharing_id, rsvps: { $ne: rsvp._id } },
+      { 
+        $addToSet: {
+          rsvps: rsvp._id,
+          shared_with: uid
+        }
+      }
+    );
+
+    return res.status(200).json({ message: "RSVP saved.", rsvp });
+
+  } catch (err) {
+    console.error("Error saving RSVP:", err);
+    return res.status(500).json({ message: "Server error saving RSVP." });
+  }
+});
+
+// POST route to handle guest RSVP
+router.post("/rsvp/guest", optionalVerifyFirebase, async (req, res) => {
+  const { response, guestId, shareToken } = req.body;
+  console.log(shareToken, guestId, response);
+
+  if (!["yes", "no", "maybe"].includes(response) || !guestId || !shareToken) {
+    return res.status(400).json({ message: "Invalid guest RSVP data." });
+  }
+
+  try {
+    const sharingRecord = await Sharing.findOne({ token: shareToken });
+    if (!sharingRecord || new Date() > new Date(sharingRecord.expiresAt)) {
+      return res.status(403).json({ message: "Invalid or expired share token." });
+    }
+
+    const sharing_id = sharingRecord._id;
+    console.log("sharing_id: ", sharing_id);
+
+    const rsvp = await RSVP.findOneAndUpdate(
+      { sharing_id, guestId },
+      {
+        $set: {
+          sharing_id,
+          guestId,
+          response
+        },
+        $unset: { uid: "", venue_id: "" }
+      },
+      { upsert: true, new: true }
+    );
+
+    // Push RSVP ID into Sharing (if not already present)
+    await Sharing.updateOne(
+      { _id: sharing_id, rsvps: { $ne: rsvp._id } },
+      { $addToSet: { rsvps: rsvp._id } }
+    );
+
+    return res.status(200).json({ message: "Guest RSVP saved.", rsvp });
+
+  } catch (err) {
+    console.error("Error saving guest RSVP:", err);
+    return res.status(500).json({ message: "Server error saving guest RSVP." });
+  }
+});
+
+/**
+ * GET /api/rsvp/status
+ * Get the current RSVP status for a user or guest
+ * Pass venue_id + uid (auto from auth) OR guestId via query
+ */
+router.get("/rsvp/status", async (req, res) => {
+  const { shareToken, guestId } = req.query;
+
+  if (!shareToken) return res.status(400).json({ message: "Missing share token" });
+
+  try {
+    const sharing = await Sharing.findOne({ token: shareToken });
+    if (!sharing) return res.status(404).json({ message: "Invalid share token" });
+
+    let rsvp;
+
+    if (req.headers.authorization?.startsWith("Bearer ")) {
+      const token = req.headers.authorization.split(" ")[1];
+      req.user = await verifyFirebaseToken(token, true); // silent mode
+      if (req.user?.uid) {
+        rsvp = await RSVP.findOne({ sharing_id: sharing._id, uid: req.user.uid });
+      }
+    } else if (guestId) {
+      rsvp = await RSVP.findOne({ sharing_id: sharing._id, guestId });
+    }
+
+    return res.status(200).json({ rsvpStatus: rsvp?.response || null });
+  } catch (err) {
+    console.error("Error fetching RSVP status:", err);
+    return res.status(500).json({ message: "Error fetching RSVP status" });
   }
 });
 

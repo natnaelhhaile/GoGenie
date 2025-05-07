@@ -19,4 +19,19 @@ const verifyFirebaseToken = async (req, res, next) => {
   }
 };
 
-export default verifyFirebaseToken;
+const optionalVerifyFirebase = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    const idToken = authHeader.split("Bearer ")[1];
+    try {
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      req.user = decodedToken;
+    } catch (error) {
+      console.warn("Invalid Firebase token (continuing as guest):", error.message);
+      req.user = null;
+    }
+  }
+  next();
+};
+
+export { verifyFirebaseToken, optionalVerifyFirebase };

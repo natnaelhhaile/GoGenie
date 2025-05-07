@@ -7,14 +7,13 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "backfill:zero-similarity": "node ./scripts/backfillIfSimilarityZero.js",
-    "backfill:venue-tags": "node ./scripts/backfillVenueTagsFromCategories.js"
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "axios": "^1.8.3",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "firebase-admin": "^13.1.0",

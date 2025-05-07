@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
 import OpenAI from "openai";
-import verifyFirebaseToken from "../middleware/firebaseAuth.js";
+import { verifyFirebaseToken } from "../middleware/firebaseAuth.js";
 import Preferences from "../models/Preferences.js";
 import Recommendation from "../models/Recommendation.js";
 import ChatHistory from "../models/ChatHistory.js";

@@ -33,6 +33,7 @@ function AppRoutes() {
           <Route path="/profile-setup" element={<ProfileSetup />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/venue-detail" element={<VenueDetailPage />} />
+          <Route path="/venue/:venue_id" element={<VenueDetailPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/edit-profile" element={<EditProfilePage />} />

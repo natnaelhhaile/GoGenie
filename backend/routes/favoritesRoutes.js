@@ -1,7 +1,7 @@
 import express from "express";
 import Favorite from "../models/Favorite.js";
 import Recommendation from "../models/Recommendation.js";
-import verifyFirebaseToken from "../middleware/firebaseAuth.js";
+import { verifyFirebaseToken } from "../middleware/firebaseAuth.js";
 import { isValidVenueId } from "../utils/validators.js";
 
 const router = express.Router();
