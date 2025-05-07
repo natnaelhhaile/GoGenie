@@ -35,6 +35,12 @@ const VenueDetailPage = () => {
   const [priorityScore, setPriorityScore] = useState(null);
   const [scoreBreakdown, setScoreBreakdown] = useState(null);
 
+  // review states
+  const [reviews, setReviews] = useState([]);
+  const [newReview, setNewReview] = useState("");
+  const [newRating, setNewRating] = useState(5);
+
+
 
   const address =
     venue?.location?.formattedAddress ||
@@ -47,6 +53,22 @@ const VenueDetailPage = () => {
 
   const fsqWebUrl = `https://foursquare.com/v/${venue?.name.replace(/\s+/g, "-").toLowerCase()}/${venue?.venue_id}`;
   const photos = venue?.photos || [];
+
+
+
+  // fetch reviews from the backend
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const res = await axiosInstance.get(`/api/reviews/${venue.venue_id}`);
+        setReviews(res.data);
+      } catch (err) {
+        console.error("Error fetching reviews:", err);
+      }
+    };
+    if (venue?.venue_id) fetchReviews();
+  }, [venue]);
+
 
   useEffect(() => {
     if (!venue || !isValidVenueId(venue.venue_id)) {
@@ -137,6 +159,25 @@ const VenueDetailPage = () => {
     }
   };
 
+  const handleSubmitReview = async () => {
+    if (!user) return showToast("⚠️ Please log in to leave a review.", "info");
+    try {
+      const res = await axiosInstance.post("/api/reviews", {
+        venue_id: venue.venue_id,
+        rating: newRating,
+        comment: newReview
+      });
+      setReviews([res.data, ...reviews]);
+      setNewReview("");
+      setNewRating(5);
+      showToast("✅ Review submitted!", "success");
+    } catch (err) {
+      console.error("Error submitting review:", err);
+      showToast("Failed to submit review.", "error");
+    }
+  };
+
+
   if (!venue) return <p>Loading venue details...</p>;
 
   return (
@@ -204,6 +245,39 @@ const VenueDetailPage = () => {
             <p className="no-tips">No tips available yet.</p>
           )}
         </div>
+
+        {/* Reviews section to let users review venue */}
+        <div className="section-title">User Reviews</div>
+        <div className="reviews-section">
+          {reviews.length > 0 ? (
+            reviews.map((review, idx) => (
+              <div className="review-card" key={idx}>
+                <p className="tip-text">"{review.comment}"</p>
+                <p className="tip-date">⭐ {review.rating} by {review.userName} on {new Date(review.createdAt).toLocaleDateString()}</p>
+              </div>
+            ))
+          ) : (
+            <p className="no-tips">No reviews yet.</p>
+          )}
+
+          {/* Review Form */}
+          <div className="review-card">
+            <textarea
+              value={newReview}
+              onChange={(e) => setNewReview(e.target.value)}
+              placeholder="Leave a comment..."
+              rows={3}
+              style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
+              <select value={newRating} onChange={(e) => setNewRating(Number(e.target.value))}>
+                {[1, 2, 3, 4, 5].map(num => <option key={num} value={num}>{num} Star{num > 1 ? "s" : ""}</option>)}
+              </select>
+              <button onClick={handleSubmitReview} className="favorite-button">Submit</button>
+            </div>
+          </div>
+        </div>
+
 
         <div className="section-title">Hours</div>
         <div className="placeholder-box">

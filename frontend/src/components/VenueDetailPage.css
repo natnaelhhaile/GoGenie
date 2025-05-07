@@ -199,6 +199,17 @@
   text-align: center;
 }
 
+textarea {
+  border: 1px solid #ccc;
+  resize: none;
+}
+
+select {
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+
 .icons-row {
   display: flex;
   justify-content: center;

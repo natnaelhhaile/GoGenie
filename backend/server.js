@@ -9,6 +9,7 @@ import recommendationRoutes from "./routes/recommendationRoutes.js";
 import favoritesRoutes from "./routes/favoritesRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import feedbackRoutes from "./routes/feedbackRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
 
 
 const app = express();
@@ -29,6 +30,7 @@ app.use("/api/recommendations", recommendationRoutes);
 app.use("/api/favorites", favoritesRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
