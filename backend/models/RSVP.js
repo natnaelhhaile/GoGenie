@@ -1,16 +1,35 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const RSVP = new mongoose.Schema({
-  uid: { type: String, ref: "User" }, // User ID (can be null for guest RSVPs)
-  guestId: {type: String},
-  venue_id: { type: String, required: true }, // Venue ID the RSVP is for
-  response: { type: String, enum: ["yes", "no", "maybe"], default: "maybe" }, // The RSVP response
+  sharing_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Sharing",
+    required: true
+  },
+  uid: { type: String, ref: "User" }, // Optional for guests
+  guestId: { type: String },
+  response: {
+    type: String,
+    enum: ["yes", "no", "maybe"],
+    required: true
+  }
 }, { timestamps: true });
 
-// Ensuring that each user can RSVP only once per venue
-RSVP.index({ uid: 1, venue_id: 1 }, { unique: true, sparse: true });
-RSVP.index({ guestId: 1, venue_id: 1 }, { unique: true, sparse: true });
+// Each user/guest can RSVP once per shared link
+RSVP.index(
+  { sharing_id: 1, uid: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { uid: { $exists: true, $ne: null } },
+  }
+);
 
-const RSVPModel = mongoose.model("RSVP", RSVP);
+RSVP.index(
+  { sharing_id: 1, guestId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { guestId: { $exists: true, $ne: null } },
+  }
+);
 
-export default RSVPModel;
+export default mongoose.model("RSVP", RSVP);

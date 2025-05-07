@@ -67,6 +67,10 @@ const VenueDetailPage = () => {
       return;
     }
 
+    if (shareToken) {
+      localStorage.setItem("shareToken", shareToken);
+    }
+
     const fetchVenueDetails = async () => {
       try {
         const res = await axiosInstance.get(
@@ -126,14 +130,14 @@ const VenueDetailPage = () => {
 
   const handleToggleFavorite = async () => {
     if (!user)
-      return showToast("⚠️ Please log in to manage favorites.", "info");
+      return showToast(" ⚠️  Please log in to manage favorites.", "info");
     try {
       const endpoint = isFavorite
         ? "/api/favorites/remove"
         : "/api/favorites/add";
       await axiosInstance.post(endpoint, { venue_id: venue.venue_id });
       setIsFavorite(!isFavorite);
-      showToast(isFavorite ? "💔 Removed" : "❤️ Added", "success");
+      showToast(isFavorite ? " 💔  Removed" : " ❤️  Added", "success");
     } catch (err) {
       console.error("Favorite toggle error:", err);
       showToast("Failed to update favorite", "error");
@@ -151,7 +155,10 @@ const VenueDetailPage = () => {
       });
       setLiked(type === "up");
       setDisliked(type === "down");
-      showToast(type === "up" ? "👍 Liked" : "👎 Disliked", "success");
+      showToast(
+        type === "up" ? "👍 Liked this venue!" : type === "down" ? "👎 Disliked this venue." : "Feedback removed.",
+        "success"
+      );
     } catch (err) {
       console.error("Feedback error:", err);
       showToast("Error submitting feedback", "error");
@@ -168,13 +175,14 @@ const VenueDetailPage = () => {
         venue_id: venue.venue_id,
         response,
         ...(user ? { uid: user.uid } : { guestId }),
+        ...(shareToken ? { shareToken } : {}),
       };
       await axiosInstance.post(url, payload);
       setRsvpStatus(response);
-      showToast("RSVP saved", "success");
+      showToast(user ? "RSVP sent" : "Guest RSVP sent", "success");
     } catch (err) {
       console.error("RSVP error:", err);
-      showToast("RSVP failed", "error");
+      showToast(user ? "Failed sending RSVP" : "Failed sending guest RSVP", "error");
     } finally {
       setLoading(false);
     }
@@ -366,40 +374,41 @@ const VenueDetailPage = () => {
         )}
 
         <div className="section-title">RSVP</div>
-        {(isSharedView || isPlanner) && (
+        {(isSharedView || isPlanner || rsvpStatus) && (
           <div className="rsvp-section">
 
-            {isSharedView && (
-              <>
-                {!rsvpStatus ? (
-                  <>
-                    <button onClick={() => handleRSVP("yes")} disabled={loading}>
-                      RSVP Yes
-                    </button>
-                    <button onClick={() => handleRSVP("no")} disabled={loading}>
-                      RSVP No
-                    </button>
-                    <button onClick={() => handleRSVP("maybe")} disabled={loading}>
-                      RSVP Maybe
-                    </button>
-                  </>
-                ) : (
-                  <p>
-                    Your Responded:{"  "}
-                    {rsvpStatus === "yes"
-                      ? " 👍 Yes"
-                      : rsvpStatus === "no"
-                      ? " ❌ No"
-                      : " 🤔 Maybe"}
-                  </p>
-                )}
-                {loading && 
-                  <div className="loading-container">
-                  <div className="loading-spinner"/>
-                  <p>Submitting you RSVP request...</p>
-                </div>}
-              </>
-            )}
+          {(isSharedView || rsvpStatus) && (
+            <div className="rsvp-response-section">
+              {!rsvpStatus ? (
+                <>
+                  <button onClick={() => handleRSVP("yes")} disabled={loading}>
+                    Yes
+                  </button>
+                  <button onClick={() => handleRSVP("no")} disabled={loading}>
+                    No
+                  </button>
+                  <button onClick={() => handleRSVP("maybe")} disabled={loading}>
+                    Maybe
+                  </button>
+                </>
+              ) : (
+                <p>
+                  You Responded:&nbsp;
+                  {rsvpStatus === "yes"
+                    ? " 👍 Yes"
+                    : rsvpStatus === "no"
+                    ? " ❌ No"
+                    : " 🤔 Maybe"}
+                </p>
+              )}
+              {loading && (
+                <div className="loading-container">
+                  <div className="loading-spinner" />
+                  <p>Submitting your RSVP request...</p>
+                </div>
+              )}
+            </div>
+          )}
 
             {isPlanner && (
               <p>

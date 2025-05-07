@@ -405,65 +405,99 @@ router.get("/details/:venue_id", optionalVerifyFirebase, async (req, res) => {
   const uid = req.user?.uid;
   const { venue_id } = req.params;
   const { share, guestId } = req.query;
+
   if (!isValidVenueId(venue_id)) {
     return res.status(400).json({ message: "Invalid venue ID." });
   }
+
   let isPlanner = false;
+  let rsvpStatus = null;
+  let rsvpCounts = { yes: 0, no: 0, maybe: 0 };
 
   try {
     const venue = await Recommendation.findOne({ venue_id });
     if (!venue) return res.status(404).json({ message: "Venue not found." });
-    
-    // Fetch RSVP counts
-    const rsvpCountsAgg = await RSVP.aggregate([
-      { $match: { venue_id } },
-      { $group: { _id: "$response", count: { $sum: 1 } } }
-    ]);
-    const rsvpCounts = { yes: 0, no: 0, maybe: 0 };
-    rsvpCountsAgg.forEach(({ _id, count }) => { rsvpCounts[_id] = count; });
-    
-    // Determine current user or guest RSVP status
-    let rsvpStatus = null;
-    if (uid) {
-      const rsvp = await RSVP.findOne({ uid, venue_id });
-      rsvpStatus = rsvp?.response || null;
-      const sharingRecord = await Sharing.findOne({ planner_id: uid });
-      if (sharingRecord) {
-        isPlanner = true;
-      }
-    } else if (guestId) {
-      const rsvp = await RSVP.findOne({ guestId, venue_id });
-      rsvpStatus = rsvp?.response || null;
-    }
-    // If shared link present, validate it
-    if (share) {
-      const sharingRecord = await Sharing.findOne({ token: { $regex: share } });
 
-      if (!sharingRecord) {
+    // Determine sharing context
+    let sharingRecord = null;
+
+    if (share) {
+      sharingRecord = await Sharing.findOne({ token: share, venue_id });
+      if (!sharingRecord)
         return res.status(404).json({ message: "Invalid or expired share token." });
+      if (new Date() > new Date(sharingRecord.expiresAt))
+        return res.status(403).json({ message: "Share token has expired." });
+    } else if (uid) {
+      // Fallback: see if user is a planner for this venue
+      sharingRecord = await Sharing.findOne({ planner_id: uid, venue_id });
+    }
+    console.log("sharingRecord: ", sharingRecord);
+    if (sharingRecord) {
+      // Planner detection
+      if (uid && sharingRecord.planner_id === uid) isPlanner = true;
+      console.log("uid and isPlanner", uid, isPlanner)
+      // RSVP counts
+      const rsvpCountsAgg = await RSVP.aggregate([
+        { $match: { sharing_id: sharingRecord._id } },
+        { $group: { _id: "$response", count: { $sum: 1 } } }
+      ]);
+      rsvpCountsAgg.forEach(({ _id, count }) => {
+        if (["yes", "no", "maybe"].includes(_id)) {
+          rsvpCounts[_id] = count;
+        }
+      });
+      console.log(rsvpCounts);
+
+      const countTest = await RSVP.countDocuments({ sharing_id: sharingRecord._id });
+      console.log("Raw count for sharing_id:", countTest);
+
+      const debugRsvps = await RSVP.find({ sharing_id: sharingRecord._id });
+      console.log("RSVPs found for sharing_id:", debugRsvps);
+
+      // RSVP status
+      if (uid && !isPlanner) {
+        const rsvp = await RSVP.findOne({ sharing_id: sharingRecord._id, uid });
+        rsvpStatus = rsvp?.response || null;
+      } else if (guestId) {
+        const rsvp = await RSVP.findOne({ sharing_id: sharingRecord._id, guestId });
+        rsvpStatus = rsvp?.response || null;
       }
 
       return res.status(200).json({
         venue,
         rsvpStatus,
-        shared: true,
+        rsvpCounts,
+        shared: Boolean(share),
         isPlanner
       });
     }
 
-    // If user is logged in (not via share), fetch personalized score
+    // If user is not the planner and not accessing via shareToken,
+    // check if they previously RSVP'd via any sharing link for this venue.
+    if (uid && !isPlanner && !share) {
+      const pastRsvp = await RSVP.findOne({
+        uid,
+        sharing_id: {
+          $in: (await Sharing.find({ venue_id }, { _id: 1 })).map(doc => doc._id)
+        }
+      });
+      rsvpStatus = pastRsvp?.response || null;
+
+      console.log(rsvpStatus)
+    }
+
+    // If no sharing context at all (e.g. discover/browse only)
     const userScore = uid ? await UserVenueScore.findOne({ uid, venue_id }) : null;
 
     return res.status(200).json({
       venue,
       priorityScore: userScore?.priorityScore || "N/A",
       scoreBreakdown: userScore?.scoreBreakdown || null,
-      rsvpCounts,
       rsvpStatus,
+      rsvpCounts: { yes: 0, no: 0, maybe: 0 },
       shared: false,
-      isPlanner
+      isPlanner: false
     });
-    
 
   } catch (err) {
     console.error("Error in venue details route:", err);
@@ -481,12 +515,12 @@ router.get("/share/:token", async (req, res) => {
     if (!record) return res.status(404).send("Invalid or expired link");
 
     if (new Date() > new Date(record.expiresAt)) {
+      await Sharing.deleteOne({ token }); // Auto-remove expired
       return res.status(403).send("This link has expired.");
     }
 
     const redirectUrl = `${process.env.FRONTEND_URL}/venue/${record.venue_id}?share=${token}`;
     return res.redirect(302, redirectUrl);
-
   } catch (err) {
     console.error("Error resolving shared link:", err);
     return res.status(500).send("Server error");

@@ -109,7 +109,7 @@ const ChatAssistant = ({ closeChat }) => {
       const actualVenue = fetchVenue.data;
       await saveChatHistoryToDB(); // Save before navigating
       closeChat();
-      navigate("/venue-detail", { state: { venue: actualVenue } });
+      navigate("/venue-detail", { state: { venue_id: actualVenue.venue_id } });
     } catch (error) {
       console.error("❌ Failed to fetch venue details:", error);
       showToast("Failed to load venue details. Please try again.", "error");
