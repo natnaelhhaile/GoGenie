@@ -16,7 +16,7 @@ export const isValidSearchQuery = (query) =>
 
 // City/state/industry: letters, spaces, basic punctuation (e.g., "San José", "Tech/IT")
 export const isValidTextField = (text) =>
-    typeof text === "string" && /^[\p{L}\p{N}\/&(),.'\-\s]{2,100}$/u.test(text.trim());
+    typeof text === "string" && /^[\p{L}\p{N}\/&(),.?'!:\-\s]{2,100}$/u.test(text.trim());
 
 // Address: letters, numbers, punctuation and spaces (e.g., "123 Main St, Apt 4B")
 export const isValidAddress = (text) =>

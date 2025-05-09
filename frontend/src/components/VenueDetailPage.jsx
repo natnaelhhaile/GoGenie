@@ -59,6 +59,10 @@ const VenueDetailPage = () => {
   const [copied, setCopied] = useState(false);
   const [isPlanner, setIsPlanner] = useState(false);
   const [shared, setIsShared] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [newReview, setNewReview] = useState("");
+  const [newRating, setNewRating] = useState(5);
+  const [combinedRating, setCombinedRating] = useState(null);
 
   useEffect(() => {
     if (!isValidVenueId(effectiveVenueId)) {
@@ -204,6 +208,24 @@ const VenueDetailPage = () => {
     }
   };
 
+  const handleSubmitReview = async () => {
+    if (!user) return showToast("⚠️ Please log in to leave a review.", "info");
+    try {
+      const res = await axiosInstance.post("/api/reviews", {
+        venue_id: venue.venue_id,
+        rating: newRating,
+        comment: newReview
+      });
+      setReviews([res.data, ...reviews]);
+      setNewReview("");
+      setNewRating(5);
+      showToast("✅ Review submitted!", "success");
+    } catch (err) {
+      console.error("Error submitting review:", err);
+      showToast("Failed to submit review.", "error");
+    }
+  }
+
   if (!venue) return null;
 
   const address =
@@ -277,7 +299,7 @@ const VenueDetailPage = () => {
           </p>
           <p>
             <span className="label">Rating:</span>
-            <span className="rating-value">⭐ {rating}</span>
+            <span className="rating-value">⭐ {combinedRating}</span>
           </p>
           <p>
             <span className="label">Popularity:</span>{" "}
@@ -331,6 +353,43 @@ const VenueDetailPage = () => {
             <p className="no-tips">No tips available yet.</p>
           )}
         </div>
+
+        {/* Reviews section to let users review venue */}
+        <div className="section-title">User Reviews</div>
+        <div className="reviews-section">
+          {reviews.length > 0 ? (
+            reviews.map((review, idx) => (
+              <div className="review-card" key={idx}>
+                <p className="tip-text">"{review.comment}"</p>
+                <p className="tip-date"> 🕒 {new Date(review.createdAt).toLocaleDateString()}</p>
+                <p className="tip-date">{review.userName} ⭐ {review.rating}</p>
+              </div>
+            ))
+          ) : (
+            <p className="no-tips">No reviews yet.</p>
+          )}
+
+          {/* Review Form */}
+          <div className="review-card">
+            <textarea
+              value={newReview}
+              onChange={(e) => setNewReview(e.target.value)}
+              placeholder="Leave a comment..."
+              rows={3}
+              
+            />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
+              <select value={newRating} onChange={(e) => setNewRating(Number(e.target.value))}>
+                {[1, 2, 3, 4, 5].map(num => (
+                  <option key={num} value={num}>⭐ {num}</option>
+                ))}
+              </select>
+              <button onClick={handleSubmitReview} className="submit-review-button">Submit Review</button>
+            </div>
+
+          </div>
+        </div>
+
 
         <div className="section-title">Hours</div>
         <div className="placeholder-box">

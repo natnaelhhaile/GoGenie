@@ -50,6 +50,7 @@ const ProfilePage = () => {
     try {
       await auth.signOut();
       localStorage.removeItem("sessionStart");
+      localStorage.removeItem("chatHistory");
       showToast("👋 Signed out successfully", "success");
       navigate("/login");
     } catch (error) {
