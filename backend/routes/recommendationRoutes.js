@@ -485,7 +485,7 @@ router.get("/details/:venue_id", optionalVerifyFirebase, async (req, res) => {
 
       console.log(rsvpStatus)
     }
-
+    
     // If no sharing context at all (e.g. discover/browse only)
     const userScore = uid ? await UserVenueScore.findOne({ uid, venue_id }) : null;
 

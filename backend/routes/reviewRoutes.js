@@ -1,15 +1,16 @@
 import express from "express";
 import Review from "../models/Review.js";
-import verifyFirebaseToken from "../middleware/firebaseAuth.js";
+import { verifyFirebaseToken } from "../middleware/firebaseAuth.js";
 import Preferences from "../models/Preferences.js"; 
 import Recommendation from "../models/Recommendation.js";
+import { VectorStoreFilesPage } from "openai/resources/vector-stores/files.mjs";
 
 const router = express.Router();
 
 // GET reviews for a venue and calculate average rating
 // This endpoint retrieves reviews for a specific venue and calculates the average rating based on user reviews and Foursquare ratings.
 
-router.get("/:venue_id", async (req, res) => {
+router.get("/:venue_id", verifyFirebaseToken, async (req, res) => {
     const { venue_id } = req.params;
   
     const reviews = await Review.find({ venue_id });

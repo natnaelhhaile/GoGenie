@@ -111,6 +111,21 @@ const VenueDetailPage = () => {
     fetchVenueDetails();
   }, [effectiveVenueId, shareToken, user, guestId, navigate, showToast]);
 
+  // fetch reviews from the backend
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const res = await axiosInstance.get(`/api/reviews/${venue.venue_id}`);
+        setReviews(res.data.reviews);
+        setCombinedRating(res.data.avgRating || "No rating available");
+
+      } catch (err) {
+        console.error("Error fetching reviews:", err);
+      }
+    };
+    if (venue?.venue_id) fetchReviews();
+  }, [venue]);
+
   useEffect(() => {
     if (!user || !venue) return;
     axiosInstance
@@ -219,7 +234,7 @@ const VenueDetailPage = () => {
       setReviews([res.data, ...reviews]);
       setNewReview("");
       setNewRating(5);
-      showToast("✅ Review submitted!", "success");
+      showToast("Review submitted!", "success");
     } catch (err) {
       console.error("Error submitting review:", err);
       showToast("Failed to submit review.", "error");
@@ -370,7 +385,7 @@ const VenueDetailPage = () => {
           )}
 
           {/* Review Form */}
-          <div className="review-card">
+          {user && (<div className="review-card">
             <textarea
               value={newReview}
               onChange={(e) => setNewReview(e.target.value)}
@@ -387,7 +402,7 @@ const VenueDetailPage = () => {
               <button onClick={handleSubmitReview} className="submit-review-button">Submit Review</button>
             </div>
 
-          </div>
+          </div>)}
         </div>
 
 
@@ -432,7 +447,8 @@ const VenueDetailPage = () => {
           </div>
         )}
 
-        <div className="section-title">RSVP</div>
+        {(isSharedView || isPlanner || rsvpStatus) && 
+        (<div className="section-title">RSVP</div>)}
         {(isSharedView || isPlanner || rsvpStatus) && (
           <div className="rsvp-section">
 
