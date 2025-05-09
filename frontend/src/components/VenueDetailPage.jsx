@@ -59,10 +59,14 @@ const VenueDetailPage = () => {
   const [copied, setCopied] = useState(false);
   const [isPlanner, setIsPlanner] = useState(false);
   const [shared, setIsShared] = useState(false);
-  const [reviews, setReviews] = useState([]);
-  const [newReview, setNewReview] = useState("");
-  const [newRating, setNewRating] = useState(5);
+   // review states
+   const [reviews, setReviews] = useState([]);
+   const [newReview, setNewReview] = useState("");
+   const [newRating, setNewRating] = useState(5);
   const [combinedRating, setCombinedRating] = useState(null);
+
+
+  
 
   useEffect(() => {
     if (!isValidVenueId(effectiveVenueId)) {
