@@ -188,7 +188,7 @@ const Search = () => {
             <VenueCard
               key={venue.venue_id}
               venue={venue}
-              onClick={() => navigate("/venue-detail", { state: { venue } })}
+              onClick={() => navigate("/venue-detail", { state: { venue_id: venue.venue_id } })}
               showFavoriteIcon={false}
             />
           ))

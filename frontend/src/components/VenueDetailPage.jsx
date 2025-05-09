@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { FaThumbsUp, FaThumbsDown } from "react-icons/fa6";
 import { IoHeartOutline, IoHeart, IoShareOutline } from "react-icons/io5";
+import { FaStar } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../api/axiosInstance";
 import BottomNav from "../components/BottomNav";
@@ -16,6 +17,13 @@ import { useToast } from "../context/ToastContext";
 import { isValidVenueId, isValidFeedbackType } from "../utils/validators";
 import fallbackImage from "../assets/no-image.jpg";
 import "./VenueDetailPage.css";
+
+const FullPageLoader = ({ message = "Loading..." }) => (
+  <div className="loading-container">
+    <div className="loading-spinner" />
+    <p>{message}</p>
+  </div>
+);
 
 const VenueDetailPage = () => {
   const navigate = useNavigate();
@@ -59,14 +67,14 @@ const VenueDetailPage = () => {
   const [copied, setCopied] = useState(false);
   const [isPlanner, setIsPlanner] = useState(false);
   const [shared, setIsShared] = useState(false);
-   // review states
-   const [reviews, setReviews] = useState([]);
-   const [newReview, setNewReview] = useState("");
-   const [newRating, setNewRating] = useState(5);
+  const [reviews, setReviews] = useState([]);
+  const [newReview, setNewReview] = useState("");
+  const [newRating, setNewRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
   const [combinedRating, setCombinedRating] = useState(null);
-
-
-  
+  const [globalLoading, setGlobalLoading] = useState(true);
+  const [rsvpSubmitting, setRsvpSubmitting] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isValidVenueId(effectiveVenueId)) {
@@ -74,12 +82,10 @@ const VenueDetailPage = () => {
       navigate("/dashboard");
       return;
     }
-
-    if (shareToken) {
-      localStorage.setItem("shareToken", shareToken);
-    }
+    if (shareToken) localStorage.setItem("shareToken", shareToken);
 
     const fetchVenueDetails = async () => {
+      setGlobalLoading(true);
       try {
         const res = await axiosInstance.get(
           `/api/recommendations/details/${effectiveVenueId}`,
@@ -90,7 +96,6 @@ const VenueDetailPage = () => {
             },
           }
         );
-
         const v = res.data.venue || res.data;
         setVenue(v);
         setRating(v.rating || "N/A");
@@ -109,6 +114,8 @@ const VenueDetailPage = () => {
         console.error("Error fetching venue:", err);
         showToast("Failed to load venue", "error");
         navigate("/dashboard");
+      } finally {
+        setGlobalLoading(false);
       }
     };
 
@@ -122,7 +129,6 @@ const VenueDetailPage = () => {
         const res = await axiosInstance.get(`/api/reviews/${venue.venue_id}`);
         setReviews(res.data.reviews);
         setCombinedRating(res.data.avgRating || "No rating available");
-
       } catch (err) {
         console.error("Error fetching reviews:", err);
       }
@@ -191,7 +197,7 @@ const VenueDetailPage = () => {
   const handleRSVP = async (response) => {
     if (!isValidVenueId(venue?.venue_id))
       return showToast("Invalid venue ID.", "error");
-    setLoading(true);
+    setRsvpSubmitting(true);
     try {
       const url = user ? "/api/users/rsvp" : "/api/users/rsvp/guest";
       const payload = {
@@ -207,7 +213,7 @@ const VenueDetailPage = () => {
       console.error("RSVP error:", err);
       showToast(user ? "Failed sending RSVP" : "Failed sending guest RSVP", "error");
     } finally {
-      setLoading(false);
+      setRsvpSubmitting(false);
     }
   };
 
@@ -229,11 +235,12 @@ const VenueDetailPage = () => {
 
   const handleSubmitReview = async () => {
     if (!user) return showToast("⚠️ Please log in to leave a review.", "info");
+    setReviewSubmitting(true);
     try {
       const res = await axiosInstance.post("/api/reviews", {
         venue_id: venue.venue_id,
         rating: newRating,
-        comment: newReview
+        comment: newReview,
       });
       setReviews([res.data, ...reviews]);
       setNewReview("");
@@ -242,10 +249,12 @@ const VenueDetailPage = () => {
     } catch (err) {
       console.error("Error submitting review:", err);
       showToast("Failed to submit review.", "error");
+    } finally {
+      setReviewSubmitting(false);
     }
-  }
+  };
 
-  if (!venue) return null;
+  if (globalLoading || rsvpSubmitting) return <FullPageLoader message={rsvpSubmitting ? "Submitting RSVP..." : "Loading venue..."} />;
 
   const address =
     venue?.location?.formattedAddress ||
@@ -363,7 +372,7 @@ const VenueDetailPage = () => {
         <div className="reviews-section">
           {tips.length > 0 ? (
             tips.map((tip, index) => (
-              <div className="review-card" key={index}>
+              <div className="tips-card" key={index}>
                 <p className="tip-text">"{tip.text}"</p>
                 <p className="tip-date">🕒 {new Date(tip.created_at).toLocaleDateString()}</p>
               </div>
@@ -376,37 +385,61 @@ const VenueDetailPage = () => {
         {/* Reviews section to let users review venue */}
         <div className="section-title">User Reviews</div>
         <div className="reviews-section">
-          {reviews.length > 0 ? (
-            reviews.map((review, idx) => (
-              <div className="review-card" key={idx}>
-                <p className="tip-text">"{review.comment}"</p>
-                <p className="tip-date"> 🕒 {new Date(review.createdAt).toLocaleDateString()}</p>
-                <p className="tip-date">{review.userName} ⭐ {review.rating}</p>
+          {reviews.map((review, idx) => (
+            <div className="review-card" key={idx}>
+              <div className="review-top">
+                <span className="review-author">{review.userName}</span>
+                <div className="review-stars">
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <FaStar
+                      key={num}
+                      className={`star ${num <= review.rating ? "filled" : ""}`}
+                    />
+                  ))}
+                  <span className="numeric-rating">({review.rating})</span>
+                </div>
               </div>
-            ))
-          ) : (
-            <p className="no-tips">No reviews yet.</p>
-          )}
+              <p className="review-text">"{review.comment}"</p>
+              <p className="review-date">🕒 {new Date(review.createdAt).toLocaleDateString()}</p>
+            </div>
+          ))}
+
 
           {/* Review Form */}
-          {user && (<div className="review-card">
-            <textarea
-              value={newReview}
-              onChange={(e) => setNewReview(e.target.value)}
-              placeholder="Leave a comment..."
-              rows={3}
-              
-            />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
-              <select value={newRating} onChange={(e) => setNewRating(Number(e.target.value))}>
-                {[1, 2, 3, 4, 5].map(num => (
-                  <option key={num} value={num}>⭐ {num}</option>
-                ))}
-              </select>
-              <button onClick={handleSubmitReview} className="submit-review-button">Submit Review</button>
-            </div>
+          {user && (
+            <div className="review-card">
+              <div className="review-header">
+                <label htmlFor="rating">Your Rating:</label>
+                <div className="star-rating">
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <FaStar
+                      key={num}
+                      className={`star ${num <= (hoverRating || newRating) ? "filled" : ""}`}
+                      onMouseEnter={() => setHoverRating(num)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setNewRating(num)}
+                      title={`Rate ${num} star${num > 1 ? "s" : ""}`}
+                    />
+                  ))}
+                </div>
+              </div>
 
-          </div>)}
+              <textarea
+                value={newReview}
+                onChange={(e) => setNewReview(e.target.value)}
+                placeholder="Leave a comment..."
+                rows={3}
+              />
+
+              <button
+                onClick={handleSubmitReview}
+                className="submit-review-button"
+                disabled={reviewSubmitting}
+              >
+                {reviewSubmitting ? "Submitting..." : "Submit Review"}
+              </button>
+            </div>
+          )}
         </div>
 
 

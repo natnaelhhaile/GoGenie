@@ -12,14 +12,14 @@ const ProtectedRoute = () => {
 
   if (authLoading) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
-        <div className="spinner" />
+      <div className="loading-container">
+        <div className="loading-spinner" />
         <p>Checking authentication...</p>
       </div>
     );
   }
 
-  // ✅ Allow access if user is logged in or it's a shared venue detail link
+  // Allow access if user is logged in or it's a shared venue detail link
   return user || isSharedLink ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
