@@ -39,6 +39,8 @@ const VenueDetailPage = () => {
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState("");
   const [newRating, setNewRating] = useState(5);
+  const [combinedRating, setCombinedRating] = useState(null);
+
 
 
 
@@ -61,7 +63,9 @@ const VenueDetailPage = () => {
     const fetchReviews = async () => {
       try {
         const res = await axiosInstance.get(`/api/reviews/${venue.venue_id}`);
-        setReviews(res.data);
+        setReviews(res.data.reviews);
+        setCombinedRating(res.data.avgRating || "No rating available");
+
       } catch (err) {
         console.error("Error fetching reviews:", err);
       }
@@ -203,7 +207,7 @@ const VenueDetailPage = () => {
             </span>
           </p>
           <p><span className="label">City:</span> {venue.location?.locality || "Unknown City"}</p>
-          <p><span className="label">Rating:</span><span className="rating-value">⭐ {rating}</span></p>
+          <p><span className="label">Rating:</span><span className="rating-value">⭐ {combinedRating}</span></p>
           <p><span className="label">Popularity:</span> {popularity ? `${(popularity * 100).toFixed(0)}%` : "N/A"}</p>
           <p><span className="label">Stats:</span> {stats.total_ratings} ratings, {stats.total_tips} tips, {stats.total_photos} photos</p>
 
@@ -253,7 +257,8 @@ const VenueDetailPage = () => {
             reviews.map((review, idx) => (
               <div className="review-card" key={idx}>
                 <p className="tip-text">"{review.comment}"</p>
-                <p className="tip-date">⭐ {review.rating} by {review.userName} on {new Date(review.createdAt).toLocaleDateString()}</p>
+                <p className="tip-date"> 🕒 {new Date(review.createdAt).toLocaleDateString()}</p>
+                <p className="tip-date">{review.userName} ⭐ {review.rating}</p>
               </div>
             ))
           ) : (
@@ -267,14 +272,17 @@ const VenueDetailPage = () => {
               onChange={(e) => setNewReview(e.target.value)}
               placeholder="Leave a comment..."
               rows={3}
-              style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
+              
             />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
               <select value={newRating} onChange={(e) => setNewRating(Number(e.target.value))}>
-                {[1, 2, 3, 4, 5].map(num => <option key={num} value={num}>{num} Star{num > 1 ? "s" : ""}</option>)}
+                {[1, 2, 3, 4, 5].map(num => (
+                  <option key={num} value={num}>⭐ {num}</option>
+                ))}
               </select>
-              <button onClick={handleSubmitReview} className="favorite-button">Submit</button>
+              <button onClick={handleSubmitReview} className="submit-review-button">Submit Review</button>
             </div>
+
           </div>
         </div>
 
