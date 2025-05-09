@@ -228,9 +228,33 @@
   border-color: #3f5a5b;
 }
 
+/* Emoji style  */
+.emoji-rating {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.emoji-star {
+  font-size: 24px;
+  cursor: pointer;
+  color: #ccc;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.emoji-star.filled {
+  color: #f5b301;
+}
+
+.emoji-star:hover {
+  transform: scale(1.2);
+}
+
+
+
 /* Submit Button */
 .submit-review-button {
-  background-color: #3f5a5b;
+  background-color: #8a2be2;
   color: #fff;
   font-size: 14px;
   padding: 8px 14px;
@@ -241,7 +265,11 @@
 }
 
 .submit-review-button:hover {
-  background-color: #2c4041;
+  transform: scale(1.01);
+}
+.submit-review-button:active {
+  color: #8a2be2;
+  background-color: #f3e9ff;
 }
 
 
@@ -261,6 +289,23 @@
   color: #999;
   text-align: center;
 }
+
+.helpful-button {
+  margin-top: 6px;
+  background-color: #e0f7e9;
+  color: #2e7d32;
+  font-size: 13px;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.helpful-button:hover {
+  background-color: #c8e6c9;
+}
+
 
 textarea {
   border: 1px solid #ccc;

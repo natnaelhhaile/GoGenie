@@ -7,6 +7,8 @@ import {
 } from "react-router-dom";
 import { FaThumbsUp, FaThumbsDown } from "react-icons/fa6";
 import { IoHeartOutline, IoHeart, IoShareOutline } from "react-icons/io5";
+import { CiStar } from "react-icons/ci";
+import { FaStar } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../api/axiosInstance";
 import BottomNav from "../components/BottomNav";
@@ -59,14 +61,16 @@ const VenueDetailPage = () => {
   const [copied, setCopied] = useState(false);
   const [isPlanner, setIsPlanner] = useState(false);
   const [shared, setIsShared] = useState(false);
-   // review states
-   const [reviews, setReviews] = useState([]);
-   const [newReview, setNewReview] = useState("");
-   const [newRating, setNewRating] = useState(5);
+  // review states
+  const [reviews, setReviews] = useState([]);
+  const [newReview, setNewReview] = useState("");
+  const [newRating, setNewRating] = useState(null);
   const [combinedRating, setCombinedRating] = useState(null);
+  const [hoverRating, setHoverRating] = useState(null);
 
 
-  
+
+
 
   useEffect(() => {
     if (!isValidVenueId(effectiveVenueId)) {
@@ -237,13 +241,29 @@ const VenueDetailPage = () => {
       });
       setReviews([res.data, ...reviews]);
       setNewReview("");
-      setNewRating(5);
+      setNewRating(null);
       showToast("Review submitted!", "success");
     } catch (err) {
       console.error("Error submitting review:", err);
       showToast("Failed to submit review.", "error");
     }
   }
+
+  const handleHelpfulVote = async (reviewId, index) => {
+    try {
+      const res = await axiosInstance.post("/api/reviews/helpful", { reviewId });
+      const updatedReviews = [...reviews];
+      updatedReviews[index].helpfulVotes = [
+        ...(updatedReviews[index].helpfulVotes || []),
+        user.uid
+      ];
+      updatedReviews[index].votedHelpful = true; // frontend flag to disable button
+      setReviews(updatedReviews);
+    } catch (err) {
+      showToast("You already marked this as helpful.", "info");
+    }
+  };
+
 
   if (!venue) return null;
 
@@ -382,6 +402,14 @@ const VenueDetailPage = () => {
                 <p className="tip-text">"{review.comment}"</p>
                 <p className="tip-date"> 🕒 {new Date(review.createdAt).toLocaleDateString()}</p>
                 <p className="tip-date">{review.userName} ⭐ {review.rating}</p>
+
+                <button
+                  onClick={() => handleHelpfulVote(review._id, idx)}
+                  className="helpful-button"
+                  disabled={review.votedHelpful}
+                >
+                  ✅ Helpful ({review.helpfulVotes?.length || 0})
+                </button>
               </div>
             ))
           ) : (
@@ -395,18 +423,55 @@ const VenueDetailPage = () => {
               onChange={(e) => setNewReview(e.target.value)}
               placeholder="Leave a comment..."
               rows={3}
-              
+              style={{ width: "100%", padding: "8px", borderRadius: "6px" }}
             />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
-              <select value={newRating} onChange={(e) => setNewRating(Number(e.target.value))}>
-                {[1, 2, 3, 4, 5].map(num => (
-                  <option key={num} value={num}>⭐ {num}</option>
-                ))}
-              </select>
-              <button onClick={handleSubmitReview} className="submit-review-button">Submit Review</button>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: "10px",
+                flexWrap: "wrap",
+                gap: "12px",
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <div className="emoji-rating">
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const isActive = hoverRating
+                      ? star <= hoverRating
+                      : newRating && star <= newRating;
+
+                    return (
+                      <span
+                        key={star}
+                        className={`emoji-star ${isActive ? "filled" : ""}`}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(null)}
+                        onClick={() => setNewRating(star)}
+                      >
+                        {isActive ? <FaStar /> : <CiStar />}
+                      </span>
+                    );
+                  })}
+                </div>
+
+
+
+                {newRating && (
+                  <p style={{ fontSize: "13px", color: "#555", marginTop: "4px" }}>
+                    You rated: <strong>{newRating}</strong> star{newRating > 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
+
+              <button onClick={handleSubmitReview} className="submit-review-button">
+                Submit Review
+              </button>
             </div>
 
-          </div>)}
+          </div>
+          )}
         </div>
 
 
@@ -414,8 +479,8 @@ const VenueDetailPage = () => {
         <div className="placeholder-box">
           {typeof hours === "string"
             ? hours
-                .split(";")
-                .map((line, idx) => <div key={idx}>{line.trim()}</div>)
+              .split(";")
+              .map((line, idx) => <div key={idx}>{line.trim()}</div>)
             : "Hours not available."}
         </div>
 
@@ -451,43 +516,43 @@ const VenueDetailPage = () => {
           </div>
         )}
 
-        {(isSharedView || isPlanner || rsvpStatus) && 
-        (<div className="section-title">RSVP</div>)}
+        {(isSharedView || isPlanner || rsvpStatus) &&
+          (<div className="section-title">RSVP</div>)}
         {(isSharedView || isPlanner || rsvpStatus) && (
           <div className="rsvp-section">
 
-          {(isSharedView || rsvpStatus) && (
-            <div className="rsvp-response-section">
-              {!rsvpStatus ? (
-                <>
-                  <button onClick={() => handleRSVP("yes")} disabled={loading}>
-                    Yes
-                  </button>
-                  <button onClick={() => handleRSVP("no")} disabled={loading}>
-                    No
-                  </button>
-                  <button onClick={() => handleRSVP("maybe")} disabled={loading}>
-                    Maybe
-                  </button>
-                </>
-              ) : (
-                <p>
-                  You Responded:&nbsp;
-                  {rsvpStatus === "yes"
-                    ? " 👍 Yes"
-                    : rsvpStatus === "no"
-                    ? " ❌ No"
-                    : " 🤔 Maybe"}
-                </p>
-              )}
-              {loading && (
-                <div className="loading-container">
-                  <div className="loading-spinner" />
-                  <p>Submitting your RSVP request...</p>
-                </div>
-              )}
-            </div>
-          )}
+            {(isSharedView || rsvpStatus) && (
+              <div className="rsvp-response-section">
+                {!rsvpStatus ? (
+                  <>
+                    <button onClick={() => handleRSVP("yes")} disabled={loading}>
+                      Yes
+                    </button>
+                    <button onClick={() => handleRSVP("no")} disabled={loading}>
+                      No
+                    </button>
+                    <button onClick={() => handleRSVP("maybe")} disabled={loading}>
+                      Maybe
+                    </button>
+                  </>
+                ) : (
+                  <p>
+                    You Responded:&nbsp;
+                    {rsvpStatus === "yes"
+                      ? " 👍 Yes"
+                      : rsvpStatus === "no"
+                        ? " ❌ No"
+                        : " 🤔 Maybe"}
+                  </p>
+                )}
+                {loading && (
+                  <div className="loading-container">
+                    <div className="loading-spinner" />
+                    <p>Submitting your RSVP request...</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {isPlanner && (
               <p>

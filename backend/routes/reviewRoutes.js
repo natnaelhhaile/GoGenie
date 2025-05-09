@@ -53,4 +53,23 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
   }
 });
 
+// Post helpful votes
+router.post("/helpful", verifyFirebaseToken, async (req, res) => {
+  const { reviewId } = req.body;
+  const uid = req.user.uid;
+
+  const review = await Review.findById(reviewId);
+  if (!review) return res.status(404).json({ error: "Review not found" });
+
+  if (review.helpfulVotes.includes(uid)) {
+    return res.status(400).json({ error: "You already marked this review as helpful." });
+  }
+
+  review.helpfulVotes.push(uid);
+  await review.save();
+
+  res.status(200).json({ message: "Marked as helpful", count: review.helpfulVotes.length });
+});
+
+
 export default router;
