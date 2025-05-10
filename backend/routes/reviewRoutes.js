@@ -60,7 +60,7 @@ router.post("/helpful", verifyFirebaseToken, async (req, res) => {
   if (!review) return res.status(404).json({ error: "Review not found" });
 
   if (review.helpfulVotes.includes(uid)) {
-    return res.status(400).json({ error: "You already marked this review as helpful." });
+    return res.status(204).json({ message: "You already marked this review as helpful." });
   }
 
   review.helpfulVotes.push(uid);

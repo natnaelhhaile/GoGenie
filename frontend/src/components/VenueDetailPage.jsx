@@ -257,6 +257,10 @@ const VenueDetailPage = () => {
   const handleHelpfulVote = async (reviewId, index) => {
     try {
       const res = await axiosInstance.post("/api/reviews/helpful", { reviewId });
+      if (res.status === 204) {
+        showToast("You already marked this as helpful.", "info");
+        return;
+      }
       const updatedReviews = [...reviews];
       updatedReviews[index].helpfulVotes = [
         ...(updatedReviews[index].helpfulVotes || []),
@@ -265,7 +269,8 @@ const VenueDetailPage = () => {
       updatedReviews[index].votedHelpful = true; // frontend flag to disable button
       setReviews(updatedReviews);
     } catch (err) {
-      showToast("You already marked this as helpful.", "info");
+      showToast("Something went wrong.", "error");
+      return;
     }
   };
 

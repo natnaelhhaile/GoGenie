@@ -67,7 +67,7 @@ router.post("/venue-assistant", verifyFirebaseToken, async (req, res) => {
     }
 
     const userPreferences = await Preferences.findOne({ uid });
-    const recommendedVenues = await Recommendation.find({ users: { $in: [uid] } }).limit(10);
+    const recommendedVenues = await Recommendation.find({ users: { $in: [uid] } }).limit(30);
 
     if (!userPreferences || recommendedVenues.length === 0) {
       return res.status(404).json({ error: "User or recommendations not found" });

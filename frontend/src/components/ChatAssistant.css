@@ -36,6 +36,7 @@
   background-color: #f8f9fa;
   border-bottom: 1px solid #ccc;
   min-height: 0; /* Fixes overflow behavior inside flex container */
+  text-align: center;
 }
 
 .chat-message {
@@ -52,12 +53,14 @@
   background-color: #dcf8c6;
   align-self: flex-end;
   color: #333;
+  text-align: left !important;
 }
 
 .chat-message.assistant {
   background-color: #f1f0f0;
   align-self: flex-start;
   color: #333;
+  text-align: left !important;
 }
 
 .chat-input-group {
