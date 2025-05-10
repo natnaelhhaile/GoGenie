@@ -6,6 +6,10 @@ const reviewSchema = new mongoose.Schema({
     userName: { type: String, required: true },
     rating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String, maxlength: 500 },
+    helpfulVotes: {
+        type: [String], // array of user IDs who found it helpful
+        default: [],
+    },
     createdAt: { type: Date, default: Date.now }
 });
 

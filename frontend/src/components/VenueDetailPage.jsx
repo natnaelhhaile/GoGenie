@@ -254,6 +254,21 @@ const VenueDetailPage = () => {
     }
   };
 
+  const handleHelpfulVote = async (reviewId, index) => {
+    try {
+      const res = await axiosInstance.post("/api/reviews/helpful", { reviewId });
+      const updatedReviews = [...reviews];
+      updatedReviews[index].helpfulVotes = [
+        ...(updatedReviews[index].helpfulVotes || []),
+        user.uid
+      ];
+      updatedReviews[index].votedHelpful = true; // frontend flag to disable button
+      setReviews(updatedReviews);
+    } catch (err) {
+      showToast("You already marked this as helpful.", "info");
+    }
+  };
+
   if (globalLoading || rsvpSubmitting) return <FullPageLoader message={rsvpSubmitting ? "Submitting RSVP..." : "Loading venue..."} />;
 
   const address =
@@ -388,7 +403,9 @@ const VenueDetailPage = () => {
           {reviews.map((review, idx) => (
             <div className="review-card" key={idx}>
               <div className="review-top">
-                <span className="review-author">{review.userName}</span>
+                <span className="review-author">
+                  {user && (review.uid === user.uid) ? "Your Rating" : (review.userName)}
+                </span>
                 <div className="review-stars">
                   {[1, 2, 3, 4, 5].map((num) => (
                     <FaStar
@@ -401,6 +418,13 @@ const VenueDetailPage = () => {
               </div>
               <p className="review-text">"{review.comment}"</p>
               <p className="review-date">🕒 {new Date(review.createdAt).toLocaleDateString()}</p>
+              <button
+                  onClick={() => handleHelpfulVote(review._id, idx)}
+                  className="helpful-button"
+                  disabled={review.votedHelpful}
+                >
+                  ✅ Helpful ({review.helpfulVotes?.length || 0})
+              </button>
             </div>
           ))}
 

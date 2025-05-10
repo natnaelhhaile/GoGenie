@@ -181,6 +181,7 @@
 }
 
 /* Reviews Section */
+/* Reviews Section */
 .reviews-section {
   display: flex;
   flex-direction: column;
@@ -205,6 +206,8 @@
   position: relative;
   font-size: 14px;
   color: #333;
+  display: flex;
+  flex-direction: column;
 }
 
 .review-top {
@@ -255,7 +258,7 @@
 }
 
 .review-card textarea {
-  width: 90%;
+  width: 93%;
   padding: 10px 12px;
   font-size: 14px;
   border-radius: 8px;
@@ -272,6 +275,24 @@
   border: 2px solid #ccc;
 }
 
+.helpful-button {
+  margin-top: 6px;
+  max-width: fit-content;
+  background-color: #e0f7e9;
+  color: #2e7d32;
+  font-size: 13px;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: left !important;
+}
+
+.helpful-button:hover {
+  background-color: #c8e6c9;
+}
+
 /* Submit Button */
 .submit-review-button {
   background-color: #8a2be2;
@@ -282,6 +303,7 @@
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  max-width: fit-content;
 }
 
 .submit-review-button:hover {
