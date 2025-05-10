@@ -421,7 +421,7 @@ const VenueDetailPage = () => {
               <button
                   onClick={() => handleHelpfulVote(review._id, idx)}
                   className="helpful-button"
-                  disabled={review.votedHelpful}
+                  disabled={review.votedHelpful || !user}
                 >
                   ✅ Helpful ({review.helpfulVotes?.length || 0})
               </button>
