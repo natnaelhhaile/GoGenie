@@ -79,7 +79,7 @@ const FavoritesPage = () => {
                 venue={venue}
                 isFavorite={true}
                 onToggleFavorite={() => handleRemoveFavorite(venue.venue_id)}
-                onClick={() => navigate("/venue-detail", { state: { venue } })}
+                onClick={() => navigate("/venue-detail", { state: { venue_id: venue.venue_id } })}
                 showFavoriteIcon
               />
             );

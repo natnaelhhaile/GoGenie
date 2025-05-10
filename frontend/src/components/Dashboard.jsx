@@ -309,7 +309,7 @@ const Dashboard = () => {
       <section className="places-section">
         {loading && recommendations.length === 0 ? (
           <div className="loading-container">
-            <div className="spinner" />
+            <div className="loading-spinner" />
             <p>Loading recommendations...</p>
           </div>
         ) : filteredRecommendations.length > 0 ? (
