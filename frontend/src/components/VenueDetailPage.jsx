@@ -518,9 +518,9 @@ const VenueDetailPage = () => {
         {(isSharedView || isPlanner || rsvpStatus) && (
           <div className="rsvp-section">
 
-          {(isSharedView || rsvpStatus) && (
+          {((isSharedView || rsvpStatus)  && !isPlanner) && (
             <div className="rsvp-response-section">
-              {!rsvpStatus ? (
+              {(!rsvpStatus) ? (
                 <>
                   <button onClick={() => handleRSVP("yes")} disabled={loading}>
                     Yes

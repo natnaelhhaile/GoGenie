@@ -80,7 +80,7 @@ const ProfilePage = () => {
 
         <div className="profile-settings">
           <button className="edit-btn" onClick={() => navigate("/forgot-password")}>
-            <IoKey /> Change Password
+            <IoKey /> Reset Password
           </button>
           <button className="edit-btn" onClick={() => navigate("/edit-profile")}>
             <IoCreate /> Edit Profile
