@@ -1,6 +1,6 @@
 # 🌟 GoGenie: AI-Powered Venue Recommendation Platform
 
-GoGenie is a full-stack web application designed to deliver personalized venue recommendations based on user preferences and real-time geolocation. By integrating machine learning insights and the Foursquare Places API, it offers curated suggestions for entertainment, dining, and lifestyle venues.
+GoGenie is a mobile-first full-stack web app designed to deliver personalized venue recommendations based on user preferences and real-time geolocation. By integrating machine learning insights and the Foursquare Places API, it offers curated suggestions for entertainment, dining, and lifestyle venues.
 
 ---
 
